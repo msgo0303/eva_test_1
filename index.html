@@ -2,99 +2,313 @@
 <html lang="ko">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>사용자 인식 및 등록</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>팀 활동 관리</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tg: {
+                            bg: '#ffffff',
+                            surface: '#f4f4f5',
+                            border: '#e4e4e7',
+                            text: '#18181b',
+                            muted: '#71717a',
+                            blue: '#2563eb',
+                            green: '#16a34a',
+                            red: '#dc2626',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        html,
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            padding: 20px;
-            background-color: #f5f5f7;
-            color: #333;
+            height: 100%;
+            overscroll-behavior: none;
+            margin: 0;
+            padding: 0;
         }
 
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        /* Status badges */
+        .badge-planned {
+            background: #dbeafe;
+            color: #1d4ed8;
         }
 
-        .status {
-            font-weight: bold;
-            margin-top: 10px;
+        .badge-completed {
+            background: #dcfce7;
+            color: #15803d;
         }
 
-        .success {
-            color: #2e7d32;
+        .badge-canceled {
+            background: #fee2e2;
+            color: #b91c1c;
         }
 
-        .form-group {
-            margin-top: 15px;
+        /* Bottom sheet & Modals */
+        #modal-overlay,
+        #reg-overlay {
+            display: none;
+            opacity: 0;
+            transition: opacity .3s ease;
         }
 
-        select,
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 8px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            font-size: 16px;
+        #modal-overlay.open,
+        #reg-overlay.open {
+            display: block;
+            opacity: 1;
         }
 
-        button {
-            background-color: #0088cc;
-            color: white;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
+        #modal-sheet,
+        #reg-sheet {
+            display: none;
+            transform: translateY(100%);
+            transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
         }
 
-        button:disabled {
-            background-color: #ccc;
+        #modal-sheet.open,
+        #reg-sheet.open {
+            display: flex;
+            transform: translateY(0);
+        }
+
+        /* Spinner */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            animation: spin .7s linear infinite;
+        }
+
+        /* Toast */
+        #toast {
+            display: none;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity .25s ease, transform .25s ease;
+        }
+
+        #toast.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Profile dropdown */
+        #profile-dropdown {
+            display: none;
+        }
+
+        #profile-dropdown.open {
+            display: block;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d4d4d8;
+            border-radius: 2px;
         }
     </style>
 </head>
 
-<body>
-    <div class="card">
-        <h2>📱 사용자 인증</h2>
-        <p id="my-id">내 ID 확인 중...</p>
-        <hr>
+<body class="font-sans bg-tg-surface text-tg-text select-none">
 
-        <!-- A. 이미 등록된 유저에게 보이는 화면 -->
-        <div id="screen-welcome" style="display: none;">
-            <p id="welcome-msg" class="status success"></p>
-            <p>미니앱 본문에 오신 것을 환영합니다!</p>
+    <!-- ═══════════════════════════════════════════════════════════
+     LOADING OVERLAY
+═══════════════════════════════════════════════════════════ -->
+    <div id="loading-overlay" class="fixed inset-0 z-50 bg-tg-bg flex flex-col items-center justify-center p-6">
+        <div class="w-10 h-10 border-4 border-tg-blue border-t-transparent rounded-full spinner mb-4"></div>
+        <p id="loading-text" class="text-sm font-semibold text-tg-muted">사용자 인증 확인 중...</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+     APP WRAPPER
+═══════════════════════════════════════════════════════════ -->
+    <div id="app" class="flex flex-col h-screen max-w-md mx-auto relative bg-tg-bg">
+
+        <!-- ── HEADER ─────────────────────────────────────────────── -->
+        <header class="sticky top-0 z-20 bg-tg-bg border-b border-tg-border px-4 pt-3 pb-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p id="hdr-region" class="text-xs text-tg-muted font-medium tracking-wide uppercase">-</p>
+                    <h1 id="hdr-team" class="text-lg font-bold leading-tight text-tg-text">팀 활동 관리</h1>
+                </div>
+
+                <!-- Profile Chip -->
+                <button id="profile-btn"
+                    class="flex items-center gap-2 bg-tg-surface rounded-full pl-3 pr-4 py-2 border border-tg-border">
+                    <span id="profile-avatar"
+                        class="w-8 h-8 rounded-full bg-tg-blue text-white text-xs font-bold flex items-center justify-center">?</span>
+                    <div class="text-left">
+                        <p id="profile-name-chip" class="text-xs font-semibold text-tg-text leading-none">확인중</p>
+                        <p id="profile-role-chip" class="text-[10px] text-tg-muted leading-none mt-0.5">-</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Profile Dropdown -->
+            <div id="profile-dropdown"
+                class="absolute right-4 top-full mt-1 bg-tg-bg border border-tg-border rounded-2xl shadow-xl p-4 z-30 w-56">
+                <p class="text-xs text-tg-muted mb-2 font-medium">내 프로필 정보</p>
+                <div class="space-y-1.5 text-sm">
+                    <div class="flex justify-between"><span class="text-tg-muted">지역</span><span id="pd-region"
+                            class="font-medium">-</span></div>
+                    <div class="flex justify-between"><span class="text-tg-muted">직책</span><span id="pd-role"
+                            class="font-medium">-</span></div>
+                    <div class="flex justify-between"><span class="text-tg-muted">이름</span><span id="pd-name"
+                            class="font-medium">-</span></div>
+                    <div class="flex justify-between"><span class="text-tg-muted">ID</span> <span id="pd-id"
+                            class="font-medium text-tg-blue text-xs">-</span></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ── DATE NAV ───────────────────────────────────────────── -->
+        <div class="flex items-center justify-between px-4 py-3 bg-tg-bg border-b border-tg-border">
+            <button id="btn-prev-day"
+                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-tg-surface text-tg-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                    stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+            </button>
+            <div class="text-center">
+                <p id="display-date" class="text-sm font-semibold text-tg-text"></p>
+                <p id="display-today" class="text-xs text-tg-muted h-4"></p>
+            </div>
+            <button id="btn-next-day"
+                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-tg-surface text-tg-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                    stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+            </button>
         </div>
 
-        <!-- B. 신규 유저에게 보이는 드롭다운 선택 화면 -->
-        <div id="screen-register" style="display: none;">
-            <p class="status">👋 등록된 명단에서 본인 이름을 선택해주세요.</p>
-            <div class="form-group">
-                <select id="user-select">
-                    <option value="">-- 이름을 선택하세요 --</option>
-                </select>
-                <button id="btn-register" onclick="submitRegistration()">등록하기</button>
+        <!-- ── MAIN CONTENT AREA ──────────────────────────────────── -->
+        <main
+            class="flex-1 overflow-y-auto px-4 pb-24 pt-4 bg-tg-surface flex flex-col items-center justify-center text-center">
+            <div class="w-16 h-16 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-8 h-8 text-tg-blue">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
             </div>
+            <h2 class="text-base font-bold text-tg-text">인증이 정상적으로 완료되었습니다!</h2>
+            <p class="text-xs text-tg-muted mt-1 max-w-[240px]">이 화면은 유저 식별 기능 연동 테스트용 메인 페이지입니다.</p>
+        </main>
+
+        <!-- ── TOAST ─────────────────────────────────────────────── -->
+        <div id="toast"
+            class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap">
+        </div>
+
+    </div><!-- /app -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+     REGISTRATION MODAL SHEET (신규 유저 등록 팝업)
+═══════════════════════════════════════════════════════════ -->
+    <div id="reg-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
+    <div id="reg-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-bg rounded-t-3xl shadow-2xl flex-col max-h-[90vh]">
+        <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
+            <div class="w-10 h-1 bg-tg-border rounded-full"></div>
+        </div>
+
+        <div class="px-5 pt-3 pb-4 border-b border-tg-border flex-shrink-0">
+            <h2 class="text-base font-bold text-tg-text">👋 사용자 첫 등록</h2>
+            <p class="text-xs text-tg-muted mt-0.5">명단에서 본인의 이름을 찾아 선택해 주세요.</p>
+        </div>
+
+        <div class="p-5 space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-tg-muted mb-1.5">사전 등록 명단 선택</label>
+                <select id="reg-user-select"
+                    class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue">
+                    <option value="">-- 명단을 불러오는 중... --</option>
+                </select>
+            </div>
+
+            <button id="btn-reg-submit" onclick="submitRegistration()"
+                class="w-full bg-tg-blue text-white rounded-xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2">
+                <svg id="reg-spinner" class="spinner w-4 h-4 hidden" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 3 5.373 3 12h1z"></path>
+                </svg>
+                <span id="reg-btn-label">내 정보로 등록하기</span>
+            </button>
         </div>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
 
-        // ⚠️ 본인의 GAS 웹앱 URL로 변경해 주세요.
+    <!-- ═══════════════════════════════════════════════════════════
+     TELEGRAM SDK & APP LOGIC
+═══════════════════════════════════════════════════════════ -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <script>
+        'use strict';
+
+        // ⚠️ 설정해주신 고유 GAS URL 주소
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwOnzceBFUvKYlqB0r-MBTYWC3jfv6ebqhuy2UV9alE5S83isURYGSbG4de0pFWsGMM/exec";
 
-        async function checkUserAuth() {
-            const initData = tg.initData;
+        // 사용자 정보 상태 (구글 시트 연동 후 채워짐)
+        let profile = {
+            region: '',
+            role: '',
+            name: '',
+            id: ''
+        };
 
+        let currentDate = new Date();
+        const $ = id => document.getElementById(id);
+
+        /* ─────────────────────────────────────────────────────────────
+           AUTHENTICATION & API INTEGRATION
+        ───────────────────────────────────────────────────────────── */
+        async function checkAuth() {
+            const tg = window.Telegram ? window.Telegram.WebApp : null;
+            if (tg) {
+                tg.ready();
+                tg.expand();
+            }
+
+            const initData = tg ? tg.initData : "";
+
+            // 텔레그램 앱 외부 브라우저 접속 시 처리
             if (!initData) {
-                document.getElementById('my-id').innerText = "⚠️ 텔레그램 모바일 앱에서 접속해 주세요.";
+                $('loading-overlay').classList.add('hidden');
+                showToast('텔레그램 앱 내에서 접속해 주세요.', 'error');
                 return;
             }
 
@@ -102,79 +316,177 @@
                 const response = await fetch(`${GAS_URL}?action=checkUser&initData=${encodeURIComponent(initData)}`);
                 const data = await response.json();
 
-                document.getElementById('my-id').innerText = `내 텔레그램 ID: ${data.userId}`;
+                $('loading-overlay').classList.add('hidden');
 
                 if (data.isRegistered) {
-                    // 기존 등록 유저
-                    showWelcome(data.userName);
+                    // 기존 등록 유저: 시트에 등록된 이름 및 유저 식별자 로드
+                    profile.id = data.userId || '-';
+                    profile.name = data.userName || '사용자';
+
+                    // 시트 추가 정보가 확장될 때를 대비한 동적 바인딩
+                    profile.region = data.region || '서울 A지역';
+                    profile.role = data.role || '팀원';
+
+                    renderProfile();
+                    showToast(`${profile.name}님 환영합니다!`, 'success');
                 } else {
-                    // 신규 유저 -> 드롭다운 목록 생성
-                    showRegisterForm(data.unregisteredList);
+                    // 미등록 유저: 명단 선택 Bottom Sheet 팝업 표출
+                    openRegSheet(data.unregisteredList || []);
                 }
 
             } catch (err) {
-                alert("통신 에러가 발생했습니다: " + err.message);
-            }
-        }
-
-        function showWelcome(userName) {
-            document.getElementById('screen-register').style.display = 'none';
-            document.getElementById('screen-welcome').style.display = 'block';
-            document.getElementById('welcome-msg').innerText = `✅ 안녕하세요, ${userName}님! (자동 인식됨)`;
-        }
-
-        function showRegisterForm(list) {
-            document.getElementById('screen-welcome').style.display = 'none';
-            document.getElementById('screen-register').style.display = 'block';
-
-            const selectEl = document.getElementById('user-select');
-            selectEl.innerHTML = '<option value="">-- 이름을 선택하세요 --</option>';
-
-            if (list && list.length > 0) {
-                list.forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item.row; // 구글 시트의 행 번호를 value로 사용
-                    opt.innerText = `${item.name} ${item.info}`;
-                    selectEl.appendChild(opt);
-                });
-            } else {
-                selectEl.innerHTML = '<option value="">선택 가능한 미등록 명단이 없습니다.</option>';
+                $('loading-text').innerText = "통신 중 오류가 발생했습니다.";
+                showToast('인증 오류: ' + err.message, 'error');
             }
         }
 
         async function submitRegistration() {
-            const selectEl = document.getElementById('user-select');
+            const selectEl = $('reg-user-select');
             const selectedRow = selectEl.value;
 
             if (!selectedRow) {
-                return alert("본인의 이름을 목록에서 선택해주세요.");
+                showToast('본인의 이름을 목록에서 선택해 주세요.', 'error');
+                return;
             }
 
-            const btn = document.getElementById('btn-register');
-            btn.disabled = true;
-            btn.innerText = "등록 처리 중...";
+            const tg = window.Telegram.WebApp;
+            $('reg-spinner').classList.remove('hidden');
+            $('btn-reg-submit').disabled = true;
 
             try {
                 const response = await fetch(`${GAS_URL}?action=registerUser&initData=${encodeURIComponent(tg.initData)}&selectedRow=${selectedRow}`);
                 const result = await response.json();
 
                 if (result.result === "success") {
-                    alert("등록이 완료되었습니다!");
-                    showWelcome(result.userName);
+                    closeRegSheet();
+                    showToast('등록이 성공적으로 완료되었습니다!', 'success');
+
+                    // 즉시 재조회하여 화면 업데이트
+                    $('loading-overlay').classList.remove('hidden');
+                    checkAuth();
                 } else {
-                    alert("등록 실패: " + result.message);
-                    btn.disabled = false;
-                    btn.innerText = "등록하기";
+                    showToast('등록 실패: ' + (result.message || '다시 시도해 주세요.'), 'error');
                 }
             } catch (err) {
-                alert("오류 발생: " + err.message);
-                btn.disabled = false;
-                btn.innerText = "등록하기";
+                showToast('오류 발생: ' + err.message, 'error');
+            } finally {
+                $('reg-spinner').classList.add('hidden');
+                $('btn-reg-submit').disabled = false;
             }
         }
 
-        checkUserAuth();
+        /* ─────────────────────────────────────────────────────────────
+           UI RENDER & MODALS
+        ───────────────────────────────────────────────────────────── */
+        function renderProfile() {
+            $('hdr-region').textContent = profile.region;
+            $('hdr-team').textContent = `${profile.name}님의 활동`;
+
+            $('profile-avatar').textContent = profile.name ? profile.name.charAt(0) : '?';
+            $('profile-name-chip').textContent = profile.name;
+            $('profile-role-chip').textContent = profile.role;
+
+            $('pd-region').textContent = profile.region;
+            $('pd-role').textContent = profile.role;
+            $('pd-name').textContent = profile.name;
+            $('pd-id').textContent = profile.id;
+        }
+
+        function renderDateNav() {
+            $('display-date').textContent = currentDate.toLocaleDateString('ko-KR', {
+                year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
+            });
+
+            const today = new Date();
+            const isToday = today.toDateString() === currentDate.toDateString();
+            $('display-today').textContent = isToday ? '오늘' : '';
+        }
+
+        function openRegSheet(list) {
+            const selectEl = $('reg-user-select');
+            selectEl.innerHTML = '<option value="">-- 이름을 선택하세요 --</option>';
+
+            if (list && list.length > 0) {
+                list.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.row;
+                    opt.innerText = `${item.name} ${item.info || ''}`;
+                    selectEl.appendChild(opt);
+                });
+            } else {
+                selectEl.innerHTML = '<option value="">선택 가능한 미등록 명단이 없습니다.</option>';
+            }
+
+            const overlay = $('reg-overlay');
+            const sheet = $('reg-sheet');
+            sheet.style.display = 'flex';
+            sheet.offsetHeight; // force reflow
+            overlay.classList.add('open');
+            sheet.classList.add('open');
+        }
+
+        function closeRegSheet() {
+            const overlay = $('reg-overlay');
+            const sheet = $('reg-sheet');
+            overlay.classList.remove('open');
+            sheet.classList.remove('open');
+            setTimeout(() => { sheet.style.display = 'none'; }, 360);
+        }
+
+        /* ─────────────────────────────────────────────────────────────
+           TOAST
+        ───────────────────────────────────────────────────────────── */
+        let toastTimer = null;
+        function showToast(message, type) {
+            const el = $('toast');
+            el.textContent = message;
+            el.className = 'fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap';
+
+            if (type === 'success') el.classList.add('bg-green-600');
+            else if (type === 'error') el.classList.add('bg-red-600');
+            else el.classList.add('bg-zinc-800');
+
+            el.classList.add('show');
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2800);
+        }
+
+        /* ─────────────────────────────────────────────────────────────
+           EVENT LISTENERS
+        ───────────────────────────────────────────────────────────── */
+        document.addEventListener('DOMContentLoaded', () => {
+
+            renderDateNav();
+
+            // 날짜 이동
+            $('btn-prev-day').addEventListener('click', () => {
+                currentDate.setDate(currentDate.getDate() - 1);
+                currentDate = new Date(currentDate);
+                renderDateNav();
+            });
+
+            $('btn-next-day').addEventListener('click', () => {
+                currentDate.setDate(currentDate.getDate() + 1);
+                currentDate = new Date(currentDate);
+                renderDateNav();
+            });
+
+            // 프로필 드롭다운 토글
+            $('profile-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                $('profile-dropdown').classList.toggle('open');
+            });
+
+            document.addEventListener('click', () => {
+                $('profile-dropdown').classList.remove('open');
+            });
+
+            // 앱 실행 시 자동 인증 체인 가동
+            checkAuth();
+        });
     </script>
+
 </body>
 
 </html>
