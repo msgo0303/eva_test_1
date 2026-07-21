@@ -116,7 +116,6 @@
             pointer-events: auto;
         }
 
-        /* Card press */
         .activity-card {
             transition: transform .1s ease;
             cursor: pointer;
@@ -126,12 +125,10 @@
             transform: scale(0.985);
         }
 
-        /* FAB */
         #fab {
             box-shadow: 0 4px 20px rgba(37, 99, 235, .4);
         }
 
-        /* Spinner */
         @keyframes spin {
             to {
                 transform: rotate(360deg);
@@ -142,7 +139,6 @@
             animation: spin .7s linear infinite;
         }
 
-        /* Toast */
         #toast {
             display: none;
             opacity: 0;
@@ -156,7 +152,6 @@
             transform: translateY(0);
         }
 
-        /* Profile dropdown */
         #profile-dropdown {
             display: none;
         }
@@ -165,7 +160,6 @@
             display: block;
         }
 
-        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 4px;
         }
@@ -183,20 +177,16 @@
 
 <body class="font-sans bg-tg-surface text-tg-text select-none">
 
-    <!-- ═══════════════════════════════════════════════════════════
-     LOADING OVERLAY
-═══════════════════════════════════════════════════════════ -->
+    <!-- LOADING OVERLAY -->
     <div id="loading-overlay" class="fixed inset-0 z-50 bg-tg-bg flex flex-col items-center justify-center p-6">
         <div class="w-10 h-10 border-4 border-tg-blue border-t-transparent rounded-full spinner mb-4"></div>
         <p id="loading-text" class="text-sm font-semibold text-tg-muted">데이터 불러오는 중...</p>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════
-     APP WRAPPER
-═══════════════════════════════════════════════════════════ -->
+    <!-- APP WRAPPER -->
     <div id="app" class="flex flex-col h-screen max-w-md mx-auto relative bg-tg-bg">
 
-        <!-- ── HEADER ─────────────────────────────────────────────── -->
+        <!-- HEADER -->
         <header class="sticky top-0 z-20 bg-tg-bg border-b border-tg-border px-4 pt-3 pb-3">
             <div class="flex items-center justify-between">
                 <div>
@@ -232,7 +222,7 @@
             </div>
         </header>
 
-        <!-- ── DATE NAV ───────────────────────────────────────────── -->
+        <!-- DATE NAV -->
         <div class="flex items-center justify-between px-4 py-3 bg-tg-bg border-b border-tg-border">
             <button id="btn-prev-day"
                 class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-tg-surface text-tg-muted">
@@ -254,7 +244,7 @@
             </button>
         </div>
 
-        <!-- ── STATS BAR ──────────────────────────────────────────── -->
+        <!-- STATS BAR -->
         <div class="grid grid-cols-3 gap-2 px-4 py-3 bg-tg-bg">
             <div class="bg-blue-50 rounded-xl p-2.5 text-center border border-blue-100">
                 <p id="stat-planned" class="text-lg font-bold text-blue-700">0</p>
@@ -270,7 +260,7 @@
             </div>
         </div>
 
-        <!-- ── ACTIVITY LIST ──────────────────────────────────────── -->
+        <!-- ACTIVITY LIST -->
         <main class="flex-1 overflow-y-auto px-4 pb-24 pt-2 bg-tg-surface">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-xs font-semibold text-tg-muted uppercase tracking-wide">오늘의 팀 활동 계획</h2>
@@ -290,11 +280,10 @@
                 <p class="text-xs text-tg-muted/70 mt-1">아래 + 버튼으로 활동을 추가해 보세요</p>
             </div>
 
-            <!-- Cards container -->
             <div id="cards-container" class="space-y-3"></div>
         </main>
 
-        <!-- ── FAB ────────────────────────────────────────────────── -->
+        <!-- FAB -->
         <button id="fab"
             class="fixed bottom-6 right-5 z-30 w-14 h-14 bg-tg-blue text-white rounded-full flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
@@ -303,10 +292,9 @@
             </svg>
         </button>
 
-        <!-- ── MODAL OVERLAY ─────────────────────────────────────── -->
         <div id="modal-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
 
-        <!-- ── BOTTOM SHEET (일정 추가/수정 모달) ───────────────────── -->
+        <!-- BOTTOM SHEET (일정 추가/수정) -->
         <div id="modal-sheet"
             class="fixed inset-x-0 bottom-0 z-50 bg-tg-bg rounded-t-3xl shadow-2xl flex-col max-h-[92vh]">
             <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -324,29 +312,50 @@
                 </button>
             </div>
 
-            <div class="overflow-y-auto flex-1 px-5 py-4 space-y-5">
-                <div>
-                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">일시 (Date &amp; Time)</label>
-                    <input id="f-datetime" type="datetime-local"
-                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue" />
+            <div class="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+                <!-- 선택된 날짜 (자동 적용 표시) -->
+                <div
+                    class="bg-blue-50 text-tg-blue border border-blue-100 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-semibold">
+                    <span>선택된 날짜</span>
+                    <span id="target-date-display" class="font-bold">2026-07-22</span>
                 </div>
 
+                <!-- 시작시간 / 종료시간 30분 단위 셀렉터 -->
+                <div>
+                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 시간 (24시간제)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-[10px] text-tg-muted block mb-1">시작 시간</span>
+                            <select id="f-starttime"
+                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-tg-muted block mb-1">종료 시간</span>
+                            <select id="f-endtime"
+                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 프로필 카드 (자동 입력) -->
                 <div class="bg-tg-surface rounded-xl border border-tg-border p-3">
-                    <p class="text-xs font-semibold text-tg-muted mb-2.5">프로필 (자동 입력)</p>
+                    <p class="text-xs font-semibold text-tg-muted mb-2">프로필 (자동 입력)</p>
                     <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div class="bg-tg-bg rounded-lg px-3 py-2 border border-tg-border">
+                        <div class="bg-tg-bg rounded-lg px-3 py-1.5 border border-tg-border">
                             <p class="text-tg-muted mb-0.5">지역</p>
                             <p id="fp-region" class="font-semibold text-tg-text">-</p>
                         </div>
-                        <div class="bg-tg-bg rounded-lg px-3 py-2 border border-tg-border">
+                        <div class="bg-tg-bg rounded-lg px-3 py-1.5 border border-tg-border">
                             <p class="text-tg-muted mb-0.5">직책</p>
                             <p id="fp-role" class="font-semibold text-tg-text">-</p>
                         </div>
-                        <div class="bg-tg-bg rounded-lg px-3 py-2 border border-tg-border">
+                        <div class="bg-tg-bg rounded-lg px-3 py-1.5 border border-tg-border">
                             <p class="text-tg-muted mb-0.5">이름</p>
                             <p id="fp-name" class="font-semibold text-tg-text">-</p>
                         </div>
-                        <div class="bg-tg-bg rounded-lg px-3 py-2 border border-tg-border">
+                        <div class="bg-tg-bg rounded-lg px-3 py-1.5 border border-tg-border">
                             <p class="text-tg-muted mb-0.5">ID</p>
                             <p id="fp-id" class="font-semibold text-tg-blue">-</p>
                         </div>
@@ -356,13 +365,13 @@
                 <div>
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">장소 (Location)</label>
                     <input id="f-location" type="text" placeholder="예: 서울 강남 전도관"
-                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text placeholder-tg-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue" />
+                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue" />
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 내용 (Activity Content)</label>
                     <textarea id="f-content" rows="3" placeholder="활동 내용을 입력하세요..."
-                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text placeholder-tg-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue resize-none"></textarea>
+                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue resize-none"></textarea>
                 </div>
 
                 <div>
@@ -380,7 +389,7 @@
                 <div id="result-box">
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 결과 (Result / Feedback)</label>
                     <textarea id="f-result" rows="3" placeholder="활동 결과 및 피드백을 입력하세요..."
-                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text placeholder-tg-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue resize-none"></textarea>
+                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue resize-none"></textarea>
                 </div>
 
                 <div class="h-2"></div>
@@ -405,17 +414,12 @@
             </div>
         </div>
 
-        <!-- ── TOAST ─────────────────────────────────────────────── -->
         <div id="toast"
             class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap">
         </div>
+    </div>
 
-    </div><!-- /app -->
-
-
-    <!-- ═══════════════════════════════════════════════════════════
-     REGISTRATION MODAL SHEET (신규 유저 등록 팝업)
-═══════════════════════════════════════════════════════════ -->
+    <!-- REGISTRATION MODAL SHEET -->
     <div id="reg-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
     <div id="reg-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-bg rounded-t-3xl shadow-2xl flex-col max-h-[90vh]">
         <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -431,7 +435,7 @@
             <div>
                 <label class="block text-xs font-semibold text-tg-muted mb-1.5">사전 등록 명단 선택</label>
                 <select id="reg-user-select"
-                    class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue">
+                    class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue">
                     <option value="">-- 명단을 불러오는 중... --</option>
                 </select>
             </div>
@@ -448,10 +452,6 @@
         </div>
     </div>
 
-
-    <!-- ═══════════════════════════════════════════════════════════
-     TELEGRAM SDK & APP LOGIC
-═══════════════════════════════════════════════════════════ -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <script>
@@ -471,19 +471,57 @@
         const $ = id => document.getElementById(id);
 
         /* ─────────────────────────────────────────────────────────────
-           HELPERS
+           TIME OPTIONS GENERATOR (24h, 30분 단위)
         ───────────────────────────────────────────────────────────── */
+        function generateTimeOptions() {
+            const options = [];
+            for (let h = 0; h < 24; h++) {
+                for (let m of [0, 30]) {
+                    const hh = String(h).padStart(2, '0');
+                    const mm = String(m).padStart(2, '0');
+                    options.push(`${hh}:${mm}`);
+                }
+            }
+            return options;
+        }
+
+        function initTimeSelects() {
+            const times = generateTimeOptions();
+            const startEl = $('f-starttime');
+
+            startEl.innerHTML = '';
+            times.forEach(t => {
+                startEl.innerHTML += `<option value="${t}">${t}</option>`;
+            });
+
+            updateEndTimeOptions(); // 시작시간에 따라 종료시간 제한 초기화
+        }
+
+        // 시작시간 변경 시 종료시간 옵션 제한 업데이트
+        function updateEndTimeOptions(selectedEndTime = null) {
+            const startVal = $('f-starttime').value;
+            const times = generateTimeOptions();
+            const endEl = $('f-endtime');
+
+            const validEndTimes = times.filter(t => t > startVal);
+
+            endEl.innerHTML = '';
+            validEndTimes.forEach(t => {
+                endEl.innerHTML += `<option value="${t}">${t}</option>`;
+            });
+
+            if (selectedEndTime && validEndTimes.includes(selectedEndTime)) {
+                endEl.value = selectedEndTime;
+            } else if (validEndTimes.length > 0) {
+                endEl.value = validEndTimes[0]; // 기본값: 시작 시간 바로 다음 30분
+            }
+        }
+
         function dateKey(d) {
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             return `${y}-${m}-${day}`;
-        }
-
-        function formatTime(dtStr) {
-            if (!dtStr) return '--:--';
-            if (dtStr.includes('T')) return dtStr.split('T')[1].slice(0, 5);
-            return dtStr;
         }
 
         function statusLabel(s) {
@@ -496,11 +534,8 @@
 
         function escHtml(str) {
             return String(str || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         /* ─────────────────────────────────────────────────────────────
@@ -544,45 +579,15 @@
             }
         }
 
-        async function submitRegistration() {
-            const selectEl = $('reg-user-select');
-            const selectedRow = selectEl.value;
-
-            if (!selectedRow) {
-                showToast('본인의 이름을 선택해 주세요.', 'error');
-                return;
-            }
-
-            $('reg-spinner').classList.remove('hidden');
-            $('btn-reg-submit').disabled = true;
-
-            try {
-                const res = await fetch(`${GAS_URL}?action=registerUser&initData=${encodeURIComponent(tg.initData)}&selectedRow=${selectedRow}`);
-                const result = await res.json();
-
-                if (result.result === "success") {
-                    closeRegSheet();
-                    showToast('등록이 완료되었습니다!', 'success');
-                    $('loading-overlay').classList.remove('hidden');
-                    fetchAppData();
-                } else {
-                    showToast('등록 실패: ' + result.message, 'error');
-                }
-            } catch (err) {
-                showToast('오류 발생: ' + err.message, 'error');
-            } finally {
-                $('reg-spinner').classList.add('hidden');
-                $('btn-reg-submit').disabled = false;
-            }
-        }
-
         async function saveActivity() {
-            const datetime = $('f-datetime').value.trim();
+            const targetDate = dateKey(currentDate);
+            const startTime = $('f-starttime').value;
+            const endTime = $('f-endtime').value;
             const location = $('f-location').value.trim();
             const content = $('f-content').value.trim();
             const result = $('f-result').value.trim();
 
-            if (!datetime) return showToast('일시를 입력해 주세요.', 'error');
+            if (!startTime || !endTime) return showToast('시간을 선택해 주세요.', 'error');
             if (!location) return showToast('장소를 입력해 주세요.', 'error');
             if (!content) return showToast('활동 내용을 입력해 주세요.', 'error');
             if (formStatus === 'completed' && !result) {
@@ -599,7 +604,9 @@
                 initData: tg ? tg.initData : "",
                 mode: modalMode,
                 actId: actId,
-                datetime: datetime,
+                date: targetDate,
+                startTime: startTime,
+                endTime: endTime,
                 location: location,
                 content: content,
                 status: formStatus,
@@ -613,7 +620,6 @@
                 closeModal();
                 showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
 
-                // 백엔드 시트 동기화 후 새로고침
                 $('loading-overlay').classList.remove('hidden');
                 fetchAppData();
 
@@ -622,35 +628,6 @@
             } finally {
                 $('save-spinner').classList.add('hidden');
                 $('btn-save').disabled = false;
-            }
-        }
-
-        async function cancelActivity() {
-            const idx = activities.findIndex(a => a.id == editId);
-            if (idx !== -1) {
-                const payload = {
-                    action: 'saveActivity',
-                    initData: tg ? tg.initData : "",
-                    mode: 'edit',
-                    actId: editId,
-                    datetime: activities[idx].datetime,
-                    location: activities[idx].location,
-                    content: activities[idx].content,
-                    status: 'canceled',
-                    result: activities[idx].result || ''
-                };
-
-                try {
-                    const queryParams = new URLSearchParams(payload).toString();
-                    await fetch(`${GAS_URL}?${queryParams}`);
-                    closeModal();
-                    showToast('활동이 취소 처리되었습니다.', 'success');
-
-                    $('loading-overlay').classList.remove('hidden');
-                    fetchAppData();
-                } catch (err) {
-                    showToast('취소 실패: ' + err.message, 'error');
-                }
             }
         }
 
@@ -713,7 +690,7 @@
       <div class="flex items-start justify-between mb-2.5">
         <div class="flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span class="text-sm font-semibold text-tg-text">${formatTime(item.datetime)}</span>
+          <span class="text-sm font-semibold text-tg-text">${item.startTime} - ${item.endTime}</span>
         </div>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
       </div>
@@ -736,7 +713,7 @@
 
       <div class="mt-3 flex items-center gap-1 text-blue-400">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
-        <span class="text-[10px] font-medium">탭하여 수정</span>
+        <span class="text-[10px] font-medium">탭하여 수정 / 완료하기</span>
       </div>
     </div>
   `).join('');
@@ -750,7 +727,7 @@
         }
 
         /* ─────────────────────────────────────────────────────────────
-           MODAL
+           MODAL & EVENT
         ───────────────────────────────────────────────────────────── */
         function openModal() {
             const overlay = $('modal-overlay');
@@ -774,16 +751,19 @@
             modalMode = 'add';
             editId = null;
 
-            const now = new Date();
-            if (now.getMinutes() < 30) {
-                now.setMinutes(30, 0, 0);
-            } else {
-                now.setHours(now.getHours() + 1, 0, 0, 0);
-            }
-            const dateStr = dateKey(currentDate);
-            const timeStr = now.toTimeString().slice(0, 5);
+            $('target-date-display').textContent = dateKey(currentDate);
 
-            $('f-datetime').value = `${dateStr}T${timeStr}`;
+            // 시간 기본 세팅 (현재 시간 기준 다음 30분)
+            const now = new Date();
+            let startH = now.getHours();
+            let startM = now.getMinutes() < 30 ? "30" : "00";
+            if (now.getMinutes() >= 30) startH = (startH + 1) % 24;
+
+            const defaultStartTime = `${String(startH).padStart(2, '0')}:${startM}`;
+
+            $('f-starttime').value = defaultStartTime;
+            updateEndTimeOptions();
+
             $('f-location').value = '';
             $('f-content').value = '';
             $('f-result').value = '';
@@ -801,14 +781,21 @@
             modalMode = 'edit';
             editId = item.id;
 
-            $('f-datetime').value = item.datetime || '';
+            $('target-date-display').textContent = item.date || dateKey(currentDate);
+
+            // 💡 기존에 저장된 시작 / 종료 시간 자동 세팅
+            if (item.startTime) {
+                $('f-starttime').value = item.startTime;
+            }
+            updateEndTimeOptions(item.endTime);
+
             $('f-location').value = item.location || '';
             $('f-content').value = item.content || '';
             $('f-result').value = item.result || '';
 
             setStatus(item.status || 'planned');
 
-            $('modal-title').textContent = '활동 수정';
+            $('modal-title').textContent = '활동 수정 / 완료';
             $('save-label').textContent = '수정 완료';
 
             const cancelBtn = $('btn-cancel-activity');
@@ -841,60 +828,18 @@
             }
         }
 
-        function openRegSheet(list) {
-            const selectEl = $('reg-user-select');
-            selectEl.innerHTML = '<option value="">-- 이름을 선택하세요 --</option>';
-
-            if (list && list.length > 0) {
-                list.forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item.row;
-                    opt.innerText = `${item.name} ${item.info || ''}`;
-                    selectEl.appendChild(opt);
-                });
-            } else {
-                selectEl.innerHTML = '<option value="">선택 가능한 미등록 명단이 없습니다.</option>';
-            }
-
-            const overlay = $('reg-overlay');
-            const sheet = $('reg-sheet');
-            sheet.style.display = 'flex';
-            sheet.offsetHeight;
-            overlay.classList.add('open');
-            sheet.classList.add('open');
-        }
-
-        function closeRegSheet() {
-            const overlay = $('reg-overlay');
-            const sheet = $('reg-sheet');
-            overlay.classList.remove('open');
-            sheet.classList.remove('open');
-            setTimeout(() => { sheet.style.display = 'none'; }, 360);
-        }
-
-        /* ─────────────────────────────────────────────────────────────
-           TOAST
-        ───────────────────────────────────────────────────────────── */
-        let toastTimer = null;
-        function showToast(message, type) {
-            const el = $('toast');
-            el.textContent = message;
-            el.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap';
-            if (type === 'success') el.classList.add('bg-green-600');
-            else if (type === 'error') el.classList.add('bg-red-600');
-            else el.classList.add('bg-zinc-800');
-            el.classList.add('show');
-
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2800);
-        }
-
         /* ─────────────────────────────────────────────────────────────
            EVENT LISTENERS
         ───────────────────────────────────────────────────────────── */
         document.addEventListener('DOMContentLoaded', () => {
 
-            // 일자 별 데이터 로딩
+            initTimeSelects(); // 시간 선택지 생성
+
+            // 시작 시간 변경 시 종료 시간 옵션 자동 제한
+            $('f-starttime').addEventListener('change', () => {
+                updateEndTimeOptions();
+            });
+
             fetchAppData();
 
             $('btn-prev-day').addEventListener('click', () => {
@@ -920,7 +865,6 @@
             });
 
             $('btn-save').addEventListener('click', saveActivity);
-            $('btn-cancel-activity').addEventListener('click', cancelActivity);
 
             $('profile-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
