@@ -313,14 +313,14 @@
             </div>
 
             <div class="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-                <!-- 선택된 날짜 (자동 적용 표시) -->
+                <!-- 선택된 날짜 -->
                 <div
                     class="bg-blue-50 text-tg-blue border border-blue-100 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-semibold">
                     <span>선택된 날짜</span>
                     <span id="target-date-display" class="font-bold">2026-07-22</span>
                 </div>
 
-                <!-- 시작시간 / 종료시간 30분 단위 셀렉터 -->
+                <!-- 시작시간 / 종료시간 셀렉터 -->
                 <div>
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 시간 (24시간제)</label>
                     <div class="grid grid-cols-2 gap-2">
@@ -339,7 +339,7 @@
                     </div>
                 </div>
 
-                <!-- 프로필 카드 (자동 입력) -->
+                <!-- 프로필 카드 -->
                 <div class="bg-tg-surface rounded-xl border border-tg-border p-3">
                     <p class="text-xs font-semibold text-tg-muted mb-2">프로필 (자동 입력)</p>
                     <div class="grid grid-cols-2 gap-2 text-xs">
@@ -470,9 +470,6 @@
 
         const $ = id => document.getElementById(id);
 
-        /* ─────────────────────────────────────────────────────────────
-           TIME OPTIONS GENERATOR (24h, 30분 단위)
-        ───────────────────────────────────────────────────────────── */
         function generateTimeOptions() {
             const options = [];
             for (let h = 0; h < 24; h++) {
@@ -494,10 +491,9 @@
                 startEl.innerHTML += `<option value="${t}">${t}</option>`;
             });
 
-            updateEndTimeOptions(); // 시작시간에 따라 종료시간 제한 초기화
+            updateEndTimeOptions();
         }
 
-        // 시작시간 변경 시 종료시간 옵션 제한 업데이트
         function updateEndTimeOptions(selectedEndTime = null) {
             const startVal = $('f-starttime').value;
             const times = generateTimeOptions();
@@ -513,7 +509,7 @@
             if (selectedEndTime && validEndTimes.includes(selectedEndTime)) {
                 endEl.value = selectedEndTime;
             } else if (validEndTimes.length > 0) {
-                endEl.value = validEndTimes[0]; // 기본값: 시작 시간 바로 다음 30분
+                endEl.value = validEndTimes[0];
             }
         }
 
@@ -574,7 +570,7 @@
                     openRegSheet(data.unregisteredList || []);
                 }
             } catch (err) {
-                $('loading-text').innerText = "데이터 로딩 실패";
+                $('loading-overlay').classList.add('hidden');
                 showToast('통신 오류: ' + err.message, 'error');
             }
         }
@@ -587,11 +583,14 @@
             const content = $('f-content').value.trim();
             const result = $('f-result').value.trim();
 
+            // 💡 [유효성 검사 1] 기본 필수 입력사항
             if (!startTime || !endTime) return showToast('시간을 선택해 주세요.', 'error');
             if (!location) return showToast('장소를 입력해 주세요.', 'error');
             if (!content) return showToast('활동 내용을 입력해 주세요.', 'error');
+
+            // 💡 [유효성 검사 2] 완료 상태 시 결과 입력 안내 메세지 표출
             if (formStatus === 'completed' && !result) {
-                return showToast('완료 상태에는 활동 결과가 필요합니다.', 'error');
+                return showToast('완료 상태에는 활동 결과를 입력해주세요.', 'error');
             }
 
             $('save-spinner').classList.remove('hidden');
@@ -620,6 +619,7 @@
                 closeModal();
                 showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
 
+                // 💡 [개선] 저장 후 자동으로 로딩 레이어 가동 및 데이터 새로고침
                 $('loading-overlay').classList.remove('hidden');
                 fetchAppData();
 
@@ -628,6 +628,38 @@
             } finally {
                 $('save-spinner').classList.add('hidden');
                 $('btn-save').disabled = false;
+            }
+        }
+
+        async function cancelActivity() {
+            const idx = activities.findIndex(a => a.id == editId);
+            if (idx !== -1) {
+                const payload = {
+                    action: 'saveActivity',
+                    initData: tg ? tg.initData : "",
+                    mode: 'edit',
+                    actId: editId,
+                    date: activities[idx].date || dateKey(currentDate),
+                    startTime: activities[idx].startTime,
+                    endTime: activities[idx].endTime,
+                    location: activities[idx].location,
+                    content: activities[idx].content,
+                    status: 'canceled',
+                    result: activities[idx].result || ''
+                };
+
+                try {
+                    const queryParams = new URLSearchParams(payload).toString();
+                    await fetch(`${GAS_URL}?${queryParams}`);
+                    closeModal();
+                    showToast('활동이 취소 처리되었습니다.', 'success');
+
+                    // 💡 [개선] 취소 후 자동으로 로딩 레이어 가동 및 데이터 새로고침
+                    $('loading-overlay').classList.remove('hidden');
+                    fetchAppData();
+                } catch (err) {
+                    showToast('취소 실패: ' + err.message, 'error');
+                }
             }
         }
 
@@ -753,7 +785,6 @@
 
             $('target-date-display').textContent = dateKey(currentDate);
 
-            // 시간 기본 세팅 (현재 시간 기준 다음 30분)
             const now = new Date();
             let startH = now.getHours();
             let startM = now.getMinutes() < 30 ? "30" : "00";
@@ -783,7 +814,6 @@
 
             $('target-date-display').textContent = item.date || dateKey(currentDate);
 
-            // 💡 기존에 저장된 시작 / 종료 시간 자동 세팅
             if (item.startTime) {
                 $('f-starttime').value = item.startTime;
             }
@@ -828,14 +858,57 @@
             }
         }
 
+        function openRegSheet(list) {
+            const selectEl = $('reg-user-select');
+            selectEl.innerHTML = '<option value="">-- 이름을 선택하세요 --</option>';
+
+            if (list && list.length > 0) {
+                list.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.row;
+                    opt.innerText = `${item.name} ${item.info || ''}`;
+                    selectEl.appendChild(opt);
+                });
+            } else {
+                selectEl.innerHTML = '<option value="">선택 가능한 미등록 명단이 없습니다.</option>';
+            }
+
+            const overlay = $('reg-overlay');
+            const sheet = $('reg-sheet');
+            sheet.style.display = 'flex';
+            sheet.offsetHeight;
+            overlay.classList.add('open');
+            sheet.classList.add('open');
+        }
+
+        function closeRegSheet() {
+            const overlay = $('reg-overlay');
+            const sheet = $('reg-sheet');
+            overlay.classList.remove('open');
+            sheet.classList.remove('open');
+            setTimeout(() => { sheet.style.display = 'none'; }, 360);
+        }
+
+        function showToast(message, type) {
+            const el = $('toast');
+            el.textContent = message;
+            el.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap';
+            if (type === 'success') el.classList.add('bg-green-600');
+            else if (type === 'error') el.classList.add('bg-red-600');
+            else el.classList.add('bg-zinc-800');
+            el.classList.add('show');
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2800);
+        }
+
         /* ─────────────────────────────────────────────────────────────
            EVENT LISTENERS
         ───────────────────────────────────────────────────────────── */
         document.addEventListener('DOMContentLoaded', () => {
 
-            initTimeSelects(); // 시간 선택지 생성
+            initTimeSelects();
 
-            // 시작 시간 변경 시 종료 시간 옵션 자동 제한
             $('f-starttime').addEventListener('change', () => {
                 updateEndTimeOptions();
             });
@@ -865,6 +938,7 @@
             });
 
             $('btn-save').addEventListener('click', saveActivity);
+            $('btn-cancel-activity').addEventListener('click', cancelActivity);
 
             $('profile-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
