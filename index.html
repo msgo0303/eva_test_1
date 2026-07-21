@@ -134,12 +134,12 @@
             max-height: 0;
             opacity: 0;
             overflow: hidden;
-            transition: max-height .35s ease, opacity .3s ease;
+            transition: max-height .4s ease, opacity .3s ease;
             pointer-events: none;
         }
 
         #result-box.visible {
-            max-height: 160px;
+            max-height: 500px;
             opacity: 1;
             pointer-events: auto;
         }
@@ -305,7 +305,6 @@
                 <span id="activity-count" class="text-xs text-tg-muted">0건</span>
             </div>
 
-            <!-- Empty state -->
             <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
                 <div class="w-16 h-16 rounded-full bg-tg-border/50 flex items-center justify-center mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -421,10 +420,31 @@
                     </div>
                 </div>
 
-                <div id="result-box">
-                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 결과 (Result / Feedback)</label>
-                    <textarea id="f-result" rows="3" placeholder="활동 결과 및 피드백을 입력하세요..."
-                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue resize-none"></textarea>
+                <!-- 💡 개편된 활동 결과 & 활동내용/피드백 영역 (완료 시 노출) -->
+                <div id="result-box" class="space-y-4">
+
+                    <!-- 1) 활동 결과 동적 입력 파트 -->
+                    <div class="bg-blue-50/50 rounded-2xl border border-blue-100 p-3.5">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-bold text-tg-blue">📊 활동 결과 선택</label>
+                            <button id="btn-add-result-row" type="button"
+                                class="text-xs font-semibold text-tg-blue bg-white border border-blue-200 px-2.5 py-1 rounded-lg shadow-sm hover:bg-blue-50 flex items-center gap-1">
+                                <span>+ 결과 행 추가</span>
+                            </button>
+                        </div>
+
+                        <div id="result-rows-container" class="space-y-2">
+                            <!-- 동적 결과 행들이 여기에 추가됩니다 -->
+                        </div>
+                    </div>
+
+                    <!-- 2) 활동내용 / 피드백 (단답형 텍스트) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동내용 / 피드백</label>
+                        <textarea id="f-result-text" rows="3" placeholder="활동 상세 결과 및 피드백을 입력하세요..."
+                            class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue resize-none"></textarea>
+                    </div>
+
                 </div>
 
                 <div class="h-2"></div>
@@ -506,6 +526,26 @@
         let formStatus = 'planned';
         let toastTimer = null;
 
+        // 💡 결과 마스터 데이터 정의
+        const RESULT_SCHEMA = {
+            '찾기': {
+                types: ['온만찾', '오프번찾', '구두만픽', '오프만찾'],
+                hasCount: true
+            },
+            '매칭': {
+                types: ['취소', '2차', '비합', '따기'],
+                hasCount: false
+            },
+            '잎사귀': {
+                types: ['간증잎', '생노잎', '서류잎', '풍문잎', '기타'],
+                hasCount: false
+            },
+            '복방': {
+                types: ['진행', '취소'],
+                hasCount: false
+            }
+        };
+
         const $ = id => document.getElementById(id);
 
         function generateTimeOptions() {
@@ -573,6 +613,122 @@
         }
 
         /* ─────────────────────────────────────────────────────────────
+           DYNAMIC RESULT ROWS LOGIC (결과 종류/유형/수치 동적 행)
+        ───────────────────────────────────────────────────────────── */
+        function addResultRow(data = { category: '', type: '', count: 1 }) {
+            const container = $('result-rows-container');
+            const existingCategories = Array.from(container.querySelectorAll('.res-category')).map(el => el.value);
+
+            // 추가 가능한 종류 추출 (중복 추가 방지)
+            const availableCategories = Object.keys(RESULT_SCHEMA).filter(cat => !existingCategories.includes(cat) || cat === data.category);
+
+            if (availableCategories.length === 0 && !data.category) {
+                showToast('모든 결과 종류가 이미 추가되었습니다.', 'error');
+                return;
+            }
+
+            const defaultCategory = data.category || availableCategories[0];
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'result-row flex items-center gap-1.5 bg-white p-2 rounded-xl border border-tg-border shadow-sm';
+
+            rowDiv.innerHTML = `
+    <!-- 결과 종류 셀렉트 -->
+    <select class="res-category rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue w-24">
+      ${Object.keys(RESULT_SCHEMA).map(cat => `
+        <option value="${cat}" ${cat === defaultCategory ? 'selected' : ''} ${existingCategories.includes(cat) && cat !== defaultCategory ? 'disabled' : ''}>${cat}</option>
+      `).join('')}
+    </select>
+
+    <!-- 결과 유형 셀렉트 -->
+    <select class="res-type flex-1 rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue min-w-[90px]">
+    </select>
+
+    <!-- 수치 선택 (찾기 전용: 1~10) -->
+    <select class="res-count rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-blue focus:outline-none focus:border-tg-blue w-14">
+      ${Array.from({ length: 10 }, (_, i) => i + 1).map(num => `
+        <option value="${num}" ${num == data.count ? 'selected' : ''}>${num}개</option>
+      `).join('')}
+    </select>
+
+    <!-- 삭제 버튼 -->
+    <button type="button" class="btn-del-row w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  `;
+
+            container.appendChild(rowDiv);
+
+            const categorySelect = rowDiv.querySelector('.res-category');
+            const typeSelect = rowDiv.querySelector('.res-type');
+            const countSelect = rowDiv.querySelector('.res-count');
+            const delBtn = rowDiv.querySelector('.btn-del-row');
+
+            // 종류 변경 시 유형 옵션 및 수치 셀렉트 노출여부 업데이트
+            const updateTypeOptions = () => {
+                const selectedCat = categorySelect.value;
+                const schema = RESULT_SCHEMA[selectedCat];
+
+                typeSelect.innerHTML = schema.types.map(t => `<option value="${t}">${t}</option>`).join('');
+                if (data.type && schema.types.includes(data.type)) {
+                    typeSelect.value = data.type;
+                }
+
+                // 찾기인 경우에만 수치 셀렉트 표출
+                if (schema.hasCount) {
+                    countSelect.classList.remove('hidden');
+                } else {
+                    countSelect.classList.add('hidden');
+                }
+            };
+
+            categorySelect.addEventListener('change', () => {
+                data.type = ''; // 종류 변경 시 유형 초기화
+                updateTypeOptions();
+            });
+
+            delBtn.addEventListener('click', () => {
+                rowDiv.remove();
+            });
+
+            updateTypeOptions(); // 초기 실행
+        }
+
+        function getResultDataJson() {
+            const rows = document.querySelectorAll('.result-row');
+            const results = [];
+
+            rows.forEach(row => {
+                const category = row.querySelector('.res-category').value;
+                const type = row.querySelector('.res-type').value;
+                const countEl = row.querySelector('.res-count');
+                const count = !countEl.classList.contains('hidden') ? parseInt(countEl.value, 10) : null;
+
+                if (category && type) {
+                    const item = { category, type };
+                    if (count !== null) item.count = count;
+                    results.push(item);
+                }
+            });
+
+            return JSON.stringify(results);
+        }
+
+        function loadResultDataJson(jsonStr) {
+            $('result-rows-container').innerHTML = '';
+            if (!jsonStr) return;
+
+            try {
+                const parsed = JSON.parse(jsonStr);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(item => addResultRow(item));
+                }
+            } catch (e) {
+                console.error("JSON 파싱 오류:", e);
+            }
+        }
+
+        /* ─────────────────────────────────────────────────────────────
            SERVER API CALLS
         ───────────────────────────────────────────────────────────── */
         async function fetchAppData() {
@@ -620,14 +776,20 @@
             const endTime = $('f-endtime').value;
             const location = $('f-location').value.trim();
             const content = $('f-content').value.trim();
-            const result = $('f-result').value.trim();
+
+            const resultData = getResultDataJson();
+            const resultText = $('f-result-text').value.trim();
 
             if (!startTime || !endTime) return showToast('시간을 선택해 주세요.', 'error');
             if (!location) return showToast('장소를 입력해 주세요.', 'error');
             if (!content) return showToast('활동 내용을 입력해 주세요.', 'error');
 
-            if (formStatus === 'completed' && !result) {
-                return showToast('완료 상태에는 활동 결과를 입력해주세요.', 'error');
+            // 완료 상태 시 유효성 검사 (결과 행 또는 피드백 작성 필요)
+            if (formStatus === 'completed') {
+                const hasRows = document.querySelectorAll('.result-row').length > 0;
+                if (!hasRows && !resultText) {
+                    return showToast('완료 상태에는 활동 결과 또는 피드백을 입력해주세요.', 'error');
+                }
             }
 
             $('save-spinner').classList.remove('hidden');
@@ -646,7 +808,8 @@
                 location: location,
                 content: content,
                 status: formStatus,
-                result: result
+                resultData: resultData, // 세부 결과 JSON
+                resultText: resultText  // 활동내용/피드백
             };
 
             try {
@@ -681,7 +844,8 @@
                     location: activities[idx].location,
                     content: activities[idx].content,
                     status: 'canceled',
-                    result: activities[idx].result || ''
+                    resultData: activities[idx].resultData || '',
+                    resultText: activities[idx].resultText || ''
                 };
 
                 try {
@@ -788,7 +952,6 @@
         }
 
         function renderList() {
-            // 1. 상태 카운터
             const countPlanned = activities.filter(a => a.status === 'planned').length;
             const countCompleted = activities.filter(a => a.status === 'completed').length;
             const countCanceled = activities.filter(a => a.status === 'canceled').length;
@@ -799,24 +962,20 @@
 
             updateFilterUI();
 
-            // 2. 상태별 1차 필터링
             let filtered = activities;
             if (activeFilter !== 'all') {
                 filtered = activities.filter(a => a.status === activeFilter);
             }
 
-            // 3. 💡 [핵심] 정렬: 내 활동(userId 일치) 우선 배치 + 시간순 정렬
             const currentUserIdStr = profile.id ? profile.id.toString().trim() : "";
 
             filtered.sort((a, b) => {
                 const isMineA = (a.userId && a.userId.toString().trim() === currentUserIdStr);
                 const isMineB = (b.userId && b.userId.toString().trim() === currentUserIdStr);
 
-                // 내 활동이 상단으로
                 if (isMineA && !isMineB) return -1;
                 if (!isMineA && isMineB) return 1;
 
-                // 같으면 시작 시간 순 정렬
                 return (a.startTime || "").localeCompare(b.startTime || "");
             });
 
@@ -845,16 +1004,33 @@
             empty.classList.add('hidden');
             empty.classList.remove('flex');
 
-            // 4. 카드 HTML 생성
             container.innerHTML = filtered.map(item => {
                 const isMine = (item.userId && item.userId.toString().trim() === currentUserIdStr);
+
+                // 카드 표출용 세부 결과 칩 HTML 생성
+                let resultChipsHtml = '';
+                if (item.status === 'completed' && item.resultData) {
+                    try {
+                        const parsed = JSON.parse(item.resultData);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            resultChipsHtml = `
+            <div class="flex flex-wrap gap-1 mt-2 mb-1">
+              ${parsed.map(r => `
+                <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                  <span>${escHtml(r.category)}</span>: <span>${escHtml(r.type)}</span>${r.count ? `<span class="text-tg-blue">(${r.count}개)</span>` : ''}
+                </span>
+              `).join('')}
+            </div>
+          `;
+                        }
+                    } catch (e) { }
+                }
 
                 return `
     <div
       class="activity-card bg-tg-bg rounded-2xl p-4 border ${isMine ? 'border-blue-300 ring-1 ring-blue-100 shadow-md' : 'border-tg-border shadow-sm'} ${item.status === 'canceled' ? 'opacity-60' : ''}"
       data-id="${item.id}"
     >
-      <!-- 상단 작성자 헤더 라벨 -->
       <div class="flex items-center justify-between border-b border-tg-border pb-2 mb-2.5">
         <div class="flex items-center gap-1.5 flex-wrap">
           ${isMine ? `<span class="bg-blue-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md shadow-sm">📌 내 활동</span>` : ''}
@@ -880,10 +1056,11 @@
         <p class="text-sm text-tg-muted line-clamp-2">${escHtml(item.content || '내용 없음')}</p>
       </div>
 
-      ${item.status === 'completed' && item.result ? `
-      <div class="mt-3 pt-3 border-t border-tg-border">
-        <p class="text-xs text-tg-muted font-medium mb-1">활동 결과</p>
-        <p class="text-sm text-tg-text">${escHtml(item.result)}</p>
+      ${item.status === 'completed' ? `
+      <div class="mt-3 pt-2.5 border-t border-tg-border">
+        <p class="text-[11px] text-tg-muted font-bold mb-1">활동 결과</p>
+        ${resultChipsHtml}
+        ${item.resultText ? `<p class="text-xs text-tg-text mt-1 bg-tg-surface p-2 rounded-lg border border-tg-border">${escHtml(item.resultText)}</p>` : ''}
       </div>` : ''}
 
       <div class="mt-3 flex items-center gap-1 text-blue-400">
@@ -941,7 +1118,8 @@
 
             $('f-location').value = '';
             $('f-content').value = '';
-            $('f-result').value = '';
+            $('f-result-text').value = '';
+            $('result-rows-container').innerHTML = '';
 
             setStatus('planned');
 
@@ -965,7 +1143,10 @@
 
             $('f-location').value = item.location || '';
             $('f-content').value = item.content || '';
-            $('f-result').value = item.result || '';
+            $('f-result-text').value = item.resultText || '';
+
+            // 세부 결과 JSON 로드
+            loadResultDataJson(item.resultData);
 
             setStatus(item.status || 'planned');
 
@@ -1022,7 +1203,7 @@
             sheet.style.display = 'flex';
             sheet.offsetHeight;
             overlay.classList.add('open');
-            sheet.classList.add('open');
+            sheet.classList.open;
         }
 
         function closeRegSheet() {
@@ -1057,6 +1238,11 @@
 
             $('f-starttime').addEventListener('change', () => {
                 updateEndTimeOptions();
+            });
+
+            // 결과 행 추가 버튼
+            $('btn-add-result-row').addEventListener('click', () => {
+                addResultRow();
             });
 
             $('btn-filter-planned').addEventListener('click', () => setFilter('planned'));
