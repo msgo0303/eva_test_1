@@ -2,12 +2,19 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
+// 📄 app.js 파일의 가장 첫 번째 줄에 추가
+alert("최신 코드 반영 완료! 현재 설정된 GAS URL: " + GAS_URL);
+
+const tg = window.Telegram.WebApp;
+tg.ready();
+// ... (이하 기존 코드 동일)
+
 // ⚠️ 본인의 구글 웹앱 URL (/exec로 끝나는 것)을 적어주세요.
 const GAS_URL = "https://script.google.com/macros/s/AKfycbwOnzceBFUvKYlqB0r-MBTYWC3jfv6ebqhuy2UV9alE5S83isURYGSbG4de0pFWsGMM/exec";
 
 async function checkUser() {
-    const initData = tg.initData; 
-    
+    const initData = tg.initData;
+
     // 환경 체크: 텔레그램 내부가 아니라면 경고 메시지 출력
     if (!initData) {
         document.getElementById('loading-screen').innerHTML = "<h3>텔레그램 모바일 앱에서 미니앱을 열어주세요!</h3>";
@@ -22,7 +29,7 @@ async function checkUser() {
                 'Accept': 'application/json'
             }
         });
-        
+
         const result = await response.json();
         document.getElementById('loading-screen').style.display = 'none';
 
@@ -63,7 +70,7 @@ async function registerUser() {
                 userName: name
             })
         });
-        
+
         // 안전하게 화면 전환
         setTimeout(() => {
             document.getElementById('loading-screen').style.display = 'none';
