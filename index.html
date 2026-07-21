@@ -2,56 +2,935 @@
 <html lang="ko">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Mini App</title>
-    <!-- 텔레그램 필수 SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-            padding: 20px;
-            text-align: center;
-            background-color: #ffffff;
-            color: #000000;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>팀 활동 관리</title>
 
-        input {
-            width: 80%;
-            padding: 10px;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #2481cc;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tg: {
+              bg: '#ffffff',
+              surface: '#f4f4f5',
+              border: '#e4e4e7',
+              text: '#18181b',
+              muted: '#71717a',
+              blue: '#2563eb',
+              green: '#16a34a',
+              red: '#dc2626',
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+          }
         }
-    </style>
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overscroll-behavior: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Status badges */
+    .badge-planned {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .badge-completed {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .badge-canceled {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    /* Segmented control active tab */
+    .seg-active {
+      background: #2563eb;
+      color: #fff;
+      box-shadow: 0 1px 4px rgba(37, 99, 235, .3);
+    }
+
+    .seg-inactive {
+      color: #71717a;
+    }
+
+    /* Bottom sheet */
+    #modal-overlay {
+      display: none;
+      opacity: 0;
+      transition: opacity .3s ease;
+    }
+
+    #modal-overlay.open {
+      display: block;
+      opacity: 1;
+    }
+
+    #modal-sheet {
+      display: none;
+      transform: translateY(100%);
+      transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    #modal-sheet.open {
+      display: flex;
+      transform: translateY(0);
+    }
+
+    /* Result textarea slide reveal */
+    #result-box {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height .35s ease, opacity .3s ease;
+      pointer-events: none;
+    }
+
+    #result-box.visible {
+      max-height: 160px;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Card press */
+    .activity-card {
+      transition: transform .1s ease;
+      cursor: pointer;
+    }
+
+    .activity-card:active {
+      transform: scale(0.985);
+    }
+
+    /* FAB */
+    #fab {
+      box-shadow: 0 4px 20px rgba(37, 99, 235, .4);
+    }
+
+    /* Spinner */
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner {
+      animation: spin .7s linear infinite;
+    }
+
+    /* Toast */
+    #toast {
+      display: none;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .25s ease, transform .25s ease;
+    }
+
+    #toast.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Profile dropdown */
+    #profile-dropdown {
+      display: none;
+    }
+
+    #profile-dropdown.open {
+      display: block;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #d4d4d8;
+      border-radius: 2px;
+    }
+  </style>
 </head>
 
-<body>
-    <div id="loading-screen">데이터 로딩 중...</div>
+<body class="font-sans bg-tg-surface text-tg-text select-none">
 
-    <div id="register-screen" style="display: none;">
-        <h2>환영합니다! 👋</h2>
-        <p>실명을 입력해주세요.</p>
-        <input type="text" id="user-name-input" placeholder="홍길동">
-        <br>
-        <button id="register-btn">등록하기</button>
+  <!-- ═══════════════════════════════════════════════════════════
+     APP WRAPPER
+═══════════════════════════════════════════════════════════ -->
+  <div id="app" class="flex flex-col h-screen max-w-md mx-auto relative bg-tg-bg">
+
+    <!-- ── HEADER ─────────────────────────────────────────────── -->
+    <header class="sticky top-0 z-20 bg-tg-bg border-b border-tg-border px-4 pt-3 pb-3">
+      <div class="flex items-center justify-between">
+        <!-- Left: team label -->
+        <div>
+          <p id="hdr-region" class="text-xs text-tg-muted font-medium tracking-wide uppercase"></p>
+          <h1 id="hdr-team" class="text-lg font-bold leading-tight text-tg-text"></h1>
+        </div>
+
+        <!-- Right: profile chip -->
+        <button id="profile-btn"
+          class="flex items-center gap-2 bg-tg-surface rounded-full pl-3 pr-4 py-2 border border-tg-border">
+          <span id="profile-avatar"
+            class="w-8 h-8 rounded-full bg-tg-blue text-white text-xs font-bold flex items-center justify-center"></span>
+          <div class="text-left">
+            <p id="profile-name-chip" class="text-xs font-semibold text-tg-text leading-none"></p>
+            <p id="profile-role-chip" class="text-[10px] text-tg-muted leading-none mt-0.5"></p>
+          </div>
+        </button>
+      </div>
+
+      <!-- Profile dropdown -->
+      <div id="profile-dropdown"
+        class="absolute right-4 top-full mt-1 bg-tg-bg border border-tg-border rounded-2xl shadow-xl p-4 z-30 w-56">
+        <p class="text-xs text-tg-muted mb-2 font-medium">내 프로필</p>
+        <div class="space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="text-tg-muted">지역</span><span id="pd-region"
+              class="font-medium"></span></div>
+          <div class="flex justify-between"><span class="text-tg-muted">직책</span><span id="pd-role"
+              class="font-medium"></span></div>
+          <div class="flex justify-between"><span class="text-tg-muted">이름</span><span id="pd-name"
+              class="font-medium"></span></div>
+          <div class="flex justify-between"><span class="text-tg-muted">ID</span> <span id="pd-id"
+              class="font-medium text-tg-blue"></span></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── DATE NAV ───────────────────────────────────────────── -->
+    <div class="flex items-center justify-between px-4 py-3 bg-tg-bg border-b border-tg-border">
+      <button id="btn-prev-day"
+        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-tg-surface text-tg-muted">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"
+          class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+      </button>
+      <div class="text-center">
+        <p id="display-date" class="text-sm font-semibold text-tg-text"></p>
+        <p id="display-today" class="text-xs text-tg-muted h-4"></p>
+      </div>
+      <button id="btn-next-day"
+        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-tg-surface text-tg-muted">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"
+          class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+      </button>
     </div>
 
-    <div id="main-screen" style="display: none;">
-        <h2 id="welcome-msg">안녕하세요!</h2>
-        <p>자동 인식이 성공적으로 완료되었습니다.</p>
+    <!-- ── STATS BAR ──────────────────────────────────────────── -->
+    <div class="grid grid-cols-3 gap-2 px-4 py-3 bg-tg-bg">
+      <div class="bg-blue-50 rounded-xl p-2.5 text-center border border-blue-100">
+        <p id="stat-planned" class="text-lg font-bold text-blue-700">0</p>
+        <p class="text-[10px] text-blue-500 font-medium mt-0.5">계획중</p>
+      </div>
+      <div class="bg-green-50 rounded-xl p-2.5 text-center border border-green-100">
+        <p id="stat-completed" class="text-lg font-bold text-green-700">0</p>
+        <p class="text-[10px] text-green-500 font-medium mt-0.5">완료</p>
+      </div>
+      <div class="bg-red-50 rounded-xl p-2.5 text-center border border-red-100">
+        <p id="stat-canceled" class="text-lg font-bold text-red-700">0</p>
+        <p class="text-[10px] text-red-500 font-medium mt-0.5">취소</p>
+      </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- ── ACTIVITY LIST ──────────────────────────────────────── -->
+    <main class="flex-1 overflow-y-auto px-4 pb-24 pt-2 bg-tg-surface">
+
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-semibold text-tg-muted uppercase tracking-wide">오늘의 팀 활동 계획</h2>
+        <span id="activity-count" class="text-xs text-tg-muted">0건</span>
+      </div>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
+        <div class="w-16 h-16 rounded-full bg-tg-border/50 flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+            stroke="currentColor" class="w-8 h-8 text-tg-muted">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
+          </svg>
+        </div>
+        <p class="text-sm font-semibold text-tg-muted">등록된 활동이 없습니다</p>
+        <p class="text-xs text-tg-muted/70 mt-1">아래 + 버튼으로 활동을 추가해 보세요</p>
+      </div>
+
+      <!-- Cards container -->
+      <div id="cards-container" class="space-y-3"></div>
+    </main>
+
+    <!-- ── FAB ────────────────────────────────────────────────── -->
+    <button id="fab"
+      class="fixed bottom-6 right-5 z-30 w-14 h-14 bg-tg-blue text-white rounded-full flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"
+        class="w-7 h-7">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+    </button>
+
+    <!-- ── MODAL OVERLAY ─────────────────────────────────────── -->
+    <div id="modal-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
+
+    <!-- ── BOTTOM SHEET ───────────────────────────────────────── -->
+    <div id="modal-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-bg rounded-t-3xl shadow-2xl flex-col max-h-[92vh]">
+      <!-- Drag handle -->
+      <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
+        <div class="w-10 h-1 bg-tg-border rounded-full"></div>
+      </div>
+
+      <!-- Sheet header -->
+      <div class="flex items-center justify-between px-5 pt-2 pb-4 border-b border-tg-border flex-shrink-0">
+        <h2 id="modal-title" class="text-base font-bold text-tg-text">새 활동 추가</h2>
+        <button id="btn-close-modal"
+          class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+            stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Scrollable form -->
+      <div class="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+
+        <!-- Date / Time -->
+        <div>
+          <label class="block text-xs font-semibold text-tg-muted mb-1.5">일시 (Date &amp; Time)</label>
+          <input id="f-datetime" type="datetime-local"
+            class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue" />
+        </div>
+
+        <!-- Profile (read-only) -->
+        <div class="bg-tg-surface rounded-xl border border-tg-border p-3">
+          <p class="text-xs font-semibold text-tg-muted mb-2.5">프로필 (자동 입력)</p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-tg-bg rounded-lg px-3 py-2 border border-tg-border">
+              <p class="text-tg-muted mb-0.5">지역</p>
+              <p id="fp-region" class="font-semibold text-tg-text"></p>
+            </div>
+            <div class="bg-tg-bg rounded-lg px-3 py-2 border border-tg-border">
+              <p class="text-tg-muted mb-0.5">직책</p>
+              <p id="fp-role" class="font-semibold text-tg-text"></p>
+            </div>
+            <div class="bg-tg-bg rounded-lg px-3 py-2 border border-tg-border">
+              <p class="text-tg-muted mb-0.5">이름</p>
+              <p id="fp-name" class="font-semibold text-tg-text"></p>
+            </div>
+            <div class="bg-tg-bg rounded-lg px-3 py-2 border border-tg-border">
+              <p class="text-tg-muted mb-0.5">ID</p>
+              <p id="fp-id" class="font-semibold text-tg-blue"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div>
+          <label class="block text-xs font-semibold text-tg-muted mb-1.5">장소 (Location)</label>
+          <input id="f-location" type="text" placeholder="예: 서울 강남 전도관"
+            class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text placeholder-tg-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue" />
+        </div>
+
+        <!-- Activity content -->
+        <div>
+          <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 내용 (Activity Content)</label>
+          <textarea id="f-content" rows="3" placeholder="활동 내용을 입력하세요..."
+            class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text placeholder-tg-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue resize-none"></textarea>
+        </div>
+
+        <!-- Status segmented control -->
+        <div>
+          <label class="block text-xs font-semibold text-tg-muted mb-1.5">진행 상태 (Status)</label>
+          <div id="status-seg" class="flex gap-1.5 bg-tg-surface rounded-xl p-1 border border-tg-border">
+            <button data-value="planned"
+              class="seg-btn flex-1 text-xs font-semibold py-2.5 px-1 rounded-lg transition-all">계획중</button>
+            <button data-value="completed"
+              class="seg-btn flex-1 text-xs font-semibold py-2.5 px-1 rounded-lg transition-all">완료</button>
+            <button data-value="canceled"
+              class="seg-btn flex-1 text-xs font-semibold py-2.5 px-1 rounded-lg transition-all">취소</button>
+          </div>
+        </div>
+
+        <!-- Result (visible when status = completed) -->
+        <div id="result-box">
+          <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 결과 (Result / Feedback)</label>
+          <textarea id="f-result" rows="3" placeholder="활동 결과 및 피드백을 입력하세요..."
+            class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text placeholder-tg-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-tg-blue resize-none"></textarea>
+        </div>
+
+        <div class="h-2"></div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="px-5 py-4 border-t border-tg-border flex-shrink-0 space-y-2">
+        <button id="btn-save"
+          class="w-full bg-tg-blue text-white rounded-xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2">
+          <svg id="save-spinner" class="spinner w-4 h-4 hidden" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 3 5.373 3 12h1z"></path>
+          </svg>
+          <span id="save-label">계획 저장</span>
+        </button>
+        <button id="btn-cancel-activity"
+          class="hidden w-full text-sm font-semibold py-3 rounded-xl border border-red-200 bg-red-50 text-red-600">
+          이 활동 취소하기
+        </button>
+      </div>
+    </div><!-- /modal-sheet -->
+
+    <!-- ── TOAST ─────────────────────────────────────────────── -->
+    <div id="toast"
+      class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap">
+    </div>
+
+  </div><!-- /app -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+     TELEGRAM WEBAPP SDK
+     (Safe to include; no-op when loaded outside Telegram)
+═══════════════════════════════════════════════════════════ -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+     APP LOGIC  (vanilla JS — no external framework required)
+═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════
+     TELEGRAM WEBAPP SDK
+═══════════════════════════════════════════════════════════ -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- ═══════════════════════════════════════════════════════════
+     APP LOGIC  (GAS 연동 완벽 적용)
+═══════════════════════════════════════════════════════════ -->
+  <script>
+    'use strict';
+
+    // ⚠️ 본인의 구글 웹앱 URL (/exec로 끝나는 주소)을 적어주세요!
+    const GAS_URL = "https://script.google.com/macros/s/YOUR_GAS_WEBAPP_URL/exec";
+
+    /* ─────────────────────────────────────────────────────────────
+       PROFILE & STATE
+    ───────────────────────────────────────────────────────────── */
+    const tg = window.Telegram.WebApp;
+
+    // 사용자 프로필 객체 (백엔드에서 동적으로 채워집니다)
+    let profile = {
+      region: '',
+      role: '',
+      name: '',
+      id: '',
+      team: ''
+    };
+
+    let currentDate = new Date();
+    let activities = [];          // 백엔드에서 불러온 활동 목록
+    let modalMode = 'add';       // 'add' | 'edit'
+    let editId = null;
+    let formStatus = 'planned';   // 'planned' | 'completed' | 'canceled'
+
+    /* ─────────────────────────────────────────────────────────────
+       ELEMENT REFS
+    ───────────────────────────────────────────────────────────── */
+    const $ = id => document.getElementById(id);
+
+    /* ─────────────────────────────────────────────────────────────
+       HELPERS
+    ───────────────────────────────────────────────────────────── */
+    function dateKey(d) {
+      // YYYY-MM-DD 형식 반환
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function formatTime(dtStr) {
+      if (!dtStr) return '--:--';
+      if (dtStr.includes('T')) {
+        return dtStr.split('T')[1].slice(0, 5);
+      }
+      return dtStr;
+    }
+
+    function statusLabel(s) {
+      return { planned: '계획중', completed: '완료', canceled: '취소' }[s] || s;
+    }
+
+    function statusBadgeClass(s) {
+      return { planned: 'badge-planned', completed: 'badge-completed', canceled: 'badge-canceled' }[s] || '';
+    }
+
+    function filteredActivities() {
+      const key = dateKey(currentDate);
+      return activities
+        .filter(a => a.datetime && a.datetime.startsWith(key))
+        .sort((a, b) => a.datetime.localeCompare(b.datetime));
+    }
+
+    function escHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       SERVER API CALLS (Google Apps Script 연동)
+    ───────────────────────────────────────────────────────────── */
+
+    // 1. 유저 정보 및 선택된 날짜의 활동 목록 조회
+    async function fetchAppData() {
+      tg.ready();
+      tg.expand();
+
+      const initData = tg.initData;
+      const targetDate = dateKey(currentDate);
+
+      try {
+        const res = await fetch(`${GAS_URL}?action=getInitialData&initData=${encodeURIComponent(initData)}&date=${targetDate}`);
+        const data = await res.json();
+
+        // 사용자 정보 업데이트
+        if (data.user) {
+          profile = {
+            region: data.user.region || '미정',
+            role: data.user.role || '회원',
+            name: data.user.name || '사용자',
+            id: data.user.id || '',
+            team: data.user.team || ''
+          };
+          renderHeader();
+        }
+
+        // 활동 데이터 업데이트
+        if (data.activities) {
+          activities = data.activities;
+        } else {
+          activities = [];
+        }
+
+        render();
+
+      } catch (err) {
+        showToast("데이터 로딩 실패: " + err.message, "error");
+      }
+    }
+
+    // 2. 활동 저장 (신규 추가 / 기존 수정)
+    async function saveActivity() {
+      const datetime = $('f-datetime').value.trim();
+      const location = $('f-location').value.trim();
+      const content = $('f-content').value.trim();
+      const result = $('f-result').value.trim();
+
+      if (!datetime) { showToast('일시를 입력해 주세요.', 'error'); return; }
+      if (!location) { showToast('장소를 입력해 주세요.', 'error'); return; }
+      if (!content) { showToast('활동 내용을 입력해 주세요.', 'error'); return; }
+      if (formStatus === 'completed' && !result) {
+        showToast('완료 상태에는 활동 결과가 필요합니다.', 'error'); return;
+      }
+
+      // 스피너 활성화
+      $('save-spinner').classList.remove('hidden');
+      $('btn-save').disabled = true;
+
+      const actId = modalMode === 'add' ? ("ACT_" + Date.now()) : editId;
+
+      const payload = {
+        action: 'saveActivity',
+        initData: tg.initData,
+        mode: modalMode,
+        actId: actId,
+        datetime: datetime,
+        location: location,
+        content: content,
+        status: formStatus,
+        result: result
+      };
+
+      try {
+        // GET URL 파라미터 방식으로 서버 전송
+        const queryParams = new URLSearchParams(payload).toString();
+        await fetch(`${GAS_URL}?${queryParams}`, { mode: 'no-cors' });
+
+        // 로컬 데이터 즉시 업데이트
+        if (modalMode === 'add') {
+          activities.push({
+            id: actId,
+            region: profile.region,
+            role: profile.role,
+            name: profile.name,
+            userId: profile.id,
+            datetime: datetime,
+            location: location,
+            content: content,
+            status: formStatus,
+            result: result
+          });
+        } else {
+          const idx = activities.findIndex(a => a.id == editId);
+          if (idx !== -1) {
+            activities[idx] = {
+              ...activities[idx],
+              datetime,
+              location,
+              content,
+              status: formStatus,
+              result
+            };
+          }
+        }
+
+        setTimeout(() => {
+          onSaveSuccess(payload);
+        }, 800);
+
+      } catch (err) {
+        onSaveError(err.message);
+      }
+    }
+
+    function onSaveSuccess(payload) {
+      $('save-spinner').classList.add('hidden');
+      $('btn-save').disabled = false;
+      closeModal();
+      render();
+      showToast(payload.mode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
+    }
+
+    function onSaveError(msg) {
+      $('save-spinner').classList.add('hidden');
+      $('btn-save').disabled = false;
+      showToast('저장 실패: ' + msg, 'error');
+    }
+
+    async function cancelActivity() {
+      const idx = activities.findIndex(a => a.id == editId);
+      if (idx !== -1) {
+        activities[idx].status = 'canceled';
+
+        // 취소 상태 변경 사항 서버 전송
+        const payload = {
+          action: 'saveActivity',
+          initData: tg.initData,
+          mode: 'edit',
+          actId: editId,
+          datetime: activities[idx].datetime,
+          location: activities[idx].location,
+          content: activities[idx].content,
+          status: 'canceled',
+          result: activities[idx].result || ''
+        };
+
+        const queryParams = new URLSearchParams(payload).toString();
+        await fetch(`${GAS_URL}?${queryParams}`, { mode: 'no-cors' });
+      }
+
+      closeModal();
+      render();
+      showToast('활동이 취소 처리되었습니다.', 'success');
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       RENDER
+    ───────────────────────────────────────────────────────────── */
+    function renderHeader() {
+      $('hdr-region').textContent = profile.region;
+      $('hdr-team').textContent = profile.team ? `${profile.team} · ${profile.region}` : profile.region;
+
+      $('profile-avatar').textContent = profile.name.charAt(0) || '👤';
+      $('profile-name-chip').textContent = profile.name;
+      $('profile-role-chip').textContent = profile.role;
+
+      $('pd-region').textContent = profile.region;
+      $('pd-role').textContent = profile.role;
+      $('pd-name').textContent = profile.name;
+      $('pd-id').textContent = profile.id;
+
+      // Form profile cells
+      $('fp-region').textContent = profile.region;
+      $('fp-role').textContent = profile.role;
+      $('fp-name').textContent = profile.name;
+      $('fp-id').textContent = profile.id;
+    }
+
+    function renderDateNav() {
+      $('display-date').textContent = currentDate.toLocaleDateString('ko-KR', {
+        year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
+      });
+      const today = new Date();
+      const isToday = dateKey(today) === dateKey(currentDate);
+      $('display-today').textContent = isToday ? '오늘' : '';
+    }
+
+    function renderList() {
+      const list = filteredActivities();
+
+      // Stats
+      $('stat-planned').textContent = list.filter(a => a.status === 'planned').length;
+      $('stat-completed').textContent = list.filter(a => a.status === 'completed').length;
+      $('stat-canceled').textContent = list.filter(a => a.status === 'canceled').length;
+
+      $('activity-count').textContent = list.length + '건';
+
+      const container = $('cards-container');
+      const empty = $('empty-state');
+
+      if (list.length === 0) {
+        empty.classList.remove('hidden');
+        empty.classList.add('flex');
+        container.innerHTML = '';
+        return;
+      }
+
+      empty.classList.add('hidden');
+      empty.classList.remove('flex');
+
+      container.innerHTML = list.map(item => `
+    <div
+      class="activity-card bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm ${item.status === 'canceled' ? 'opacity-60' : ''}"
+      data-id="${item.id}"
+    >
+      <div class="flex items-start justify-between mb-2.5">
+        <div class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="text-sm font-semibold text-tg-text">${formatTime(item.datetime)}</span>
+        </div>
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
+      </div>
+
+      <div class="flex items-center gap-2 mb-1.5">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+        <span class="text-sm text-tg-text">${escHtml(item.location || '장소 미정')}</span>
+      </div>
+
+      <div class="flex items-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0 mt-0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/></svg>
+        <p class="text-sm text-tg-muted line-clamp-2">${escHtml(item.content || '내용 없음')}</p>
+      </div>
+
+      ${item.status === 'completed' && item.result ? `
+      <div class="mt-3 pt-3 border-t border-tg-border">
+        <p class="text-xs text-tg-muted font-medium mb-1">활동 결과</p>
+        <p class="text-sm text-tg-text">${escHtml(item.result)}</p>
+      </div>` : ''}
+
+      <div class="mt-3 flex items-center gap-1 text-blue-400">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+        <span class="text-[10px] font-medium">탭하여 수정</span>
+      </div>
+    </div>
+  `).join('');
+
+      container.querySelectorAll('.activity-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const item = activities.find(a => a.id == card.dataset.id);
+          if (item) openEdit(item);
+        });
+      });
+    }
+
+    function render() {
+      renderDateNav();
+      renderList();
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       MODAL & SEGMENTED CONTROL
+    ───────────────────────────────────────────────────────────── */
+    function openModal() {
+      const overlay = $('modal-overlay');
+      const sheet = $('modal-sheet');
+
+      sheet.style.display = 'flex';
+      sheet.style.transform = 'translateY(100%)';
+      sheet.offsetHeight;
+
+      overlay.classList.add('open');
+      sheet.classList.add('open');
+      sheet.style.transform = '';
+    }
+
+    function closeModal() {
+      const overlay = $('modal-overlay');
+      const sheet = $('modal-sheet');
+      overlay.classList.remove('open');
+      sheet.classList.remove('open');
+      setTimeout(() => { sheet.style.display = 'none'; }, 360);
+    }
+
+    function openAdd() {
+      modalMode = 'add';
+      editId = null;
+
+      const now = new Date();
+      if (now.getMinutes() < 30) {
+        now.setMinutes(30, 0, 0);
+      } else {
+        now.setHours(now.getHours() + 1, 0, 0, 0);
+      }
+      const dateStr = dateKey(currentDate);
+      const timeStr = now.toTimeString().slice(0, 5);
+
+      $('f-datetime').value = `${dateStr}T${timeStr}`;
+      $('f-location').value = '';
+      $('f-content').value = '';
+      $('f-result').value = '';
+
+      setStatus('planned');
+
+      $('modal-title').textContent = '새 활동 추가';
+      $('save-label').textContent = '계획 저장';
+      $('btn-cancel-activity').classList.add('hidden');
+
+      openModal();
+    }
+
+    function openEdit(item) {
+      modalMode = 'edit';
+      editId = item.id;
+
+      $('f-datetime').value = item.datetime || '';
+      $('f-location').value = item.location || '';
+      $('f-content').value = item.content || '';
+      $('f-result').value = item.result || '';
+
+      setStatus(item.status || 'planned');
+
+      $('modal-title').textContent = '활동 수정';
+      $('save-label').textContent = '수정 완료';
+
+      const cancelBtn = $('btn-cancel-activity');
+      if (item.status !== 'canceled') {
+        cancelBtn.classList.remove('hidden');
+      } else {
+        cancelBtn.classList.add('hidden');
+      }
+
+      openModal();
+    }
+
+    function setStatus(value) {
+      formStatus = value;
+      document.querySelectorAll('.seg-btn').forEach(btn => {
+        if (btn.dataset.value === value) {
+          btn.classList.add('seg-active');
+          btn.classList.remove('seg-inactive');
+        } else {
+          btn.classList.remove('seg-active');
+          btn.classList.add('seg-inactive');
+        }
+      });
+
+      const resultBox = $('result-box');
+      if (value === 'completed') {
+        resultBox.classList.add('visible');
+      } else {
+        resultBox.classList.remove('visible');
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       TOAST
+    ───────────────────────────────────────────────────────────── */
+    let toastTimer = null;
+
+    function showToast(message, type) {
+      const el = $('toast');
+      el.textContent = message;
+      el.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap';
+      if (type === 'success') el.classList.add('bg-green-600');
+      else if (type === 'error') el.classList.add('bg-red-600');
+      else el.classList.add('bg-zinc-800');
+      el.classList.add('show');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2800);
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       EVENT LISTENERS
+    ───────────────────────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // 초기 서버 데이터 불러오기
+      fetchAppData();
+
+      // 날짜 선택 이동 버튼
+      $('btn-prev-day').addEventListener('click', () => {
+        currentDate.setDate(currentDate.getDate() - 1);
+        currentDate = new Date(currentDate);
+        fetchAppData(); // 날짜 이동 시 데이터 새로 조회
+      });
+
+      $('btn-next-day').addEventListener('click', () => {
+        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate = new Date(currentDate);
+        fetchAppData();
+      });
+
+      // FAB 버튼
+      $('fab').addEventListener('click', openAdd);
+
+      // 모달 닫기
+      $('btn-close-modal').addEventListener('click', closeModal);
+      $('modal-overlay').addEventListener('click', closeModal);
+
+      // 진행 상태 탭 선택
+      document.querySelectorAll('.seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => setStatus(btn.dataset.value));
+      });
+
+      // 저장 및 취소 버튼
+      $('btn-save').addEventListener('click', saveActivity);
+      $('btn-cancel-activity').addEventListener('click', cancelActivity);
+
+      // 프로필 드롭다운 토글
+      $('profile-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        $('profile-dropdown').classList.toggle('open');
+      });
+      document.addEventListener('click', () => {
+        $('profile-dropdown').classList.remove('open');
+      });
+
+      // 텔레그램 헤더 색상 지정
+      if (window.Telegram && window.Telegram.WebApp) {
+        tg.setHeaderColor('#ffffff');
+      }
+    });
+  </script>
+
 </body>
 
 </html>

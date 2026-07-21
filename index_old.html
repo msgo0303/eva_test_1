@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Mini App</title>
+    <!-- 텔레그램 필수 SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            text-align: center;
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        input {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #2481cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading-screen">데이터 로딩 중...</div>
+
+    <div id="register-screen" style="display: none;">
+        <h2>환영합니다! 👋</h2>
+        <p>실명을 입력해주세요.</p>
+        <input type="text" id="user-name-input" placeholder="홍길동">
+        <br>
+        <button id="register-btn">등록하기</button>
+    </div>
+
+    <div id="main-screen" style="display: none;">
+        <h2 id="welcome-msg">안녕하세요!</h2>
+        <p>자동 인식이 성공적으로 완료되었습니다.</p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
