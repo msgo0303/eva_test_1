@@ -8,6 +8,9 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -105,27 +108,31 @@
         }
 
         #modal-overlay,
-        #reg-overlay {
+        #reg-overlay,
+        #dash-overlay {
             display: none;
             opacity: 0;
             transition: opacity .3s ease;
         }
 
         #modal-overlay.open,
-        #reg-overlay.open {
+        #reg-overlay.open,
+        #dash-overlay.open {
             display: block;
             opacity: 1;
         }
 
         #modal-sheet,
-        #reg-sheet {
+        #reg-sheet,
+        #dash-sheet {
             display: none;
             transform: translateY(100%);
             transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
         }
 
         #modal-sheet.open,
-        #reg-sheet.open {
+        #reg-sheet.open,
+        #dash-sheet.open {
             display: flex;
             transform: translateY(0);
         }
@@ -155,6 +162,10 @@
 
         #fab {
             box-shadow: 0 4px 20px rgba(37, 99, 235, .4);
+        }
+
+        #dash-btn {
+            box-shadow: 0 4px 20px rgba(24, 24, 27, .3);
         }
 
         @keyframes spin {
@@ -320,9 +331,19 @@
             <div id="cards-container" class="space-y-3"></div>
         </main>
 
-        <!-- FAB -->
+        <!-- 📊 DASHBOARD BUTTON (관리자/조장 전용 - 좌측 하단) -->
+        <button id="dash-btn"
+            class="hidden fixed bottom-6 left-5 z-30 w-14 h-14 bg-zinc-900 text-white rounded-full flex items-center justify-center active:scale-95 transition-transform">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+        </button>
+
+        <!-- ➕ ADD BUTTON (우측 하단) -->
         <button id="fab"
-            class="fixed bottom-6 right-5 z-30 w-14 h-14 bg-tg-blue text-white rounded-full flex items-center justify-center">
+            class="fixed bottom-6 right-5 z-30 w-14 h-14 bg-tg-blue text-white rounded-full flex items-center justify-center active:scale-95 transition-transform">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
                 stroke="currentColor" class="w-7 h-7">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -331,7 +352,7 @@
 
         <div id="modal-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
 
-        <!-- BOTTOM SHEET -->
+        <!-- BOTTOM SHEET (일정 작성/수정) -->
         <div id="modal-sheet"
             class="fixed inset-x-0 bottom-0 z-50 bg-tg-bg rounded-t-3xl shadow-2xl flex-col max-h-[92vh]">
             <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -396,7 +417,6 @@
                     </div>
                 </div>
 
-                <!-- 💡 단일 선택으로 변경된 활동 내용 (카테고리) -->
                 <div>
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 내용 선택 (1개)</label>
                     <select id="f-content-category"
@@ -427,7 +447,6 @@
                     </div>
                 </div>
 
-                <!-- 활동 결과 & 피드백 (완료 시 노출) -->
                 <div id="result-box" class="space-y-4">
 
                     <div class="bg-blue-50/50 rounded-2xl border border-blue-100 p-3.5">
@@ -474,6 +493,134 @@
 
         <div id="toast"
             class="fixed bottom-24 left-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white text-center w-max max-w-[90vw] whitespace-normal leading-snug">
+        </div>
+    </div>
+
+    <!-- 📊 DASHBOARD FULL MODAL SHEET -->
+    <div id="dash-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
+    <div id="dash-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex-col h-[94vh]">
+        <div class="flex justify-center pt-3 pb-1 flex-shrink-0 bg-tg-bg rounded-t-3xl">
+            <div class="w-10 h-1 bg-tg-border rounded-full"></div>
+        </div>
+
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
+            <div>
+                <h2 class="text-base font-bold text-tg-text">📊 관리자 대시보드</h2>
+                <p class="text-[11px] text-tg-muted">팀 활동 통계 및 현황 분석</p>
+            </div>
+            <button id="btn-close-dash"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                    stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Range Selector Tabs -->
+        <div class="flex gap-2 p-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
+            <button data-range="today"
+                class="dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white">오늘</button>
+            <button data-range="week"
+                class="dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted">이번
+                주</button>
+            <button data-range="month"
+                class="dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted">이번
+                달</button>
+        </div>
+
+        <!-- Scrollable Dashboard Content -->
+        <div class="overflow-y-auto flex-1 p-4 space-y-4">
+
+            <!-- 1. KPI 요약 카드 -->
+            <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-tg-muted font-medium">전체 등록 활동</p>
+                        <div class="flex items-baseline gap-1 mt-0.5">
+                            <span id="db-kpi-total" class="text-2xl font-extrabold text-tg-text">0</span>
+                            <span class="text-xs font-semibold text-tg-muted">건</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-tg-muted font-medium">달성률 (완료)</p>
+                        <p id="db-kpi-rate" class="text-lg font-bold text-tg-blue mt-0.5">0%</p>
+                    </div>
+                </div>
+
+                <!-- 카테고리별 건수 칩 -->
+                <div class="grid grid-cols-4 gap-1.5 pt-1">
+                    <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-2 text-center">
+                        <p class="text-[10px] text-blue-600 font-bold">찾기</p>
+                        <p id="db-cat-find" class="text-sm font-bold text-blue-800">0건</p>
+                    </div>
+                    <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-2 text-center">
+                        <p class="text-[10px] text-emerald-600 font-bold">매칭</p>
+                        <p id="db-cat-match" class="text-sm font-bold text-emerald-800">0건</p>
+                    </div>
+                    <div class="bg-amber-50/70 border border-amber-100 rounded-xl p-2 text-center">
+                        <p class="text-[10px] text-amber-600 font-bold">잎사귀</p>
+                        <p id="db-cat-leaf" class="text-sm font-bold text-amber-800">0건</p>
+                    </div>
+                    <div class="bg-purple-50/70 border border-purple-100 rounded-xl p-2 text-center">
+                        <p class="text-[10px] text-purple-600 font-bold">복방</p>
+                        <p id="db-cat-book" class="text-sm font-bold text-purple-800">0건</p>
+                    </div>
+                </div>
+
+                <!-- 카테고리별 1위 조 -->
+                <div class="pt-2 border-t border-tg-border">
+                    <p class="text-xs font-bold text-tg-text mb-2">🏆 카테고리별 최다 활동 조</p>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-tg-surface p-2 rounded-lg border border-tg-border flex justify-between"><span
+                                class="text-tg-muted">🔍 찾기 1위</span><span id="db-top-find"
+                                class="font-bold text-tg-blue">-</span></div>
+                        <div class="bg-tg-surface p-2 rounded-lg border border-tg-border flex justify-between"><span
+                                class="text-tg-muted">🤝 매칭 1위</span><span id="db-top-match"
+                                class="font-bold text-tg-blue">-</span></div>
+                        <div class="bg-tg-surface p-2 rounded-lg border border-tg-border flex justify-between"><span
+                                class="text-tg-muted">🍃 잎사귀 1위</span><span id="db-top-leaf"
+                                class="font-bold text-tg-blue">-</span></div>
+                        <div class="bg-tg-surface p-2 rounded-lg border border-tg-border flex justify-between"><span
+                                class="text-tg-muted">📖 복방 1위</span><span id="db-top-book"
+                                class="font-bold text-tg-blue">-</span></div>
+                    </div>
+                </div>
+
+                <!-- 세부 성과 합산 -->
+                <div class="pt-2 border-t border-tg-border">
+                    <p class="text-xs font-bold text-tg-text mb-2">✨ 세부 성과 자동 집계</p>
+                    <div id="db-results-summary" class="flex flex-wrap gap-1 text-[11px]">
+                        <span class="text-tg-muted">집계된 성과가 없습니다.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 시각화 차트 (Chart.js) -->
+            <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
+                <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📈 활동 카테고리 비중</h3>
+                <div class="w-full h-48 relative flex items-center justify-center">
+                    <canvas id="chart-category"></canvas>
+                </div>
+
+                <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊 조별
+                    활동 건수 비교</h3>
+                <div class="w-full h-52 relative">
+                    <canvas id="chart-group"></canvas>
+                </div>
+            </div>
+
+            <!-- 3. 상세 리스트 (누가/언제/어디서/무엇을/결과) -->
+            <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📋 상세 활동 타임라인</h3>
+                    <span id="db-list-count" class="text-xs text-tg-muted font-medium">0건</span>
+                </div>
+
+                <div id="db-timeline-container" class="space-y-2.5"></div>
+            </div>
+
         </div>
     </div>
 
@@ -528,6 +675,10 @@
         let editId = null;
         let formStatus = 'planned';
         let toastTimer = null;
+        let currentDashRange = 'today';
+
+        let catChartInstance = null;
+        let groupChartInstance = null;
 
         const RESULT_SCHEMA = {
             '찾기': { types: ['온만찾', '오프번찾', '구두만픽', '오프만찾'], hasCount: true },
@@ -739,6 +890,13 @@
 
                     activities = data.activities || [];
 
+                    // 관리자 버튼 표시 여부
+                    if (data.isAdmin) {
+                        $('dash-btn').classList.remove('hidden');
+                    } else {
+                        $('dash-btn').classList.add('hidden');
+                    }
+
                     renderHeader();
                     renderDateNav();
                     renderList();
@@ -751,12 +909,40 @@
             }
         }
 
+        async function fetchDashboardData(range = 'today') {
+            currentDashRange = range;
+
+            // 버튼 스타일 업데이트
+            document.querySelectorAll('.dash-range-btn').forEach(btn => {
+                if (btn.dataset.range === range) {
+                    btn.className = "dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white";
+                } else {
+                    btn.className = "dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted";
+                }
+            });
+
+            const baseDate = dateKey(currentDate);
+
+            try {
+                const res = await fetch(`${GAS_URL}?action=getDashboardData&initData=${encodeURIComponent(tg ? tg.initData : '')}&range=${range}&date=${baseDate}`);
+                const data = await res.json();
+
+                if (data.result === 'success') {
+                    renderDashboard(data.list || []);
+                } else {
+                    showToast(data.message || '대시보드 데이터를 불러오지 못했습니다.', 'error');
+                }
+            } catch (err) {
+                showToast('대시보드 통신 오류: ' + err.message, 'error');
+            }
+        }
+
         async function saveActivity() {
             const targetDate = dateKey(currentDate);
             const startTime = $('f-starttime').value;
             const endTime = $('f-endtime').value;
             const location = $('f-location').value.trim();
-            const content = $('f-content-category').value; // 단일 선택 카테고리
+            const content = $('f-content-category').value;
 
             const resultData = getResultDataJson();
             const resultText = $('f-result-text').value.trim();
@@ -873,7 +1059,184 @@
         }
 
         /* ─────────────────────────────────────────────────────────────
-           RENDER & FILTERING & SORTING
+           DASHBOARD RENDER & CHARTS
+        ───────────────────────────────────────────────────────────── */
+        function renderDashboard(list) {
+            // 1. KPI 집계
+            const total = list.length;
+            const completedCount = list.filter(a => a.status === 'completed').length;
+            const rate = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+            $('db-kpi-total').textContent = total;
+            $('db-kpi-rate').textContent = rate + '%';
+
+            // 2. 카테고리별 건수 & 조별 건수 집계
+            const catCounts = { '찾기': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            const catTopGroupMap = { '찾기': {}, '매칭': {}, '잎사귀': {}, '복방': {} };
+            const groupTotalCounts = {};
+            const detailedResultsMap = {};
+
+            list.forEach(item => {
+                const cat = item.content || '찾기';
+                const group = item.group || '미정';
+
+                if (catCounts[cat] !== undefined) catCounts[cat]++;
+                else catCounts[cat] = 1;
+
+                // 조별 전체
+                groupTotalCounts[group] = (groupTotalCounts[group] || 0) + 1;
+
+                // 카테고리별 조별 건수
+                if (!catTopGroupMap[cat]) catTopGroupMap[cat] = {};
+                catTopGroupMap[cat][group] = (catTopGroupMap[cat][group] || 0) + 1;
+
+                // 세부 결과 집계 (완료건)
+                if (item.status === 'completed' && item.resultData) {
+                    try {
+                        const parsed = JSON.parse(item.resultData);
+                        if (Array.isArray(parsed)) {
+                            parsed.forEach(r => {
+                                const key = `${r.category}:${r.type}`;
+                                if (!detailedResultsMap[key]) detailedResultsMap[key] = 0;
+                                detailedResultsMap[key] += (r.count ? parseInt(r.count, 10) : 1);
+                            });
+                        }
+                    } catch (e) { }
+                }
+            });
+
+            $('db-cat-find').textContent = catCounts['찾기'] + '건';
+            $('db-cat-match').textContent = catCounts['매칭'] + '건';
+            $('db-cat-leaf').textContent = catCounts['잎사귀'] + '건';
+            $('db-cat-book').textContent = catCounts['복방'] + '건';
+
+            // 1위 조 구하기 헬퍼
+            const getTopGroupStr = (map) => {
+                let topGroup = '-';
+                let max = 0;
+                for (let g in map) {
+                    if (map[g] > max) {
+                        max = map[g];
+                        topGroup = `${g} (${max}건)`;
+                    }
+                }
+                return topGroup;
+            };
+
+            $('db-top-find').textContent = getTopGroupStr(catTopGroupMap['찾기']);
+            $('db-top-match').textContent = getTopGroupStr(catTopGroupMap['매칭']);
+            $('db-top-leaf').textContent = getTopGroupStr(catTopGroupMap['잎사귀']);
+            $('db-top-book').textContent = getTopGroupStr(catTopGroupMap['복방']);
+
+            // 세부 성과 칩 바인딩
+            const resultsContainer = $('db-results-summary');
+            const resultKeys = Object.keys(detailedResultsMap);
+            if (resultKeys.length === 0) {
+                resultsContainer.innerHTML = '<span class="text-tg-muted">집계된 성과가 없습니다.</span>';
+            } else {
+                resultsContainer.innerHTML = resultKeys.map(k => {
+                    const [c, t] = k.split(':');
+                    const val = detailedResultsMap[k];
+                    return `<span class="bg-blue-50 text-tg-blue border border-blue-100 font-bold px-2 py-0.5 rounded-md">${c} [${t}]: ${val}</span>`;
+                }).join('');
+            }
+
+            // 3. Chart.js 렌더링
+            renderCharts(catCounts, groupTotalCounts);
+
+            // 4. 상세 타임라인 리스트
+            renderDashboardTimeline(list);
+        }
+
+        function renderCharts(catCounts, groupCounts) {
+            // 1) 카테고리 도넛 차트
+            const ctxCat = $('chart-category').getContext('2d');
+            if (catChartInstance) catChartInstance.destroy();
+
+            catChartInstance = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: ['찾기', '매칭', '잎사귀', '복방'],
+                    datasets: [{
+                        data: [catCounts['찾기'], catCounts['매칭'], catCounts['잎사귀'], catCounts['복방']],
+                        backgroundColor: ['#2563eb', '#16a34a', '#d97706', '#9333ea']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // 2) 조별 막대 차트
+            const ctxGroup = $('chart-group').getContext('2d');
+            if (groupChartInstance) groupChartInstance.destroy();
+
+            const groupLabels = Object.keys(groupCounts);
+            const groupData = groupLabels.map(g => groupCounts[g]);
+
+            groupChartInstance = new Chart(ctxGroup, {
+                type: 'bar',
+                data: {
+                    labels: groupLabels.length > 0 ? groupLabels : ['데이터 없음'],
+                    datasets: [{
+                        label: '활동 건수',
+                        data: groupData.length > 0 ? groupData : [0],
+                        backgroundColor: '#2563eb',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderDashboardTimeline(list) {
+            $('db-list-count').textContent = list.length + '건';
+            const container = $('db-timeline-container');
+
+            if (list.length === 0) {
+                container.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">해당 기간에 등록된 활동이 없습니다.</p>';
+                return;
+            }
+
+            // 시간 및 날짜 순 정렬
+            list.sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime));
+
+            container.innerHTML = list.map(item => `
+    <div class="bg-tg-surface p-3 rounded-xl border border-tg-border text-xs space-y-1.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-tg-blue">${escHtml(item.group)}</span>
+          <span class="font-bold text-tg-text">${escHtml(item.name)}</span>
+          <span class="text-[10px] text-tg-muted">(${escHtml(item.role)})</span>
+        </div>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
+      </div>
+
+      <div class="flex items-center justify-between text-tg-muted">
+        <span>📅 ${item.date} (${item.startTime} ~ ${item.endTime})</span>
+        <span class="bg-zinc-200 text-zinc-800 font-bold px-1.5 py-0.5 rounded text-[10px]">${escHtml(item.content)}</span>
+      </div>
+
+      <div class="text-tg-text">📍 ${escHtml(item.location)}</div>
+
+      ${item.resultText ? `<div class="bg-white p-2 rounded border border-tg-border text-[11px] text-tg-muted mt-1">💬 ${escHtml(item.resultText)}</div>` : ''}
+    </div>
+  `).join('');
+        }
+
+        /* ─────────────────────────────────────────────────────────────
+           RENDER & FILTERING (MAIN LIST)
         ───────────────────────────────────────────────────────────── */
         function renderHeader() {
             $('hdr-region').textContent = `${profile.group} | ${profile.region}`;
@@ -1025,7 +1388,6 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <span class="text-sm font-semibold text-tg-text">${item.startTime} - ${item.endTime}</span>
         </div>
-        <!-- 💡 선택된 활동 내용(카테고리) 배지 -->
         <span class="bg-zinc-100 text-zinc-800 border border-zinc-200 text-xs font-bold px-2.5 py-0.5 rounded-md">
           ${escHtml(item.content || '찾기')}
         </span>
@@ -1080,6 +1442,26 @@
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
         }
 
+        function openDashModal() {
+            const overlay = $('dash-overlay');
+            const sheet = $('dash-sheet');
+
+            sheet.style.display = 'flex';
+            sheet.offsetHeight;
+            overlay.classList.add('open');
+            sheet.classList.add('open');
+
+            fetchDashboardData('today');
+        }
+
+        function closeDashModal() {
+            const overlay = $('dash-overlay');
+            const sheet = $('dash-sheet');
+            overlay.classList.remove('open');
+            sheet.classList.remove('open');
+            setTimeout(() => { sheet.style.display = 'none'; }, 360);
+        }
+
         function openAdd() {
             modalMode = 'add';
             editId = null;
@@ -1096,7 +1478,7 @@
             $('f-starttime').value = defaultStartTime;
             updateEndTimeOptions();
 
-            $('f-content-category').value = '찾기'; // 기본값
+            $('f-content-category').value = '찾기';
             $('f-location').value = '';
             $('f-result-text').value = '';
             $('result-rows-container').innerHTML = '';
@@ -1246,8 +1628,19 @@
             });
 
             $('fab').addEventListener('click', openAdd);
+            $('dash-btn').addEventListener('click', openDashModal);
+
             $('btn-close-modal').addEventListener('click', closeModal);
             $('modal-overlay').addEventListener('click', closeModal);
+
+            $('btn-close-dash').addEventListener('click', closeDashModal);
+            $('dash-overlay').addEventListener('click', closeDashModal);
+
+            document.querySelectorAll('.dash-range-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    fetchDashboardData(btn.dataset.range);
+                });
+            });
 
             document.querySelectorAll('.seg-btn').forEach(btn => {
                 btn.addEventListener('click', () => setStatus(btn.dataset.value));
