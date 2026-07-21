@@ -305,7 +305,6 @@
 
             const initData = tg ? tg.initData : "";
 
-            // 텔레그램 앱 외부 브라우저 접속 시 처리
             if (!initData) {
                 $('loading-overlay').classList.add('hidden');
                 showToast('텔레그램 앱 내에서 접속해 주세요.', 'error');
@@ -319,18 +318,15 @@
                 $('loading-overlay').classList.add('hidden');
 
                 if (data.isRegistered) {
-                    // 기존 등록 유저: 시트에 등록된 이름 및 유저 식별자 로드
+                    // 구글 시트 실제 값 매핑
                     profile.id = data.userId || '-';
                     profile.name = data.userName || '사용자';
-
-                    // 시트 추가 정보가 확장될 때를 대비한 동적 바인딩
-                    profile.region = data.region || '서울 A지역';
-                    profile.role = data.role || '팀원';
+                    profile.region = data.region || '-'; // 시트 C열 값
+                    profile.role = data.role || '-';     // 시트 D열 값
 
                     renderProfile();
                     showToast(`${profile.name}님 환영합니다!`, 'success');
                 } else {
-                    // 미등록 유저: 명단 선택 Bottom Sheet 팝업 표출
                     openRegSheet(data.unregisteredList || []);
                 }
 
@@ -338,6 +334,48 @@
                 $('loading-text').innerText = "통신 중 오류가 발생했습니다.";
                 showToast('인증 오류: ' + err.message, 'error');
             }
+        }
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        const initData = tg ? tg.initData : "";
+
+        // 텔레그램 앱 외부 브라우저 접속 시 처리
+        if (!initData) {
+            $('loading-overlay').classList.add('hidden');
+            showToast('텔레그램 앱 내에서 접속해 주세요.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${GAS_URL}?action=checkUser&initData=${encodeURIComponent(initData)}`);
+            const data = await response.json();
+
+            $('loading-overlay').classList.add('hidden');
+
+            if (data.isRegistered) {
+                // 기존 등록 유저: 시트에 등록된 이름 및 유저 식별자 로드
+                profile.id = data.userId || '-';
+                profile.name = data.userName || '사용자';
+
+                // 시트 추가 정보가 확장될 때를 대비한 동적 바인딩
+                profile.region = data.region || '서울 A지역';
+                profile.role = data.role || '팀원';
+
+                renderProfile();
+                showToast(`${profile.name}님 환영합니다!`, 'success');
+            } else {
+                // 미등록 유저: 명단 선택 Bottom Sheet 팝업 표출
+                openRegSheet(data.unregisteredList || []);
+            }
+
+        } catch (err) {
+            $('loading-text').innerText = "통신 중 오류가 발생했습니다.";
+            showToast('인증 오류: ' + err.message, 'error');
+        }
         }
 
         async function submitRegistration() {
