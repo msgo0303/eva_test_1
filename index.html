@@ -139,17 +139,18 @@
             animation: spin .7s linear infinite;
         }
 
+        /* 토스트 중앙 정렬 스타일 보정 */
         #toast {
             display: none;
             opacity: 0;
-            transform: translateY(8px);
+            transform: translate(-50%, 8px);
             transition: opacity .25s ease, transform .25s ease;
         }
 
         #toast.show {
             display: block;
             opacity: 1;
-            transform: translateY(0);
+            transform: translate(-50%, 0);
         }
 
         #profile-dropdown {
@@ -414,8 +415,9 @@
             </div>
         </div>
 
+        <!-- 중앙 정렬 보정된 토스트 컴포넌트 -->
         <div id="toast"
-            class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap">
+            class="fixed bottom-24 left-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white text-center w-max max-w-[90vw] whitespace-normal leading-snug">
         </div>
     </div>
 
@@ -467,6 +469,7 @@
         let modalMode = 'add';
         let editId = null;
         let formStatus = 'planned';
+        let toastTimer = null; // 💡 변수 선언 누락 수정
 
         const $ = id => document.getElementById(id);
 
@@ -583,12 +586,10 @@
             const content = $('f-content').value.trim();
             const result = $('f-result').value.trim();
 
-            // 💡 [유효성 검사 1] 기본 필수 입력사항
             if (!startTime || !endTime) return showToast('시간을 선택해 주세요.', 'error');
             if (!location) return showToast('장소를 입력해 주세요.', 'error');
             if (!content) return showToast('활동 내용을 입력해 주세요.', 'error');
 
-            // 💡 [유효성 검사 2] 완료 상태 시 결과 입력 안내 메세지 표출
             if (formStatus === 'completed' && !result) {
                 return showToast('완료 상태에는 활동 결과를 입력해주세요.', 'error');
             }
@@ -619,9 +620,9 @@
                 closeModal();
                 showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
 
-                // 💡 [개선] 저장 후 자동으로 로딩 레이어 가동 및 데이터 새로고침
+                // 자동 새로고침 가동
                 $('loading-overlay').classList.remove('hidden');
-                fetchAppData();
+                await fetchAppData();
 
             } catch (err) {
                 showToast('저장 실패: ' + err.message, 'error');
@@ -651,12 +652,13 @@
                 try {
                     const queryParams = new URLSearchParams(payload).toString();
                     await fetch(`${GAS_URL}?${queryParams}`);
+
                     closeModal();
                     showToast('활동이 취소 처리되었습니다.', 'success');
 
-                    // 💡 [개선] 취소 후 자동으로 로딩 레이어 가동 및 데이터 새로고침
+                    // 자동 새로고침 가동
                     $('loading-overlay').classList.remove('hidden');
-                    fetchAppData();
+                    await fetchAppData();
                 } catch (err) {
                     showToast('취소 실패: ' + err.message, 'error');
                 }
@@ -892,10 +894,13 @@
         function showToast(message, type) {
             const el = $('toast');
             el.textContent = message;
-            el.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white whitespace-nowrap';
+
+            // 상태별 색상 적용 및 표시
+            el.className = 'fixed bottom-24 left-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white text-center w-max max-w-[90vw] whitespace-normal leading-snug';
             if (type === 'success') el.classList.add('bg-green-600');
             else if (type === 'error') el.classList.add('bg-red-600');
             else el.classList.add('bg-zinc-800');
+
             el.classList.add('show');
 
             clearTimeout(toastTimer);
