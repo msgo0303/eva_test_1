@@ -71,6 +71,39 @@
             color: #71717a;
         }
 
+        .stat-btn {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .stat-btn:active {
+            transform: scale(0.96);
+        }
+
+        .stat-btn-active-planned {
+            ring-2: 2px;
+            ring-color: #2563eb;
+            background-color: #eff6ff !important;
+            border-color: #2563eb !important;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+        }
+
+        .stat-btn-active-completed {
+            ring-2: 2px;
+            ring-color: #16a34a;
+            background-color: #f0fdf4 !important;
+            border-color: #16a34a !important;
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);
+        }
+
+        .stat-btn-active-canceled {
+            ring-2: 2px;
+            ring-color: #dc2626;
+            background-color: #fef2f2 !important;
+            border-color: #dc2626 !important;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+        }
+
         #modal-overlay,
         #reg-overlay {
             display: none;
@@ -242,25 +275,33 @@
         </div>
 
         <!-- STATS BAR -->
-        <div class="grid grid-cols-3 gap-2 px-4 py-3 bg-tg-bg">
-            <div class="bg-blue-50 rounded-xl p-2.5 text-center border border-blue-100">
-                <p id="stat-planned" class="text-lg font-bold text-blue-700">0</p>
-                <p class="text-[10px] text-blue-500 font-medium mt-0.5">계획중</p>
+        <div class="px-4 py-3 bg-tg-bg border-b border-tg-border">
+            <div class="grid grid-cols-3 gap-2">
+                <div id="btn-filter-planned"
+                    class="stat-btn bg-blue-50/60 rounded-xl p-2.5 text-center border border-blue-100">
+                    <p id="stat-planned" class="text-lg font-bold text-blue-700">0</p>
+                    <p class="text-[10px] text-blue-600 font-semibold mt-0.5">계획중</p>
+                </div>
+                <div id="btn-filter-completed"
+                    class="stat-btn bg-green-50/60 rounded-xl p-2.5 text-center border border-green-100">
+                    <p id="stat-completed" class="text-lg font-bold text-green-700">0</p>
+                    <p class="text-[10px] text-green-600 font-semibold mt-0.5">완료</p>
+                </div>
+                <div id="btn-filter-canceled"
+                    class="stat-btn bg-red-50/60 rounded-xl p-2.5 text-center border border-red-100">
+                    <p id="stat-canceled" class="text-lg font-bold text-red-700">0</p>
+                    <p class="text-[10px] text-red-600 font-semibold mt-0.5">취소</p>
+                </div>
             </div>
-            <div class="bg-green-50 rounded-xl p-2.5 text-center border border-green-100">
-                <p id="stat-completed" class="text-lg font-bold text-green-700">0</p>
-                <p class="text-[10px] text-green-500 font-medium mt-0.5">완료</p>
-            </div>
-            <div class="bg-red-50 rounded-xl p-2.5 text-center border border-red-100">
-                <p id="stat-canceled" class="text-lg font-bold text-red-700">0</p>
-                <p class="text-[10px] text-red-500 font-medium mt-0.5">취소</p>
-            </div>
+            <p class="text-[11px] text-tg-muted text-center mt-2.5 font-medium">
+                💡 해당하는 단계만 보려면 위 상태를 눌러주세요
+            </p>
         </div>
 
         <!-- ACTIVITY LIST -->
-        <main class="flex-1 overflow-y-auto px-4 pb-24 pt-2 bg-tg-surface">
+        <main class="flex-1 overflow-y-auto px-4 pb-24 pt-3 bg-tg-surface">
             <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xs font-semibold text-tg-muted uppercase tracking-wide">오늘의 활동 계획</h2>
+                <h2 id="list-title" class="text-xs font-semibold text-tg-muted uppercase tracking-wide">오늘의 활동 계획</h2>
                 <span id="activity-count" class="text-xs text-tg-muted">0건</span>
             </div>
 
@@ -273,8 +314,8 @@
                             d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
                     </svg>
                 </div>
-                <p class="text-sm font-semibold text-tg-muted">조회된 활동이 없습니다</p>
-                <p class="text-xs text-tg-muted/70 mt-1">아래 + 버튼으로 새로운 활동을 추가하세요</p>
+                <p id="empty-msg-title" class="text-sm font-semibold text-tg-muted">조회된 활동이 없습니다</p>
+                <p id="empty-msg-sub" class="text-xs text-tg-muted/70 mt-1">아래 + 버튼으로 새로운 활동을 추가하세요</p>
             </div>
 
             <div id="cards-container" class="space-y-3"></div>
@@ -291,7 +332,7 @@
 
         <div id="modal-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
 
-        <!-- BOTTOM SHEET (일정 추가/수정) -->
+        <!-- BOTTOM SHEET -->
         <div id="modal-sheet"
             class="fixed inset-x-0 bottom-0 z-50 bg-tg-bg rounded-t-3xl shadow-2xl flex-col max-h-[92vh]">
             <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -458,6 +499,8 @@
         let profile = { region: '', role: '', name: '', group: '', id: '' };
         let currentDate = new Date();
         let activities = [];
+        let activeFilter = 'all';
+
         let modalMode = 'add';
         let editId = null;
         let formStatus = 'planned';
@@ -686,7 +729,7 @@
         }
 
         /* ─────────────────────────────────────────────────────────────
-           RENDER
+           RENDER & FILTERING & SORTING
         ───────────────────────────────────────────────────────────── */
         function renderHeader() {
             $('hdr-region').textContent = `${profile.group} | ${profile.region}`;
@@ -717,34 +760,104 @@
             $('display-today').textContent = isToday ? '오늘' : '';
         }
 
-        function renderList() {
-            $('stat-planned').textContent = activities.filter(a => a.status === 'planned').length;
-            $('stat-completed').textContent = activities.filter(a => a.status === 'completed').length;
-            $('stat-canceled').textContent = activities.filter(a => a.status === 'canceled').length;
+        function setFilter(type) {
+            if (activeFilter === type) {
+                activeFilter = 'all';
+            } else {
+                activeFilter = type;
+            }
+            renderList();
+        }
 
-            $('activity-count').textContent = activities.length + '건';
+        function updateFilterUI() {
+            const btnPlanned = $('btn-filter-planned');
+            const btnCompleted = $('btn-filter-completed');
+            const btnCanceled = $('btn-filter-canceled');
+
+            btnPlanned.className = "stat-btn bg-blue-50/60 rounded-xl p-2.5 text-center border border-blue-100";
+            btnCompleted.className = "stat-btn bg-green-50/60 rounded-xl p-2.5 text-center border border-green-100";
+            btnCanceled.className = "stat-btn bg-red-50/60 rounded-xl p-2.5 text-center border border-red-100";
+
+            if (activeFilter === 'planned') {
+                btnPlanned.className += " stat-btn-active-planned";
+            } else if (activeFilter === 'completed') {
+                btnCompleted.className += " stat-btn-active-completed";
+            } else if (activeFilter === 'canceled') {
+                btnCanceled.className += " stat-btn-active-canceled";
+            }
+        }
+
+        function renderList() {
+            // 1. 상태 카운터
+            const countPlanned = activities.filter(a => a.status === 'planned').length;
+            const countCompleted = activities.filter(a => a.status === 'completed').length;
+            const countCanceled = activities.filter(a => a.status === 'canceled').length;
+
+            $('stat-planned').textContent = countPlanned;
+            $('stat-completed').textContent = countCompleted;
+            $('stat-canceled').textContent = countCanceled;
+
+            updateFilterUI();
+
+            // 2. 상태별 1차 필터링
+            let filtered = activities;
+            if (activeFilter !== 'all') {
+                filtered = activities.filter(a => a.status === activeFilter);
+            }
+
+            // 3. 💡 [핵심] 정렬: 내 활동(userId 일치) 우선 배치 + 시간순 정렬
+            const currentUserIdStr = profile.id ? profile.id.toString().trim() : "";
+
+            filtered.sort((a, b) => {
+                const isMineA = (a.userId && a.userId.toString().trim() === currentUserIdStr);
+                const isMineB = (b.userId && b.userId.toString().trim() === currentUserIdStr);
+
+                // 내 활동이 상단으로
+                if (isMineA && !isMineB) return -1;
+                if (!isMineA && isMineB) return 1;
+
+                // 같으면 시작 시간 순 정렬
+                return (a.startTime || "").localeCompare(b.startTime || "");
+            });
+
+            const filterTitleMap = { all: '오늘의 활동 계획', planned: '계획중인 활동 목록', completed: '완료된 활동 목록', canceled: '취소된 활동 목록' };
+            $('list-title').textContent = filterTitleMap[activeFilter] || '활동 목록';
+            $('activity-count').textContent = filtered.length + '건';
 
             const container = $('cards-container');
             const empty = $('empty-state');
 
-            if (activities.length === 0) {
+            if (filtered.length === 0) {
                 empty.classList.remove('hidden');
                 empty.classList.add('flex');
                 container.innerHTML = '';
+
+                if (activeFilter !== 'all') {
+                    $('empty-msg-title').textContent = `'${statusLabel(activeFilter)}' 상태의 활동이 없습니다`;
+                    $('empty-msg-sub').textContent = '상단 상태 버튼을 다시 누르면 전체가 표시됩니다';
+                } else {
+                    $('empty-msg-title').textContent = '조회된 활동이 없습니다';
+                    $('empty-msg-sub').textContent = '아래 + 버튼으로 새로운 활동을 추가하세요';
+                }
                 return;
             }
 
             empty.classList.add('hidden');
             empty.classList.remove('flex');
 
-            container.innerHTML = activities.map(item => `
+            // 4. 카드 HTML 생성
+            container.innerHTML = filtered.map(item => {
+                const isMine = (item.userId && item.userId.toString().trim() === currentUserIdStr);
+
+                return `
     <div
-      class="activity-card bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm ${item.status === 'canceled' ? 'opacity-60' : ''}"
+      class="activity-card bg-tg-bg rounded-2xl p-4 border ${isMine ? 'border-blue-300 ring-1 ring-blue-100 shadow-md' : 'border-tg-border shadow-sm'} ${item.status === 'canceled' ? 'opacity-60' : ''}"
       data-id="${item.id}"
     >
-      <!-- 작성자 정보 라벨 (조/이름/직책) -->
+      <!-- 상단 작성자 헤더 라벨 -->
       <div class="flex items-center justify-between border-b border-tg-border pb-2 mb-2.5">
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          ${isMine ? `<span class="bg-blue-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md shadow-sm">📌 내 활동</span>` : ''}
           <span class="bg-blue-50 text-tg-blue font-bold text-[11px] px-2 py-0.5 rounded-md border border-blue-100">${escHtml(item.group || '미정')}</span>
           <span class="text-xs font-bold text-tg-text">${escHtml(item.name || '작성자')}</span>
           <span class="text-[10px] text-tg-muted">(${escHtml(item.role || '부원')})</span>
@@ -778,7 +891,8 @@
         <span class="text-[10px] font-medium">탭하여 상세 확인 및 수정</span>
       </div>
     </div>
-  `).join('');
+  `;
+            }).join('');
 
             container.querySelectorAll('.activity-card').forEach(card => {
                 card.addEventListener('click', () => {
@@ -945,11 +1059,16 @@
                 updateEndTimeOptions();
             });
 
+            $('btn-filter-planned').addEventListener('click', () => setFilter('planned'));
+            $('btn-filter-completed').addEventListener('click', () => setFilter('completed'));
+            $('btn-filter-canceled').addEventListener('click', () => setFilter('canceled'));
+
             fetchAppData();
 
             $('btn-prev-day').addEventListener('click', () => {
                 currentDate.setDate(currentDate.getDate() - 1);
                 currentDate = new Date(currentDate);
+                activeFilter = 'all';
                 $('loading-overlay').classList.remove('hidden');
                 fetchAppData();
             });
@@ -957,6 +1076,7 @@
             $('btn-next-day').addEventListener('click', () => {
                 currentDate.setDate(currentDate.getDate() + 1);
                 currentDate = new Date(currentDate);
+                activeFilter = 'all';
                 $('loading-overlay').classList.remove('hidden');
                 fetchAppData();
             });
