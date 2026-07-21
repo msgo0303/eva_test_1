@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ID 인식 테스트</title>
+    <title>사용자 인식 및 등록</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -30,18 +30,56 @@
             color: #2e7d32;
         }
 
-        .fail {
-            color: #d32f2f;
+        .form-group {
+            margin-top: 15px;
+        }
+
+        select,
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #ccc;
         }
     </style>
 </head>
 
 <body>
     <div class="card">
-        <h2>📱 텔레그램 ID 인식 테스트</h2>
-        <p id="my-id">내 ID 추출 중...</p>
+        <h2>📱 사용자 인증</h2>
+        <p id="my-id">내 ID 확인 중...</p>
         <hr>
-        <p id="result-status" class="status">구글 시트 연동 조회 중...</p>
+
+        <!-- A. 이미 등록된 유저에게 보이는 화면 -->
+        <div id="screen-welcome" style="display: none;">
+            <p id="welcome-msg" class="status success"></p>
+            <p>미니앱 본문에 오신 것을 환영합니다!</p>
+        </div>
+
+        <!-- B. 신규 유저에게 보이는 드롭다운 선택 화면 -->
+        <div id="screen-register" style="display: none;">
+            <p class="status">👋 등록된 명단에서 본인 이름을 선택해주세요.</p>
+            <div class="form-group">
+                <select id="user-select">
+                    <option value="">-- 이름을 선택하세요 --</option>
+                </select>
+                <button id="btn-register" onclick="submitRegistration()">등록하기</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -49,39 +87,93 @@
         tg.ready();
         tg.expand();
 
-        // ⚠️ 본인의 GAS 웹앱 URL (/exec로 끝나는 주소)로 변경해 주세요.
+        // ⚠️ 본인의 GAS 웹앱 URL로 변경해 주세요.
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwOnzceBFUvKYlqB0r-MBTYWC3jfv6ebqhuy2UV9alE5S83isURYGSbG4de0pFWsGMM/exec";
 
-        async function testUserAuth() {
+        async function checkUserAuth() {
             const initData = tg.initData;
 
             if (!initData) {
                 document.getElementById('my-id').innerText = "⚠️ 텔레그램 모바일 앱에서 접속해 주세요.";
-                document.getElementById('result-status').innerText = "대기 중";
                 return;
             }
 
             try {
-                const response = await fetch(`${GAS_URL}?initData=${encodeURIComponent(initData)}`);
+                const response = await fetch(`${GAS_URL}?action=checkUser&initData=${encodeURIComponent(initData)}`);
                 const data = await response.json();
 
-                document.getElementById('my-id').innerText = `내 텔레그램 ID: ${data.userId || "추출 실패"}`;
+                document.getElementById('my-id').innerText = `내 텔레그램 ID: ${data.userId}`;
 
                 if (data.isRegistered) {
-                    document.getElementById('result-status').className = "status success";
-                    document.getElementById('result-status').innerText = `✅ 등록된 사용자입니다! (이름: ${data.userName})`;
+                    // 기존 등록 유저
+                    showWelcome(data.userName);
                 } else {
-                    document.getElementById('result-status').className = "status fail";
-                    document.getElementById('result-status').innerText = "❌ UserDB에 등록되지 않은 ID입니다.";
+                    // 신규 유저 -> 드롭다운 목록 생성
+                    showRegisterForm(data.unregisteredList);
                 }
 
             } catch (err) {
-                document.getElementById('result-status').className = "status fail";
-                document.getElementById('result-status').innerText = `⚠️ 통신 에러 발생: ${err.message}`;
+                alert("통신 에러가 발생했습니다: " + err.message);
             }
         }
 
-        testUserAuth();
+        function showWelcome(userName) {
+            document.getElementById('screen-register').style.display = 'none';
+            document.getElementById('screen-welcome').style.display = 'block';
+            document.getElementById('welcome-msg').innerText = `✅ 안녕하세요, ${userName}님! (자동 인식됨)`;
+        }
+
+        function showRegisterForm(list) {
+            document.getElementById('screen-welcome').style.display = 'none';
+            document.getElementById('screen-register').style.display = 'block';
+
+            const selectEl = document.getElementById('user-select');
+            selectEl.innerHTML = '<option value="">-- 이름을 선택하세요 --</option>';
+
+            if (list && list.length > 0) {
+                list.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.row; // 구글 시트의 행 번호를 value로 사용
+                    opt.innerText = `${item.name} ${item.info}`;
+                    selectEl.appendChild(opt);
+                });
+            } else {
+                selectEl.innerHTML = '<option value="">선택 가능한 미등록 명단이 없습니다.</option>';
+            }
+        }
+
+        async function submitRegistration() {
+            const selectEl = document.getElementById('user-select');
+            const selectedRow = selectEl.value;
+
+            if (!selectedRow) {
+                return alert("본인의 이름을 목록에서 선택해주세요.");
+            }
+
+            const btn = document.getElementById('btn-register');
+            btn.disabled = true;
+            btn.innerText = "등록 처리 중...";
+
+            try {
+                const response = await fetch(`${GAS_URL}?action=registerUser&initData=${encodeURIComponent(tg.initData)}&selectedRow=${selectedRow}`);
+                const result = await response.json();
+
+                if (result.result === "success") {
+                    alert("등록이 완료되었습니다!");
+                    showWelcome(result.userName);
+                } else {
+                    alert("등록 실패: " + result.message);
+                    btn.disabled = false;
+                    btn.innerText = "등록하기";
+                }
+            } catch (err) {
+                alert("오류 발생: " + err.message);
+                btn.disabled = false;
+                btn.innerText = "등록하기";
+            }
+        }
+
+        checkUserAuth();
     </script>
 </body>
 
