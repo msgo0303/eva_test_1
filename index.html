@@ -279,10 +279,8 @@
     <script>
         'use strict';
 
-        // ⚠️ 설정해주신 고유 GAS URL 주소
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwOnzceBFUvKYlqB0r-MBTYWC3jfv6ebqhuy2UV9alE5S83isURYGSbG4de0pFWsGMM/exec";
 
-        // 사용자 정보 상태 (구글 시트 연동 후 채워짐)
         let profile = {
             region: '',
             role: '',
@@ -318,11 +316,11 @@
                 $('loading-overlay').classList.add('hidden');
 
                 if (data.isRegistered) {
-                    // 구글 시트 실제 값 매핑
+                    // 구글 시트 실제 값 매핑 (C열: region, D열: role)
                     profile.id = data.userId || '-';
                     profile.name = data.userName || '사용자';
-                    profile.region = data.region || '-'; // 시트 C열 값
-                    profile.role = data.role || '-';     // 시트 D열 값
+                    profile.region = data.region || '-';
+                    profile.role = data.role || '-';
 
                     renderProfile();
                     showToast(`${profile.name}님 환영합니다!`, 'success');
@@ -334,48 +332,6 @@
                 $('loading-text').innerText = "통신 중 오류가 발생했습니다.";
                 showToast('인증 오류: ' + err.message, 'error');
             }
-        }
-
-        const tg = window.Telegram ? window.Telegram.WebApp : null;
-        if (tg) {
-            tg.ready();
-            tg.expand();
-        }
-
-        const initData = tg ? tg.initData : "";
-
-        // 텔레그램 앱 외부 브라우저 접속 시 처리
-        if (!initData) {
-            $('loading-overlay').classList.add('hidden');
-            showToast('텔레그램 앱 내에서 접속해 주세요.', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${GAS_URL}?action=checkUser&initData=${encodeURIComponent(initData)}`);
-            const data = await response.json();
-
-            $('loading-overlay').classList.add('hidden');
-
-            if (data.isRegistered) {
-                // 기존 등록 유저: 시트에 등록된 이름 및 유저 식별자 로드
-                profile.id = data.userId || '-';
-                profile.name = data.userName || '사용자';
-
-                // 시트 추가 정보가 확장될 때를 대비한 동적 바인딩
-                profile.region = data.region || '서울 A지역';
-                profile.role = data.role || '팀원';
-
-                renderProfile();
-                showToast(`${profile.name}님 환영합니다!`, 'success');
-            } else {
-                // 미등록 유저: 명단 선택 Bottom Sheet 팝업 표출
-                openRegSheet(data.unregisteredList || []);
-            }
-
-        } catch (err) {
-            $('loading-text').innerText = "통신 중 오류가 발생했습니다.";
-            showToast('인증 오류: ' + err.message, 'error');
         }
 
         async function submitRegistration() {
@@ -399,7 +355,6 @@
                     closeRegSheet();
                     showToast('등록이 성공적으로 완료되었습니다!', 'success');
 
-                    // 즉시 재조회하여 화면 업데이트
                     $('loading-overlay').classList.remove('hidden');
                     checkAuth();
                 } else {
@@ -497,7 +452,6 @@
 
             renderDateNav();
 
-            // 날짜 이동
             $('btn-prev-day').addEventListener('click', () => {
                 currentDate.setDate(currentDate.getDate() - 1);
                 currentDate = new Date(currentDate);
@@ -510,7 +464,6 @@
                 renderDateNav();
             });
 
-            // 프로필 드롭다운 토글
             $('profile-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 $('profile-dropdown').classList.toggle('open');
@@ -520,7 +473,7 @@
                 $('profile-dropdown').classList.remove('open');
             });
 
-            // 앱 실행 시 자동 인증 체인 가동
+            // 인증 체인 가동
             checkAuth();
         });
     </script>
