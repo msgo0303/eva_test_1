@@ -107,6 +107,20 @@
             box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
         }
 
+        /* 시간 필터 버튼 스타일 */
+        .time-filter-btn {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .time-filter-btn.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+            font-weight: 700;
+            shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+        }
+
         #modal-overlay,
         #reg-overlay,
         #dash-overlay {
@@ -199,7 +213,6 @@
             display: block;
         }
 
-        /* 말풍선 툴팁 애니메이션 */
         #find-popover {
             display: none;
             opacity: 0;
@@ -299,8 +312,8 @@
             </button>
         </div>
 
-        <!-- STATS BAR -->
-        <div class="px-4 py-3 bg-tg-bg border-b border-tg-border">
+        <!-- STATS BAR & TIME FILTERS -->
+        <div class="px-4 py-3 bg-tg-bg border-b border-tg-border space-y-2.5">
             <div class="grid grid-cols-3 gap-2">
                 <div id="btn-filter-planned"
                     class="stat-btn bg-blue-50/60 rounded-xl p-2.5 text-center border border-blue-100">
@@ -318,7 +331,26 @@
                     <p class="text-[10px] text-red-600 font-semibold mt-0.5">취소</p>
                 </div>
             </div>
-            <p class="text-[11px] text-tg-muted text-center mt-2.5 font-medium">
+
+            <!-- 💡 신규 기능: 시간별 필터 파트 (관리자/조장/부조장 전용) -->
+            <div id="admin-time-filter-bar" class="hidden pt-1 border-t border-tg-border/60">
+                <div class="flex items-center justify-between gap-1.5">
+                    <button data-time="before"
+                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">
+                        ⏰ 시작 전
+                    </button>
+                    <button data-time="ongoing"
+                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">
+                        ⚡ 진행 중
+                    </button>
+                    <button data-time="ended"
+                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">
+                        🏁 종료건
+                    </button>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-tg-muted text-center font-medium">
                 💡 해당하는 단계만 보려면 위 상태를 눌러주세요
             </p>
         </div>
@@ -521,7 +553,6 @@
         <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
             <div>
                 <h2 class="text-base font-bold text-tg-text">📊 관리자 대시보드</h2>
-                <!-- 💡 1. 적용 범위 날짜 표시 영역 추가 -->
                 <p id="db-range-dates-text" class="text-[11px] text-tg-blue font-semibold mt-0.5">2026.07.21 ~
                     2026.07.21</p>
             </div>
@@ -567,7 +598,6 @@
 
                 <!-- 카테고리별 건수 칩 -->
                 <div class="grid grid-cols-4 gap-1.5 pt-1 relative">
-                    <!-- 💡 2. 클릭 시 말풍선 노출되는 [찾기] 버튼 -->
                     <div id="btn-find-chip"
                         class="bg-blue-50 border border-blue-200 hover:border-blue-400 rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
                         <p class="text-[10px] text-blue-600 font-bold flex items-center justify-center gap-0.5">
@@ -576,7 +606,6 @@
                         <p id="db-cat-find" class="text-sm font-bold text-blue-800">0건</p>
                     </div>
 
-                    <!-- 💡 2. [찾기] 말풍선 (Popover) -->
                     <div id="find-popover"
                         class="absolute top-14 left-0 z-30 bg-zinc-900 text-white rounded-2xl p-3 shadow-2xl border border-zinc-700 w-64">
                         <div class="flex items-center justify-between border-b border-zinc-700 pb-1.5 mb-2">
@@ -613,11 +642,9 @@
                     </div>
                 </div>
 
-                <!-- 💡 3. 찾기가 세분화된 카테고리별 1위 조 -->
                 <div class="pt-2 border-t border-tg-border">
                     <p class="text-xs font-bold text-tg-text mb-2">🏆 카테고리별 최다 활동 조</p>
                     <div class="space-y-2 text-xs">
-                        <!-- 찾기 세부 3종 -->
                         <div class="bg-blue-50/40 p-2 rounded-xl border border-blue-100 space-y-1">
                             <p class="text-[11px] font-bold text-tg-blue mb-1">🔍 찾기 세부 1위</p>
                             <div class="grid grid-cols-3 gap-1 text-[11px]">
@@ -636,7 +663,6 @@
                             </div>
                         </div>
 
-                        <!-- 기타 3종 -->
                         <div class="grid grid-cols-3 gap-1.5 text-[11px]">
                             <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
                                 <p class="text-tg-muted text-[10px]">🤝 매칭 1위</p>
@@ -654,7 +680,6 @@
                     </div>
                 </div>
 
-                <!-- 세부 성과 합산 -->
                 <div class="pt-2 border-t border-tg-border">
                     <p class="text-xs font-bold text-tg-text mb-2">✨ 세부 성과 자동 집계</p>
                     <div id="db-results-summary" class="flex flex-wrap gap-1 text-[11px]">
@@ -670,7 +695,6 @@
                     <canvas id="chart-category"></canvas>
                 </div>
 
-                <!-- 💡 4. 1~8조 순서대로 오름차순 정렬된 막대 차트 -->
                 <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊 조별
                     활동 건수 비교 (1~8조)</h3>
                 <div class="w-full h-52 relative">
@@ -678,7 +702,7 @@
                 </div>
             </div>
 
-            <!-- 3. 상세 리스트 (누가/언제/어디서/무엇을/결과) -->
+            <!-- 3. 상세 리스트 -->
             <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📋 상세 활동 타임라인</h3>
@@ -737,6 +761,7 @@
         let currentDate = new Date();
         let activities = [];
         let activeFilter = 'all';
+        let activeTimeFilter = 'all'; // 💡 신규: 시간별 필터 상태 ('all' | 'before' | 'ongoing' | 'ended')
 
         let modalMode = 'add';
         let editId = null;
@@ -986,10 +1011,16 @@
 
                     activities = data.activities || [];
 
-                    if (data.isAdmin) {
+                    // 💡 관리자, 조장, 부조장 계정에만 버튼 및 시간 필터 바 노출
+                    const role = profile.role || "";
+                    const isAdminOrLeader = data.isAdmin || role.includes("조장") || role.includes("부조장") || role.includes("관리자");
+
+                    if (isAdminOrLeader) {
                         $('dash-btn').classList.remove('hidden');
+                        $('admin-time-filter-bar').classList.remove('hidden');
                     } else {
                         $('dash-btn').classList.add('hidden');
+                        $('admin-time-filter-bar').classList.add('hidden');
                     }
 
                     renderHeader();
@@ -1007,7 +1038,6 @@
         async function fetchDashboardData(range = 'today') {
             currentDashRange = range;
 
-            // 💡 1. 상단 날짜 범위 텍스트 변경
             $('db-range-dates-text').textContent = getRangeDateText(dateKey(currentDate), range);
 
             document.querySelectorAll('.dash-range-btn').forEach(btn => {
@@ -1167,8 +1197,6 @@
             $('db-kpi-rate').textContent = rate + '%';
 
             const catCounts = { '찾기': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
-
-            // 💡 2 & 3. 찾기 세부 유형 집계 구조
             const findSubTypes = { '매만찾': 0, '오프찾': 0, '번호찾': 0, '기타': 0 };
             const findSubTopGroupMap = { '매만찾': {}, '오프찾': {}, '번호찾': {} };
 
@@ -1190,7 +1218,6 @@
                     catTopGroupMap[cat][group] = (catTopGroupMap[cat][group] || 0) + 1;
                 }
 
-                // 세부 결과 집계 (완료건)
                 if (item.status === 'completed' && item.resultData) {
                     try {
                         const parsed = JSON.parse(item.resultData);
@@ -1201,7 +1228,6 @@
                                 const countVal = (r.count ? parseInt(r.count, 10) : 1);
                                 detailedResultsMap[key] += countVal;
 
-                                // 💡 찾기 세부 매핑
                                 if (r.category === '찾기') {
                                     let subKey = '기타';
                                     if (r.type === '온만찾') subKey = '매만찾';
@@ -1225,7 +1251,6 @@
             $('db-cat-leaf').textContent = catCounts['잎사귀'] + '건';
             $('db-cat-book').textContent = catCounts['복방'] + '건';
 
-            // 💡 2. 말풍선 내 찾기 세부 수치 연결
             $('pop-find-match').textContent = findSubTypes['매만찾'] + '건';
             $('pop-find-off').textContent = findSubTypes['오프찾'] + '건';
             $('pop-find-num').textContent = findSubTypes['번호찾'] + '건';
@@ -1243,7 +1268,6 @@
                 return topGroup;
             };
 
-            // 💡 3. 찾기 세부 3종 1위 조 바인딩
             $('db-top-find-meman').textContent = getTopGroupStr(findSubTopGroupMap['매만찾']);
             $('db-top-find-off').textContent = getTopGroupStr(findSubTopGroupMap['오프찾']);
             $('db-top-find-num').textContent = getTopGroupStr(findSubTopGroupMap['번호찾']);
@@ -1252,7 +1276,6 @@
             $('db-top-leaf').textContent = getTopGroupStr(catTopGroupMap['잎사귀']);
             $('db-top-book').textContent = getTopGroupStr(catTopGroupMap['복방']);
 
-            // 세부 성과 칩
             const resultsContainer = $('db-results-summary');
             const resultKeys = Object.keys(detailedResultsMap);
             if (resultKeys.length === 0) {
@@ -1265,14 +1288,11 @@
                 }).join('');
             }
 
-            // 💡 4. 조 오름차순 정렬 적용하여 차트 렌더링
             renderCharts(catCounts, groupTotalCounts);
-
             renderDashboardTimeline(list);
         }
 
         function renderCharts(catCounts, groupCounts) {
-            // 1) 카테고리 도넛 차트
             const ctxCat = $('chart-category').getContext('2d');
             if (catChartInstance) catChartInstance.destroy();
 
@@ -1294,14 +1314,10 @@
                 }
             });
 
-            // 💡 4. 1~8조 오름차순 정렬 로직
             const ctxGroup = $('chart-group').getContext('2d');
             if (groupChartInstance) groupChartInstance.destroy();
 
-            // 기본 1~8조 기본 라벨 준비
             const standardGroups = ['1조', '2조', '3조', '4조', '5조', '6조', '7조', '8조'];
-
-            // 데이터에 1~8조 외 다른 조가 들어있을 수도 있으므로 병합 후 숫자순 정렬
             const allGroups = Array.from(new Set([...standardGroups, ...Object.keys(groupCounts)]));
 
             allGroups.sort((a, b) => {
@@ -1406,6 +1422,25 @@
             } else {
                 activeFilter = type;
             }
+            // 상태 변경 시 시간 필터 초기화
+            activeTimeFilter = 'all';
+            updateTimeFilterUI();
+            renderList();
+        }
+
+        function setTimeFilter(timeType) {
+            // 💡 B안: 시간 필터 누르면 상태 필터를 자동으로 'planned(계획중)'으로 세팅
+            activeFilter = 'planned';
+
+            // 토글 처리
+            if (activeTimeFilter === timeType) {
+                activeTimeFilter = 'all';
+            } else {
+                activeTimeFilter = timeType;
+            }
+
+            updateFilterUI();
+            updateTimeFilterUI();
             renderList();
         }
 
@@ -1427,6 +1462,16 @@
             }
         }
 
+        function updateTimeFilterUI() {
+            document.querySelectorAll('.time-filter-btn').forEach(btn => {
+                if (activeTimeFilter !== 'all' && btn.dataset.time === activeTimeFilter) {
+                    btn.className = "time-filter-btn active flex-1 py-1.5 text-xs rounded-lg border text-white font-bold bg-tg-blue border-tg-blue shadow-sm";
+                } else {
+                    btn.className = "time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted hover:bg-zinc-200";
+                }
+            });
+        }
+
         function renderList() {
             const countPlanned = activities.filter(a => a.status === 'planned').length;
             const countCompleted = activities.filter(a => a.status === 'completed').length;
@@ -1438,9 +1483,35 @@
 
             updateFilterUI();
 
+            // 1차: 상태별 필터링
             let filtered = activities;
             if (activeFilter !== 'all') {
                 filtered = activities.filter(a => a.status === activeFilter);
+            }
+
+            // 💡 2차: 시간 기준 필터링 (계획중 상태일 때)
+            if (activeFilter === 'planned' && activeTimeFilter !== 'all') {
+                const now = new Date();
+                const curHH = String(now.getHours()).padStart(2, '0');
+                const curMM = String(now.getMinutes()).padStart(2, '0');
+                const currentTimeStr = `${curHH}:${curMM}`;
+
+                filtered = filtered.filter(item => {
+                    const start = item.startTime || "00:00";
+                    const end = item.endTime || "23:59";
+
+                    if (activeTimeFilter === 'before') {
+                        // 시작 전: 시작 시간이 현재 시간 이후
+                        return start > currentTimeStr;
+                    } else if (activeTimeFilter === 'ongoing') {
+                        // 진행 중: 시작시간 <= 현재시간 <= 종료시간
+                        return start <= currentTimeStr && currentTimeStr <= end;
+                    } else if (activeTimeFilter === 'ended') {
+                        // 종료건: 종료 시간이 현재 시간 이전 (지남)
+                        return end < currentTimeStr;
+                    }
+                    return true;
+                });
             }
 
             const currentUserIdStr = profile.id ? profile.id.toString().trim() : "";
@@ -1456,7 +1527,14 @@
             });
 
             const filterTitleMap = { all: '오늘의 활동 계획', planned: '계획중인 활동 목록', completed: '완료된 활동 목록', canceled: '취소된 활동 목록' };
-            $('list-title').textContent = filterTitleMap[activeFilter] || '활동 목록';
+            let titleStr = filterTitleMap[activeFilter] || '활동 목록';
+
+            if (activeFilter === 'planned' && activeTimeFilter !== 'all') {
+                const timeTitleMap = { before: '시작 전 계획', ongoing: '진행 중 활동', ended: '종료 예정 시간 경과 활동' };
+                titleStr = `계획중 - ${timeTitleMap[activeTimeFilter]}`;
+            }
+
+            $('list-title').textContent = titleStr;
             $('activity-count').textContent = filtered.length + '건';
 
             const container = $('cards-container');
@@ -1467,7 +1545,11 @@
                 empty.classList.add('flex');
                 container.innerHTML = '';
 
-                if (activeFilter !== 'all') {
+                if (activeTimeFilter !== 'all') {
+                    const timeNameMap = { before: '시작 전인', ongoing: '현재 진행 중인', ended: '종료 시간이 경과된' };
+                    $('empty-msg-title').textContent = `'${timeNameMap[activeTimeFilter]}' 계획중인 활동이 없습니다`;
+                    $('empty-msg-sub').textContent = '버튼을 다시 누르면 전체 계획이 표시됩니다';
+                } else if (activeFilter !== 'all') {
                     $('empty-msg-title').textContent = `'${statusLabel(activeFilter)}' 상태의 활동이 없습니다`;
                     $('empty-msg-sub').textContent = '상단 상태 버튼을 다시 누르면 전체가 표시됩니다';
                 } else {
@@ -1738,11 +1820,19 @@
                 addResultRow();
             });
 
+            // 상태 필터 클릭 이벤트
             $('btn-filter-planned').addEventListener('click', () => setFilter('planned'));
             $('btn-filter-completed').addEventListener('click', () => setFilter('completed'));
             $('btn-filter-canceled').addEventListener('click', () => setFilter('canceled'));
 
-            // 💡 2. [찾기] 칩 클릭 시 말풍선 토글
+            // 💡 신규: 시간별 필터 버튼 클릭 이벤트
+            document.querySelectorAll('.time-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setTimeFilter(btn.dataset.time);
+                });
+            });
+
+            // [찾기] 칩 클릭 시 말풍선 토글
             const findChip = $('btn-find-chip');
             const findPopover = $('find-popover');
 
@@ -1766,6 +1856,8 @@
                 currentDate.setDate(currentDate.getDate() - 1);
                 currentDate = new Date(currentDate);
                 activeFilter = 'all';
+                activeTimeFilter = 'all';
+                updateTimeFilterUI();
                 $('loading-overlay').classList.remove('hidden');
                 fetchAppData();
             });
@@ -1774,6 +1866,8 @@
                 currentDate.setDate(currentDate.getDate() + 1);
                 currentDate = new Date(currentDate);
                 activeFilter = 'all';
+                activeTimeFilter = 'all';
+                updateTimeFilterUI();
                 $('loading-overlay').classList.remove('hidden');
                 fetchAppData();
             });
