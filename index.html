@@ -335,6 +335,7 @@
                 showToast('인증 오류: ' + err.message, 'error');
             }
         }
+
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) {
             tg.ready();
@@ -375,7 +376,6 @@
         } catch (err) {
             $('loading-text').innerText = "통신 중 오류가 발생했습니다.";
             showToast('인증 오류: ' + err.message, 'error');
-        }
         }
 
         async function submitRegistration() {
