@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>팀 활동 관리</title>
 
-    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script>
@@ -47,7 +46,6 @@
             padding: 0;
         }
 
-        /* Status badges */
         .badge-planned {
             background: #dbeafe;
             color: #1d4ed8;
@@ -63,7 +61,6 @@
             color: #b91c1c;
         }
 
-        /* Segmented control active tab */
         .seg-active {
             background: #2563eb;
             color: #fff;
@@ -74,7 +71,6 @@
             color: #71717a;
         }
 
-        /* Bottom sheet & Overlay */
         #modal-overlay,
         #reg-overlay {
             display: none;
@@ -101,7 +97,6 @@
             transform: translateY(0);
         }
 
-        /* Result textarea slide reveal */
         #result-box {
             max-height: 0;
             opacity: 0;
@@ -139,7 +134,6 @@
             animation: spin .7s linear infinite;
         }
 
-        /* 토스트 중앙 정렬 스타일 보정 */
         #toast {
             display: none;
             opacity: 0;
@@ -208,14 +202,16 @@
 
             <!-- Profile dropdown -->
             <div id="profile-dropdown"
-                class="absolute right-4 top-full mt-1 bg-tg-bg border border-tg-border rounded-2xl shadow-xl p-4 z-30 w-56">
+                class="absolute right-4 top-full mt-1 bg-tg-bg border border-tg-border rounded-2xl shadow-xl p-4 z-30 w-60">
                 <p class="text-xs text-tg-muted mb-2 font-medium">내 프로필</p>
                 <div class="space-y-1.5 text-sm">
-                    <div class="flex justify-between"><span class="text-tg-muted">지역</span><span id="pd-region"
+                    <div class="flex justify-between"><span class="text-tg-muted">소속 조</span><span id="pd-group"
+                            class="font-semibold text-tg-blue">-</span></div>
+                    <div class="flex justify-between"><span class="text-tg-muted">지역</span> <span id="pd-region"
                             class="font-medium">-</span></div>
-                    <div class="flex justify-between"><span class="text-tg-muted">직책</span><span id="pd-role"
+                    <div class="flex justify-between"><span class="text-tg-muted">직책</span> <span id="pd-role"
                             class="font-medium">-</span></div>
-                    <div class="flex justify-between"><span class="text-tg-muted">이름</span><span id="pd-name"
+                    <div class="flex justify-between"><span class="text-tg-muted">이름</span> <span id="pd-name"
                             class="font-medium">-</span></div>
                     <div class="flex justify-between"><span class="text-tg-muted">ID</span> <span id="pd-id"
                             class="font-medium text-tg-blue text-xs">-</span></div>
@@ -264,7 +260,7 @@
         <!-- ACTIVITY LIST -->
         <main class="flex-1 overflow-y-auto px-4 pb-24 pt-2 bg-tg-surface">
             <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xs font-semibold text-tg-muted uppercase tracking-wide">오늘의 팀 활동 계획</h2>
+                <h2 class="text-xs font-semibold text-tg-muted uppercase tracking-wide">오늘의 활동 계획</h2>
                 <span id="activity-count" class="text-xs text-tg-muted">0건</span>
             </div>
 
@@ -277,8 +273,8 @@
                             d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
                     </svg>
                 </div>
-                <p class="text-sm font-semibold text-tg-muted">등록된 활동이 없습니다</p>
-                <p class="text-xs text-tg-muted/70 mt-1">아래 + 버튼으로 활동을 추가해 보세요</p>
+                <p class="text-sm font-semibold text-tg-muted">조회된 활동이 없습니다</p>
+                <p class="text-xs text-tg-muted/70 mt-1">아래 + 버튼으로 새로운 활동을 추가하세요</p>
             </div>
 
             <div id="cards-container" class="space-y-3"></div>
@@ -314,14 +310,12 @@
             </div>
 
             <div class="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-                <!-- 선택된 날짜 -->
                 <div
                     class="bg-blue-50 text-tg-blue border border-blue-100 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-semibold">
                     <span>선택된 날짜</span>
                     <span id="target-date-display" class="font-bold">2026-07-22</span>
                 </div>
 
-                <!-- 시작시간 / 종료시간 셀렉터 -->
                 <div>
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 시간 (24시간제)</label>
                     <div class="grid grid-cols-2 gap-2">
@@ -340,10 +334,13 @@
                     </div>
                 </div>
 
-                <!-- 프로필 카드 -->
                 <div class="bg-tg-surface rounded-xl border border-tg-border p-3">
-                    <p class="text-xs font-semibold text-tg-muted mb-2">프로필 (자동 입력)</p>
+                    <p class="text-xs font-semibold text-tg-muted mb-2">작성자 정보</p>
                     <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-tg-bg rounded-lg px-3 py-1.5 border border-tg-border">
+                            <p class="text-tg-muted mb-0.5">소속 조</p>
+                            <p id="fp-group" class="font-semibold text-tg-blue">-</p>
+                        </div>
                         <div class="bg-tg-bg rounded-lg px-3 py-1.5 border border-tg-border">
                             <p class="text-tg-muted mb-0.5">지역</p>
                             <p id="fp-region" class="font-semibold text-tg-text">-</p>
@@ -355,10 +352,6 @@
                         <div class="bg-tg-bg rounded-lg px-3 py-1.5 border border-tg-border">
                             <p class="text-tg-muted mb-0.5">이름</p>
                             <p id="fp-name" class="font-semibold text-tg-text">-</p>
-                        </div>
-                        <div class="bg-tg-bg rounded-lg px-3 py-1.5 border border-tg-border">
-                            <p class="text-tg-muted mb-0.5">ID</p>
-                            <p id="fp-id" class="font-semibold text-tg-blue">-</p>
                         </div>
                     </div>
                 </div>
@@ -415,7 +408,6 @@
             </div>
         </div>
 
-        <!-- 중앙 정렬 보정된 토스트 컴포넌트 -->
         <div id="toast"
             class="fixed bottom-24 left-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white text-center w-max max-w-[90vw] whitespace-normal leading-snug">
         </div>
@@ -463,13 +455,13 @@
 
         const tg = window.Telegram ? window.Telegram.WebApp : null;
 
-        let profile = { region: '', role: '', name: '', id: '' };
+        let profile = { region: '', role: '', name: '', group: '', id: '' };
         let currentDate = new Date();
         let activities = [];
         let modalMode = 'add';
         let editId = null;
         let formStatus = 'planned';
-        let toastTimer = null; // 💡 변수 선언 누락 수정
+        let toastTimer = null;
 
         const $ = id => document.getElementById(id);
 
@@ -561,6 +553,7 @@
                 if (data.isRegistered) {
                     profile.id = data.user.id || '-';
                     profile.name = data.user.name || '사용자';
+                    profile.group = data.user.group || '-';
                     profile.region = data.user.region || '-';
                     profile.role = data.user.role || '-';
 
@@ -620,7 +613,6 @@
                 closeModal();
                 showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
 
-                // 자동 새로고침 가동
                 $('loading-overlay').classList.remove('hidden');
                 await fetchAppData();
 
@@ -656,7 +648,6 @@
                     closeModal();
                     showToast('활동이 취소 처리되었습니다.', 'success');
 
-                    // 자동 새로고침 가동
                     $('loading-overlay').classList.remove('hidden');
                     await fetchAppData();
                 } catch (err) {
@@ -665,26 +656,56 @@
             }
         }
 
+        async function submitRegistration() {
+            const selectEl = $('reg-user-select');
+            const selectedRow = selectEl.value;
+
+            if (!selectedRow) return showToast("본인의 이름을 선택해주세요.", "error");
+
+            $('reg-spinner').classList.remove('hidden');
+            $('btn-reg-submit').disabled = true;
+
+            try {
+                const response = await fetch(`${GAS_URL}?action=registerUser&initData=${encodeURIComponent(tg ? tg.initData : '')}&selectedRow=${selectedRow}`);
+                const resData = await response.json();
+
+                if (resData.result === "success") {
+                    closeRegSheet();
+                    showToast("사용자 등록 완료!", "success");
+                    $('loading-overlay').classList.remove('hidden');
+                    await fetchAppData();
+                } else {
+                    showToast("등록 실패: " + resData.message, "error");
+                }
+            } catch (err) {
+                showToast("오류 발생: " + err.message, "error");
+            } finally {
+                $('reg-spinner').classList.add('hidden');
+                $('btn-reg-submit').disabled = false;
+            }
+        }
+
         /* ─────────────────────────────────────────────────────────────
            RENDER
         ───────────────────────────────────────────────────────────── */
         function renderHeader() {
-            $('hdr-region').textContent = profile.region;
+            $('hdr-region').textContent = `${profile.group} | ${profile.region}`;
             $('hdr-team').textContent = `${profile.name}님의 활동`;
 
             $('profile-avatar').textContent = profile.name ? profile.name.charAt(0) : '?';
             $('profile-name-chip').textContent = profile.name;
             $('profile-role-chip').textContent = profile.role;
 
+            $('pd-group').textContent = profile.group;
             $('pd-region').textContent = profile.region;
             $('pd-role').textContent = profile.role;
             $('pd-name').textContent = profile.name;
             $('pd-id').textContent = profile.id;
 
+            $('fp-group').textContent = profile.group;
             $('fp-region').textContent = profile.region;
             $('fp-role').textContent = profile.role;
             $('fp-name').textContent = profile.name;
-            $('fp-id').textContent = profile.id;
         }
 
         function renderDateNav() {
@@ -721,12 +742,19 @@
       class="activity-card bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm ${item.status === 'canceled' ? 'opacity-60' : ''}"
       data-id="${item.id}"
     >
-      <div class="flex items-start justify-between mb-2.5">
-        <div class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span class="text-sm font-semibold text-tg-text">${item.startTime} - ${item.endTime}</span>
+      <!-- 작성자 정보 라벨 (조/이름/직책) -->
+      <div class="flex items-center justify-between border-b border-tg-border pb-2 mb-2.5">
+        <div class="flex items-center gap-1.5">
+          <span class="bg-blue-50 text-tg-blue font-bold text-[11px] px-2 py-0.5 rounded-md border border-blue-100">${escHtml(item.group || '미정')}</span>
+          <span class="text-xs font-bold text-tg-text">${escHtml(item.name || '작성자')}</span>
+          <span class="text-[10px] text-tg-muted">(${escHtml(item.role || '부원')})</span>
         </div>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
+      </div>
+
+      <div class="flex items-center gap-2 mb-1.5">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="text-sm font-semibold text-tg-text">${item.startTime} - ${item.endTime}</span>
       </div>
 
       <div class="flex items-center gap-2 mb-1.5">
@@ -747,7 +775,7 @@
 
       <div class="mt-3 flex items-center gap-1 text-blue-400">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
-        <span class="text-[10px] font-medium">탭하여 수정 / 완료하기</span>
+        <span class="text-[10px] font-medium">탭하여 상세 확인 및 수정</span>
       </div>
     </div>
   `).join('');
@@ -895,7 +923,6 @@
             const el = $('toast');
             el.textContent = message;
 
-            // 상태별 색상 적용 및 표시
             el.className = 'fixed bottom-24 left-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white text-center w-max max-w-[90vw] whitespace-normal leading-snug';
             if (type === 'success') el.classList.add('bg-green-600');
             else if (type === 'error') el.classList.add('bg-red-600');
