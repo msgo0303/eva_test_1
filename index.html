@@ -1,31 +1,57 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Mini App</title>
-    <!-- 텔레그램 미니앱 필수 스크립트 SDK -->
+    <title>Telegram Mini App</title>
+    <!-- 텔레그램 필수 SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <!-- 로딩 화면 -->
-    <div id="loading-screen">사용자 확인 중...</div>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            text-align: center;
+            background-color: #ffffff;
+            color: #000000;
+        }
 
-    <!-- 최초 1회 신규 등록 폼 (기본적으론 숨김) -->
+        input {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #2481cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading-screen">데이터 로딩 중...</div>
+
     <div id="register-screen" style="display: none;">
         <h2>환영합니다! 👋</h2>
-        <p>본인 확인을 위해 실명을 입력해주세요.</p>
+        <p>실명을 입력해주세요.</p>
         <input type="text" id="user-name-input" placeholder="홍길동">
+        <br>
         <button id="register-btn">등록하기</button>
     </div>
 
-    <!-- 메인 서비스 화면 (기본적으론 숨김) -->
     <div id="main-screen" style="display: none;">
-        <h2 id="welcome-msg">안녕하세요, 님!</h2>
-        <!-- 여기에 실제 컨텐츠/스프레드시트 연동 데이터가 들어감 -->
+        <h2 id="welcome-msg">안녕하세요!</h2>
+        <p>자동 인식이 성공적으로 완료되었습니다.</p>
     </div>
 
     <script src="app.js"></script>
 </body>
+
 </html>
