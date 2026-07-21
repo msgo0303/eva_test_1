@@ -396,16 +396,23 @@
                     </div>
                 </div>
 
+                <!-- 💡 단일 선택으로 변경된 활동 내용 (카테고리) -->
+                <div>
+                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 내용 선택 (1개)</label>
+                    <select id="f-content-category"
+                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm font-bold text-tg-text focus:outline-none focus:border-tg-blue">
+                        <option value="찾기">찾기</option>
+                        <option value="매칭">매칭</option>
+                        <option value="잎사귀">잎사귀</option>
+                        <option value="복방">복방</option>
+                    </select>
+                    <p class="text-[11px] text-tg-muted mt-1">※ 2가지 이상 수행 시 카드를 추가로 생성해 주세요.</p>
+                </div>
+
                 <div>
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">장소 (Location)</label>
                     <input id="f-location" type="text" placeholder="예: 서울 강남 전도관"
                         class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue" />
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 내용 (Activity Content)</label>
-                    <textarea id="f-content" rows="3" placeholder="활동 내용을 입력하세요..."
-                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue resize-none"></textarea>
                 </div>
 
                 <div>
@@ -420,10 +427,9 @@
                     </div>
                 </div>
 
-                <!-- 💡 개편된 활동 결과 & 활동내용/피드백 영역 (완료 시 노출) -->
+                <!-- 활동 결과 & 피드백 (완료 시 노출) -->
                 <div id="result-box" class="space-y-4">
 
-                    <!-- 1) 활동 결과 동적 입력 파트 -->
                     <div class="bg-blue-50/50 rounded-2xl border border-blue-100 p-3.5">
                         <div class="flex items-center justify-between mb-2">
                             <label class="block text-xs font-bold text-tg-blue">📊 활동 결과 선택</label>
@@ -433,15 +439,12 @@
                             </button>
                         </div>
 
-                        <div id="result-rows-container" class="space-y-2">
-                            <!-- 동적 결과 행들이 여기에 추가됩니다 -->
-                        </div>
+                        <div id="result-rows-container" class="space-y-2"></div>
                     </div>
 
-                    <!-- 2) 활동내용 / 피드백 (단답형 텍스트) -->
                     <div>
-                        <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동내용 / 피드백</label>
-                        <textarea id="f-result-text" rows="3" placeholder="활동 상세 결과 및 피드백을 입력하세요..."
+                        <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 피드백</label>
+                        <textarea id="f-result-text" rows="3" placeholder="활동 피드백을 입력하세요..."
                             class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue resize-none"></textarea>
                     </div>
 
@@ -526,24 +529,11 @@
         let formStatus = 'planned';
         let toastTimer = null;
 
-        // 💡 결과 마스터 데이터 정의
         const RESULT_SCHEMA = {
-            '찾기': {
-                types: ['온만찾', '오프번찾', '구두만픽', '오프만찾'],
-                hasCount: true
-            },
-            '매칭': {
-                types: ['취소', '2차', '비합', '따기'],
-                hasCount: false
-            },
-            '잎사귀': {
-                types: ['간증잎', '생노잎', '서류잎', '풍문잎', '기타'],
-                hasCount: false
-            },
-            '복방': {
-                types: ['진행', '취소'],
-                hasCount: false
-            }
+            '찾기': { types: ['온만찾', '오프번찾', '구두만픽', '오프만찾'], hasCount: true },
+            '매칭': { types: ['취소', '2차', '비합', '따기'], hasCount: false },
+            '잎사귀': { types: ['간증잎', '생노잎', '서류잎', '풍문잎', '기타'], hasCount: false },
+            '복방': { types: ['진행', '취소'], hasCount: false }
         };
 
         const $ = id => document.getElementById(id);
@@ -613,13 +603,12 @@
         }
 
         /* ─────────────────────────────────────────────────────────────
-           DYNAMIC RESULT ROWS LOGIC (결과 종류/유형/수치 동적 행)
+           DYNAMIC RESULT ROWS LOGIC
         ───────────────────────────────────────────────────────────── */
         function addResultRow(data = { category: '', type: '', count: 1 }) {
             const container = $('result-rows-container');
             const existingCategories = Array.from(container.querySelectorAll('.res-category')).map(el => el.value);
 
-            // 추가 가능한 종류 추출 (중복 추가 방지)
             const availableCategories = Object.keys(RESULT_SCHEMA).filter(cat => !existingCategories.includes(cat) || cat === data.category);
 
             if (availableCategories.length === 0 && !data.category) {
@@ -633,25 +622,21 @@
             rowDiv.className = 'result-row flex items-center gap-1.5 bg-white p-2 rounded-xl border border-tg-border shadow-sm';
 
             rowDiv.innerHTML = `
-    <!-- 결과 종류 셀렉트 -->
     <select class="res-category rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue w-24">
       ${Object.keys(RESULT_SCHEMA).map(cat => `
         <option value="${cat}" ${cat === defaultCategory ? 'selected' : ''} ${existingCategories.includes(cat) && cat !== defaultCategory ? 'disabled' : ''}>${cat}</option>
       `).join('')}
     </select>
 
-    <!-- 결과 유형 셀렉트 -->
     <select class="res-type flex-1 rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue min-w-[90px]">
     </select>
 
-    <!-- 수치 선택 (찾기 전용: 1~10) -->
     <select class="res-count rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-blue focus:outline-none focus:border-tg-blue w-14">
       ${Array.from({ length: 10 }, (_, i) => i + 1).map(num => `
         <option value="${num}" ${num == data.count ? 'selected' : ''}>${num}개</option>
       `).join('')}
     </select>
 
-    <!-- 삭제 버튼 -->
     <button type="button" class="btn-del-row w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
@@ -664,7 +649,6 @@
             const countSelect = rowDiv.querySelector('.res-count');
             const delBtn = rowDiv.querySelector('.btn-del-row');
 
-            // 종류 변경 시 유형 옵션 및 수치 셀렉트 노출여부 업데이트
             const updateTypeOptions = () => {
                 const selectedCat = categorySelect.value;
                 const schema = RESULT_SCHEMA[selectedCat];
@@ -674,7 +658,6 @@
                     typeSelect.value = data.type;
                 }
 
-                // 찾기인 경우에만 수치 셀렉트 표출
                 if (schema.hasCount) {
                     countSelect.classList.remove('hidden');
                 } else {
@@ -683,15 +666,13 @@
             };
 
             categorySelect.addEventListener('change', () => {
-                data.type = ''; // 종류 변경 시 유형 초기화
+                data.type = '';
                 updateTypeOptions();
             });
 
-            delBtn.addEventListener('click', () => {
-                rowDiv.remove();
-            });
+            delBtn.addEventListener('click', () => rowDiv.remove());
 
-            updateTypeOptions(); // 초기 실행
+            updateTypeOptions();
         }
 
         function getResultDataJson() {
@@ -775,16 +756,15 @@
             const startTime = $('f-starttime').value;
             const endTime = $('f-endtime').value;
             const location = $('f-location').value.trim();
-            const content = $('f-content').value.trim();
+            const content = $('f-content-category').value; // 단일 선택 카테고리
 
             const resultData = getResultDataJson();
             const resultText = $('f-result-text').value.trim();
 
             if (!startTime || !endTime) return showToast('시간을 선택해 주세요.', 'error');
             if (!location) return showToast('장소를 입력해 주세요.', 'error');
-            if (!content) return showToast('활동 내용을 입력해 주세요.', 'error');
+            if (!content) return showToast('활동 내용을 선택해 주세요.', 'error');
 
-            // 완료 상태 시 유효성 검사 (결과 행 또는 피드백 작성 필요)
             if (formStatus === 'completed') {
                 const hasRows = document.querySelectorAll('.result-row').length > 0;
                 if (!hasRows && !resultText) {
@@ -808,8 +788,8 @@
                 location: location,
                 content: content,
                 status: formStatus,
-                resultData: resultData, // 세부 결과 JSON
-                resultText: resultText  // 활동내용/피드백
+                resultData: resultData,
+                resultText: resultText
             };
 
             try {
@@ -1007,7 +987,6 @@
             container.innerHTML = filtered.map(item => {
                 const isMine = (item.userId && item.userId.toString().trim() === currentUserIdStr);
 
-                // 카드 표출용 세부 결과 칩 HTML 생성
                 let resultChipsHtml = '';
                 if (item.status === 'completed' && item.resultData) {
                     try {
@@ -1041,19 +1020,20 @@
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
       </div>
 
-      <div class="flex items-center gap-2 mb-1.5">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <span class="text-sm font-semibold text-tg-text">${item.startTime} - ${item.endTime}</span>
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="text-sm font-semibold text-tg-text">${item.startTime} - ${item.endTime}</span>
+        </div>
+        <!-- 💡 선택된 활동 내용(카테고리) 배지 -->
+        <span class="bg-zinc-100 text-zinc-800 border border-zinc-200 text-xs font-bold px-2.5 py-0.5 rounded-md">
+          ${escHtml(item.content || '찾기')}
+        </span>
       </div>
 
       <div class="flex items-center gap-2 mb-1.5">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
         <span class="text-sm text-tg-text">${escHtml(item.location || '장소 미정')}</span>
-      </div>
-
-      <div class="flex items-start gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0 mt-0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/></svg>
-        <p class="text-sm text-tg-muted line-clamp-2">${escHtml(item.content || '내용 없음')}</p>
       </div>
 
       ${item.status === 'completed' ? `
@@ -1116,8 +1096,8 @@
             $('f-starttime').value = defaultStartTime;
             updateEndTimeOptions();
 
+            $('f-content-category').value = '찾기'; // 기본값
             $('f-location').value = '';
-            $('f-content').value = '';
             $('f-result-text').value = '';
             $('result-rows-container').innerHTML = '';
 
@@ -1141,11 +1121,10 @@
             }
             updateEndTimeOptions(item.endTime);
 
+            $('f-content-category').value = item.content || '찾기';
             $('f-location').value = item.location || '';
-            $('f-content').value = item.content || '';
             $('f-result-text').value = item.resultText || '';
 
-            // 세부 결과 JSON 로드
             loadResultDataJson(item.resultData);
 
             setStatus(item.status || 'planned');
@@ -1203,7 +1182,7 @@
             sheet.style.display = 'flex';
             sheet.offsetHeight;
             overlay.classList.add('open');
-            sheet.classList.open;
+            sheet.classList.add('open');
         }
 
         function closeRegSheet() {
@@ -1240,7 +1219,6 @@
                 updateEndTimeOptions();
             });
 
-            // 결과 행 추가 버튼
             $('btn-add-result-row').addEventListener('click', () => {
                 addResultRow();
             });
