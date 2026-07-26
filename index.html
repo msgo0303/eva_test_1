@@ -323,7 +323,11 @@
                 </svg>
             </button>
             <div class="text-center">
-                <p id="display-date" class="text-sm font-semibold text-tg-text"></p>
+                <div class="flex items-center justify-center gap-1.5 mb-0.5">
+                    <p id="display-date" class="text-sm font-semibold text-tg-text"></p>
+                    <span id="hdr-semester-badge"
+                        class="hidden bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">🎓 -</span>
+                </div>
                 <p id="display-today" class="text-xs text-tg-muted h-4"></p>
             </div>
             <button id="btn-next-day"
@@ -1153,6 +1157,12 @@
 
                     weeklyMissionCount = data.weeklyMissionCount || 0;
                     userHasActiveBook = (data.user && data.user.bookCount > 0);
+
+                    if (data.currentSemester && data.currentSemester.name) {
+                        const badgeEl = $('hdr-semester-badge');
+                        badgeEl.textContent = `🎓 ${data.currentSemester.name}`;
+                        badgeEl.classList.remove('hidden');
+                    }
 
                     const role = profile.role || "";
                     const isAdminOrLeader = data.isAdmin || role.includes("조장") || role.includes("부조장") || role.includes("관리자");
