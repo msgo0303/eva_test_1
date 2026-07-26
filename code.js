@@ -120,7 +120,7 @@ function doGet(e) {
                 userId: actData[i][1],
                 name: actData[i][2],
                 group: rowGroup,
-                region: actData[i][4],
+                region: actData[i][4] ? actData[i][4].toString().trim() : "",
                 role: actData[i][5],
                 date: rowDate,
                 startTime: formatTimeString(actData[i][7]),
@@ -198,7 +198,7 @@ function doGet(e) {
                 userId: actData[i][1],
                 name: actData[i][2],
                 group: rowGroup,
-                region: actData[i][4],
+                region: actData[i][4] ? actData[i][4].toString().trim() : "",
                 role: actData[i][5],
                 date: rowDate,
                 startTime: formatTimeString(actData[i][7]),
@@ -217,17 +217,15 @@ function doGet(e) {
       return makeJsonResponse({ result: "success", range: rangeType, list: rawList });
     }
 
-    // 💡 3. 미취합자(선택 날짜 당일 결과 + 내일 계획) 및 미달성자, 휴무일 스킵 API
+    // 3. 미취합자(선택 날짜 당일 결과 + 내일 계획) 및 미달성자, 휴무일 스킵 API
     if (action === "getRiskData") {
       const targetDateStr = e.parameter.date || getTodayString();
       const targetDate = new Date(targetDateStr);
 
-      // 내일 날짜 계산
       const tomorrow = new Date(targetDate);
       tomorrow.setDate(targetDate.getDate() + 1);
       const tomorrowStr = formatDateStr(tomorrow);
 
-      // 이번 주 일요일 ~ 토요일 계산
       const dayOfWeek = targetDate.getDay();
       const sunday = new Date(targetDate);
       sunday.setDate(targetDate.getDate() - dayOfWeek);
@@ -236,7 +234,6 @@ function doGet(e) {
       const sundayStr = formatDateStr(sunday);
       const saturdayStr = formatDateStr(saturday);
 
-      // 📅 Calendar 탭 검사 (선택 날짜 및 내일 날짜 휴무 여부)
       let targetDateOff = false;
       let targetOffReason = "";
       let tomorrowDateOff = false;
@@ -275,6 +272,7 @@ function doGet(e) {
           const uId = uData[i][0] ? uData[i][0].toString().trim() : "";
           const name = uData[i][1] ? uData[i][1].toString().trim() : "";
           const group = formatGroupString(uData[i][2]);
+          const region = uData[i][3] ? uData[i][3].toString().trim() : "";
           const bookCount = parseInt(uData[i][13] || 0, 10);
           const isExempt = uData[i][14] ? (uData[i][14].toString().trim().toUpperCase() === 'Y') : false;
 
@@ -283,6 +281,7 @@ function doGet(e) {
               id: uId,
               name: name,
               group: group,
+              region: region,
               bookCount: bookCount,
               isExempt: isExempt,
               hasTodayActivity: false,
@@ -311,18 +310,15 @@ function doGet(e) {
           const resultData = actData[i][12] ? actData[i][12].toString() : "";
 
           if (userMap[name]) {
-            // 당일 활동 파악
             if (rowDate === targetDateStr) {
               userMap[name].hasTodayActivity = true;
               if (status === 'completed') {
                 userMap[name].isTodayCompleted = true;
               }
             }
-            // 내일 활동 파악
             if (rowDate === tomorrowStr) {
               userMap[name].hasTomorrowActivity = true;
             }
-            // 주간 찾기 성과 계산
             if (rowDate >= sundayStr && rowDate <= saturdayStr && status === 'completed' && resultData) {
               try {
                 const parsed = JSON.parse(resultData);
@@ -339,13 +335,8 @@ function doGet(e) {
         }
       }
 
-      // 1. [선택 날짜 + 1일] 내일 계획 미취합자 (내일 일정 아예 없음 & 예외 N)
       const tomorrowUncollected = tomorrowDateOff ? [] : allUsers.filter(u => !u.hasTomorrowActivity && !u.isExempt);
-
-      // 2. [선택 날짜] 당일 결과 미취합자 (오늘 일정 없음 또는 오늘 완료 상태가 아님 & 예외 N)
       const todayUncollected = targetDateOff ? [] : allUsers.filter(u => (!u.hasTodayActivity || !u.isTodayCompleted) && !u.isExempt);
-
-      // 3. 이번 주 찾기 미달성자 (복방 0개 & 이번 주 찾기 6개 미만)
       const unachievedUsers = allUsers.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6);
 
       return makeJsonResponse({
@@ -600,7 +591,6 @@ function updateSemester(name, startDate, endDate) {
     semSheet.appendRow(["사이클명", "시작일", "종료일", "현재여부"]);
   }
 
-  // 기존 Y를 N으로 바꾸고 신규 사이클 Y로 설정
   const data = semSheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     semSheet.getRange(i + 1, 4).setValue("N");
@@ -610,7 +600,6 @@ function updateSemester(name, startDate, endDate) {
   return makeJsonResponse({ result: "success", message: "개강 사이클이 변경되었습니다." });
 }
 
-// 순수 객체 반환 헬퍼 (getInitialData 등에서 재사용)
 function getCurrentSemesterObj() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const semSheet = ss.getSheetByName("Semesters");
