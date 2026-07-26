@@ -834,17 +834,17 @@
                         <div>
                             <label class="block text-tg-muted mb-1 font-semibold">사이클명</label>
                             <input id="sem-name" type="text" placeholder="예: 2026-2학기 개강"
-                                class="w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface font-semibold focus:outline-none focus:border-tg-blue" />
+                                class="w-full max-w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
                         </div>
                         <div>
                             <label class="block text-tg-muted mb-1 font-semibold">시작일</label>
                             <input id="sem-start" type="date"
-                                class="w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface font-semibold focus:outline-none focus:border-tg-blue text-tg-text" />
+                                class="w-full max-w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
                         </div>
                         <div>
                             <label class="block text-tg-muted mb-1 font-semibold">종료일</label>
                             <input id="sem-end" type="date"
-                                class="w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface font-semibold focus:outline-none focus:border-tg-blue text-tg-text" />
+                                class="w-full max-w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
                         </div>
                         <button onclick="saveSemesterSetting()"
                             class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">사이클 설정 저장</button>
@@ -899,8 +899,10 @@
         let activities = [];
         let activeFilter = 'all';
         let activeTimeFilter = 'all';
+        let activeHomeRegionFilter = 'ALL'; // 💡 홈 화면 지역 필터 상태 추가
         let userHasActiveBook = false;
         let weeklyMissionCount = 0;
+        let rawRiskData = null; // 💡 대시보드 미취합/멤버 원본 데이터 캐시 추가
 
         let modalMode = 'add';
         let editId = null;
@@ -1256,8 +1258,9 @@
                 const data = await res.json();
 
                 if (data.result === 'success') {
-                    renderRiskTab(data);
-                    renderMemberTab(data.allUsers || []);
+                    rawRiskData = data;
+                    renderRiskTab();
+                    renderMemberTab();
                 }
             } catch (err) {
                 showToast('관리자 통신 오류: ' + err.message, 'error');
@@ -1265,7 +1268,16 @@
         }
 
         /* 💡 듀얼 미취합 탭 렌더링 (Calendar 비계수 스킵 연동) */
-        function renderRiskTab(data) {
+        function renderRiskTab() {
+            if (!rawRiskData) return;
+            const data = rawRiskData;
+            const selectedRegion = $('risk-region-select') ? $('risk-region-select').value : 'ALL';
+
+            // 선택된 지역으로 유저 필터링
+            const filterFn = list => (selectedRegion === 'ALL' || !selectedRegion) 
+                ? list 
+                : list.filter(u => u.region === selectedRegion);
+
             // 1. 내일 계획 미취합
             const tmTitle = $('risk-tomorrow-title');
             const tmSub = $('risk-tomorrow-sub');
@@ -1278,15 +1290,16 @@
                 tmCount.textContent = '0명';
                 tmContainer.innerHTML = `<p class="text-xs text-blue-700 text-center py-2 font-bold">☕ 내일은 휴무일/비계수일입니다. (${escHtml(data.tomorrowOffReason)})</p>`;
             } else {
-                const tmList = data.tomorrowUncollected || [];
+                const tmList = filterFn(data.tomorrowUncollected || []);
                 tmCount.textContent = tmList.length + '명';
                 if (tmList.length === 0) {
-                    tmContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 내일 계획 미취합자가 없습니다!</p>';
+                    tmContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 조건에 해당하는 내일 계획 미취합자가 없습니다!</p>';
                 } else {
                     tmContainer.innerHTML = tmList.map(u => `
                         <div class="bg-white p-2.5 rounded-xl border border-blue-100 flex items-center justify-between">
                             <div>
-                                <span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.group)}]</span>
+                                <!-- 조와 지역을 함께 표기 [1조|사당] -->
+                                <span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.group)}|${escHtml(u.region || '미정')}]</span>
                                 <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
                             </div>
                             <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">내일 일정 없음</span>
@@ -1306,7 +1319,7 @@
                 tdCount.textContent = '0명';
                 tdContainer.innerHTML = `<p class="text-xs text-red-700 text-center py-2 font-bold">☕ 선택된 날짜는 휴무일/비계수일입니다. (${escHtml(data.targetOffReason)})</p>`;
             } else {
-                const tdList = data.todayUncollected || [];
+                const tdList = filterFn(data.todayUncollected || []);
                 tdCount.textContent = tdList.length + '명';
                 if (tdList.length === 0) {
                     tdContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 당일 결과 미취합자가 없습니다!</p>';
@@ -1314,7 +1327,8 @@
                     tdContainer.innerHTML = tdList.map(u => `
                         <div class="bg-white p-2.5 rounded-xl border border-red-100 flex items-center justify-between">
                             <div>
-                                <span class="font-bold text-red-700 mr-1.5">[${escHtml(u.group)}]</span>
+                                <!-- 조와 지역을 함께 표기 [1조|사당] -->
+                                <span class="font-bold text-red-700 mr-1.5">[${escHtml(u.group)}|${escHtml(u.region || '미정')}]</span>
                                 <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
                             </div>
                             <span class="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">
@@ -1326,7 +1340,7 @@
             }
 
             // 3. 주간 찾기 미달성
-            const unachieved = data.unachievedUsers || [];
+            const unachieved = filterFn(data.unachievedUsers || []);
             $('risk-unachieved-count').textContent = unachieved.length + '명';
             const unachContainer = $('risk-unachieved-list');
             if (unachieved.length === 0) {
@@ -1335,7 +1349,8 @@
                 unachContainer.innerHTML = unachieved.map(u => `
                     <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-center justify-between">
                         <div>
-                            <span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.group)}]</span>
+                            <!-- 조와 지역을 함께 표기 [1조|사당] -->
+                            <span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.group)}|${escHtml(u.region || '미정')}]</span>
                             <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
                         </div>
                         <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">이번 주 ${u.weeklyFindCount}/6건</span>
@@ -1345,15 +1360,29 @@
         }
 
         /* 멤버 관리 탭 렌더링 */
-        function renderMemberTab(allUsers) {
-            $('member-total-count').textContent = allUsers.length + '명';
+        function renderMemberTab() {
+            if (!rawRiskData) return;
+            const selectedRegion = $('member-region-select') ? $('member-region-select').value : 'ALL';
+            const allUsers = rawRiskData.allUsers || [];
+
+            const filteredUsers = (selectedRegion === 'ALL' || !selectedRegion) 
+                ? allUsers 
+                : allUsers.filter(u => u.region === selectedRegion);
+
+            $('member-total-count').textContent = filteredUsers.length + '명';
             const container = $('member-management-list');
 
-            container.innerHTML = allUsers.map(u => `
+            if (filteredUsers.length === 0) {
+                container.innerHTML = '<p class="text-xs text-tg-muted text-center py-4">조건에 해당하는 멤버가 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = filteredUsers.map(u => `
                 <div class="bg-tg-surface p-3 rounded-xl border border-tg-border flex items-center justify-between text-xs">
                     <div>
                         <div class="flex items-center gap-1.5">
-                            <span class="font-bold text-tg-blue">[${escHtml(u.group)}]</span>
+                            <!-- 조와 지역을 함께 표기 [1조|사당] -->
+                            <span class="font-bold text-tg-blue">[${escHtml(u.group)}|${escHtml(u.region || '미정')}]</span>
                             <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
                         </div>
                         <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span></p>
@@ -1375,27 +1404,44 @@
             `).join('');
         }
 
+        function filterRiskDataByRegion() {
+            renderRiskTab();
+        }
+
+        function filterMemberDataByRegion() {
+            renderMemberTab();
+        }
+
         const FIXED_REGIONS = [
           "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
           "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
         ];
 
         function initAllRegionDropdowns() {
-          const fillSelect = (selectId) => {
-            const el = $(selectId);
-            if (!el) return;
-            const curVal = el.value || "ALL";
-            
-            let html = '<option value="ALL">전체 지역</option>';
-            FIXED_REGIONS.forEach(r => {
-              html += `<option value="${r}" ${r === curVal ? 'selected' : ''}>${r}</option>`;
-            });
-            el.innerHTML = html;
-          };
+            const fillSelect = (selectId) => {
+                const el = $(selectId);
+                if (!el) return;
+                const curVal = el.value || "ALL";
 
-          fillSelect('home-region-select');   // 홈 화면
-          fillSelect('risk-region-select');   // 대시보드 미취합/미달성 탭
-          fillSelect('member-region-select'); // 대시보드 멤버관리 탭
+                let html = '<option value="ALL">전체 지역</option>';
+                FIXED_REGIONS.forEach(r => {
+                    html += `<option value="${r}" ${r === curVal ? 'selected' : ''}>${r}</option>`;
+                });
+                el.innerHTML = html;
+            };
+
+            fillSelect('home-region-select');
+            fillSelect('risk-region-select');
+            fillSelect('member-region-select');
+
+            // 홈 화면 지역 드롭다운 선택 시 리스트 즉시 다시 그리기
+            const homeSelect = $('home-region-select');
+            if (homeSelect) {
+                homeSelect.onchange = (e) => {
+                    activeHomeRegionFilter = e.target.value;
+                    renderList();
+                };
+            }
         }
 
         async function updateUserBookCount(targetName, newCount) {
@@ -1847,9 +1893,14 @@
         }
 
         function renderList() {
-            const countPlanned = activities.filter(a => a.status === 'planned').length;
-            const countCompleted = activities.filter(a => a.status === 'completed').length;
-            const countCanceled = activities.filter(a => a.status === 'canceled').length;
+            let listForStats = activities;
+            if (activeHomeRegionFilter && activeHomeRegionFilter !== 'ALL') {
+                listForStats = activities.filter(a => a.region === activeHomeRegionFilter);
+            }
+
+            const countPlanned = listForStats.filter(a => a.status === 'planned').length;
+            const countCompleted = listForStats.filter(a => a.status === 'completed').length;
+            const countCanceled = listForStats.filter(a => a.status === 'canceled').length;
 
             $('stat-planned').textContent = countPlanned;
             $('stat-completed').textContent = countCompleted;
@@ -1857,9 +1908,9 @@
 
             updateFilterUI();
 
-            let filtered = activities;
+            let filtered = listForStats;
             if (activeFilter !== 'all') {
-                filtered = activities.filter(a => a.status === activeFilter);
+                filtered = listForStats.filter(a => a.status === activeFilter);
             }
 
             if (activeFilter === 'planned' && activeTimeFilter !== 'all') {
@@ -1960,7 +2011,7 @@
       <div class="flex items-center justify-between border-b border-tg-border pb-2 mb-2.5">
         <div class="flex items-center gap-1.5 flex-wrap">
           ${isMine ? `<span class="bg-blue-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md shadow-sm">📌 내 활동</span>` : ''}
-          <span class="bg-blue-50 text-tg-blue font-bold text-[11px] px-2 py-0.5 rounded-md border border-blue-100">${escHtml(item.group || '미정')}</span>
+          <span class="bg-blue-50 text-tg-blue font-bold text-[11px] px-2 py-0.5 rounded-md border border-blue-100">${escHtml(item.group || '미정')}|${escHtml(item.region || '미정')}</span>
           <span class="text-xs font-bold text-tg-text">${escHtml(item.name || '작성자')}</span>
           <span class="text-[10px] text-tg-muted">(${escHtml(item.role || '부원')})</span>
         </div>
