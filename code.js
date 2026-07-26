@@ -19,6 +19,7 @@ function doGet(e) {
       let userObj = { id: userId, name: '', group: '', region: '', role: '', bookCount: 0, isExempt: false };
       const unregisteredList = [];
 
+      const allRegionsList = [];
       if (userSheet) {
         const uData = userSheet.getDataRange().getValues();
         for (let i = 1; i < uData.length; i++) {
@@ -30,6 +31,10 @@ function doGet(e) {
 
           const cellBookCount = parseInt(uData[i][13] || 0, 10);
           const cellIsExempt = uData[i][14] ? (uData[i][14].toString().trim().toUpperCase() === 'Y') : false;
+
+          if (cellRegion) {
+            allRegionsList.push(cellRegion);
+          }
 
           if (cellId && cellId === userId.toString().trim()) {
             isRegistered = true;
@@ -53,6 +58,8 @@ function doGet(e) {
           }
         }
       }
+
+      const allRegions = Array.from(new Set(allRegionsList));
 
       const roleStr = userObj.role || "";
       const isSuperAdmin = roleStr.includes("전체관리자") || roleStr.includes("관리자");
@@ -143,7 +150,8 @@ function doGet(e) {
         unregisteredList: unregisteredList,
         isAdmin: (isSuperAdmin || isGroupAdmin),
         weeklyMissionCount: weeklyMissionCount,
-        currentSemester: getCurrentSemesterObj()
+        currentSemester: getCurrentSemesterObj(),
+        allRegions: allRegions
       });
     }
 
@@ -350,6 +358,8 @@ function doGet(e) {
       // 3. 이번 주 찾기 미달성자 (복방 0개 & 이번 주 찾기 6개 미만)
       const unachievedUsers = allUsers.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6);
 
+      const allRegions = Array.from(new Set(allUsers.map(u => u.region).filter(Boolean)));
+
       return makeJsonResponse({
         result: "success",
         targetDateStr: targetDateStr,
@@ -361,7 +371,8 @@ function doGet(e) {
         todayUncollected: todayUncollected,
         tomorrowUncollected: tomorrowUncollected,
         unachievedUsers: unachievedUsers,
-        allUsers: allUsers
+        allUsers: allUsers,
+        allRegions: allRegions
       });
     }
 
