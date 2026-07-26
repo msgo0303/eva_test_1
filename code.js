@@ -5,15 +5,16 @@ function doGet(e) {
     const action = e ? e.parameter.action : "";
     const initDataStr = e ? e.parameter.initData : "";
     const userId = parseTelegramUserId(initDataStr);
-    
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const userSheet = ss.getSheetByName("UserDB");
     const actSheet = ss.getSheetByName("ActivityLog");
+    const calSheet = ss.getSheetByName("Calendar");
 
     // 1. 유저 인증 + 기본 일정 데이터 및 주간 미션 수치 조회
     if (action === "checkUser" || action === "getInitialData") {
       const targetDate = e.parameter.date || getTodayString();
-      
+
       let isRegistered = false;
       let userObj = { id: userId, name: '', group: '', region: '', role: '', bookCount: 0, isExempt: false };
       const unregisteredList = [];
@@ -21,23 +22,22 @@ function doGet(e) {
       if (userSheet) {
         const uData = userSheet.getDataRange().getValues();
         for (let i = 1; i < uData.length; i++) {
-          const cellId     = uData[i][0] ? uData[i][0].toString().trim() : "";
-          const cellName   = uData[i][1] ? uData[i][1].toString().trim() : "";
-          const cellGroup  = formatGroupString(uData[i][2]);
+          const cellId = uData[i][0] ? uData[i][0].toString().trim() : "";
+          const cellName = uData[i][1] ? uData[i][1].toString().trim() : "";
+          const cellGroup = formatGroupString(uData[i][2]);
           const cellRegion = uData[i][3] ? uData[i][3].toString().trim() : "";
-          const cellRole   = uData[i][4] ? uData[i][4].toString().trim() : "";
-          
-          // 💡 N열 (index 13: 복방 수량), O열 (index 14: 미취합 예외) 추가 로드
+          const cellRole = uData[i][4] ? uData[i][4].toString().trim() : "";
+
           const cellBookCount = parseInt(uData[i][13] || 0, 10);
-          const cellIsExempt  = uData[i][14] ? (uData[i][14].toString().trim().toUpperCase() === 'Y') : false;
+          const cellIsExempt = uData[i][14] ? (uData[i][14].toString().trim().toUpperCase() === 'Y') : false;
 
           if (cellId && cellId === userId.toString().trim()) {
             isRegistered = true;
-            userObj = { 
-              id: cellId, 
-              name: cellName, 
-              group: cellGroup, 
-              region: cellRegion, 
+            userObj = {
+              id: cellId,
+              name: cellName,
+              group: cellGroup,
+              region: cellRegion,
               role: cellRole,
               bookCount: cellBookCount,
               isExempt: cellIsExempt
@@ -63,8 +63,7 @@ function doGet(e) {
 
       if (actSheet && isRegistered) {
         const actData = actSheet.getDataRange().getValues();
-        
-        // 주간 시작일(일요일) 및 종료일(토요일) 계산
+
         const baseDate = new Date(targetDate);
         const dayOfWeek = baseDate.getDay();
         const sunday = new Date(baseDate);
@@ -84,11 +83,10 @@ function doGet(e) {
           }
 
           const rowUserId = actData[i][1] ? actData[i][1].toString().trim() : "";
-          const rowGroup  = formatGroupString(actData[i][3]);
+          const rowGroup = formatGroupString(actData[i][3]);
           const rowStatus = actData[i][11];
           const rowResultData = actData[i][12] ? actData[i][12].toString() : "";
 
-          // 접속 유저 본인의 주간 성과(온만/오프만) 계산
           if (rowUserId === userId.toString().trim() && rowStatus === "completed") {
             if (rowDate >= sundayStr && rowDate <= saturdayStr) {
               if (rowResultData) {
@@ -101,12 +99,11 @@ function doGet(e) {
                       }
                     });
                   }
-                } catch(e) {}
+                } catch (e) { }
               }
             }
           }
 
-          // 화면 출력용 당일 일정 필터링
           if (rowDate === targetDate) {
             let canAccess = false;
             if (isSuperAdmin) {
@@ -153,7 +150,7 @@ function doGet(e) {
     if (action === "getDashboardData") {
       const rangeType = e.parameter.range || "today";
       const baseDateStr = e.parameter.date || getTodayString();
-      
+
       let userObj = { id: userId, group: '', role: '' };
       if (userSheet) {
         const uData = userSheet.getDataRange().getValues();
@@ -219,7 +216,153 @@ function doGet(e) {
       return makeJsonResponse({ result: "success", range: rangeType, list: rawList });
     }
 
-    // 3. 신규 유저 등록
+    // 💡 3. 미취합자(선택 날짜 당일 결과 + 내일 계획) 및 미달성자, 휴무일 스킵 API
+    if (action === "getRiskData") {
+      const targetDateStr = e.parameter.date || getTodayString();
+      const targetDate = new Date(targetDateStr);
+
+      // 내일 날짜 계산
+      const tomorrow = new Date(targetDate);
+      tomorrow.setDate(targetDate.getDate() + 1);
+      const tomorrowStr = formatDateStr(tomorrow);
+
+      // 이번 주 일요일 ~ 토요일 계산
+      const dayOfWeek = targetDate.getDay();
+      const sunday = new Date(targetDate);
+      sunday.setDate(targetDate.getDate() - dayOfWeek);
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      const sundayStr = formatDateStr(sunday);
+      const saturdayStr = formatDateStr(saturday);
+
+      // 📅 Calendar 탭 검사 (선택 날짜 및 내일 날짜 휴무 여부)
+      let targetDateOff = false;
+      let targetOffReason = "";
+      let tomorrowDateOff = false;
+      let tomorrowOffReason = "";
+
+      if (calSheet) {
+        const cData = calSheet.getDataRange().getValues();
+        for (let i = 1; i < cData.length; i++) {
+          let cDate = cData[i][0];
+          if (cDate instanceof Date) {
+            cDate = Utilities.formatDate(cDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
+          } else {
+            cDate = cDate ? cDate.toString().trim() : "";
+          }
+
+          const statusVal = cData[i][1] ? cData[i][1].toString().trim().toUpperCase() : "";
+          const noteVal = cData[i][2] ? cData[i][2].toString().trim() : "";
+
+          if (cDate === targetDateStr && statusVal === "OFF") {
+            targetDateOff = true;
+            targetOffReason = noteVal || "공식 비계수일/휴무일";
+          }
+          if (cDate === tomorrowStr && statusVal === "OFF") {
+            tomorrowDateOff = true;
+            tomorrowOffReason = noteVal || "공식 비계수일/휴무일";
+          }
+        }
+      }
+
+      const userMap = {};
+      const allUsers = [];
+
+      if (userSheet) {
+        const uData = userSheet.getDataRange().getValues();
+        for (let i = 1; i < uData.length; i++) {
+          const uId = uData[i][0] ? uData[i][0].toString().trim() : "";
+          const name = uData[i][1] ? uData[i][1].toString().trim() : "";
+          const group = formatGroupString(uData[i][2]);
+          const bookCount = parseInt(uData[i][13] || 0, 10);
+          const isExempt = uData[i][14] ? (uData[i][14].toString().trim().toUpperCase() === 'Y') : false;
+
+          if (name) {
+            const uObj = {
+              id: uId,
+              name: name,
+              group: group,
+              bookCount: bookCount,
+              isExempt: isExempt,
+              hasTodayActivity: false,
+              isTodayCompleted: false,
+              hasTomorrowActivity: false,
+              weeklyFindCount: 0
+            };
+            userMap[name] = uObj;
+            allUsers.push(uObj);
+          }
+        }
+      }
+
+      if (actSheet) {
+        const actData = actSheet.getDataRange().getValues();
+        for (let i = 1; i < actData.length; i++) {
+          let rowDate = actData[i][6];
+          if (rowDate instanceof Date) {
+            rowDate = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
+          } else {
+            rowDate = rowDate ? rowDate.toString().trim() : "";
+          }
+
+          const name = actData[i][2] ? actData[i][2].toString().trim() : "";
+          const status = actData[i][11];
+          const resultData = actData[i][12] ? actData[i][12].toString() : "";
+
+          if (userMap[name]) {
+            // 당일 활동 파악
+            if (rowDate === targetDateStr) {
+              userMap[name].hasTodayActivity = true;
+              if (status === 'completed') {
+                userMap[name].isTodayCompleted = true;
+              }
+            }
+            // 내일 활동 파악
+            if (rowDate === tomorrowStr) {
+              userMap[name].hasTomorrowActivity = true;
+            }
+            // 주간 찾기 성과 계산
+            if (rowDate >= sundayStr && rowDate <= saturdayStr && status === 'completed' && resultData) {
+              try {
+                const parsed = JSON.parse(resultData);
+                if (Array.isArray(parsed)) {
+                  parsed.forEach(r => {
+                    if (r.category === '찾기' && (r.type === '온만찾' || r.type === '오프만찾')) {
+                      userMap[name].weeklyFindCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
+                    }
+                  });
+                }
+              } catch (e) { }
+            }
+          }
+        }
+      }
+
+      // 1. [선택 날짜 + 1일] 내일 계획 미취합자 (내일 일정 아예 없음 & 예외 N)
+      const tomorrowUncollected = tomorrowDateOff ? [] : allUsers.filter(u => !u.hasTomorrowActivity && !u.isExempt);
+
+      // 2. [선택 날짜] 당일 결과 미취합자 (오늘 일정 없음 또는 오늘 완료 상태가 아님 & 예외 N)
+      const todayUncollected = targetDateOff ? [] : allUsers.filter(u => (!u.hasTodayActivity || !u.isTodayCompleted) && !u.isExempt);
+
+      // 3. 이번 주 찾기 미달성자 (복방 0개 & 이번 주 찾기 6개 미만)
+      const unachievedUsers = allUsers.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6);
+
+      return makeJsonResponse({
+        result: "success",
+        targetDateStr: targetDateStr,
+        tomorrowStr: tomorrowStr,
+        targetDateOff: targetDateOff,
+        targetOffReason: targetOffReason,
+        tomorrowDateOff: tomorrowDateOff,
+        tomorrowOffReason: tomorrowOffReason,
+        todayUncollected: todayUncollected,
+        tomorrowUncollected: tomorrowUncollected,
+        unachievedUsers: unachievedUsers,
+        allUsers: allUsers
+      });
+    }
+
+    // 4. 신규 유저 등록
     if (action === "registerUser") {
       const selectedRow = parseInt(e.parameter.selectedRow, 10);
       if (userSheet && selectedRow && userId) {
@@ -236,7 +379,7 @@ function doGet(e) {
       return makeJsonResponse({ result: "fail", message: "잘못된 요청입니다." });
     }
 
-    // 4. 활동 추가 및 수정
+    // 5. 활동 추가 및 수정
     if (action === "saveActivity") {
       const mode = e.parameter.mode;
       const actId = e.parameter.actId;
@@ -249,11 +392,11 @@ function doGet(e) {
         const uData = userSheet.getDataRange().getValues();
         for (let i = 1; i < uData.length; i++) {
           if (uData[i][0].toString().trim() === userId.toString().trim()) {
-            userInfo = { 
-              name: uData[i][1], 
-              group: formatGroupString(uData[i][2]), 
-              region: uData[i][3], 
-              role: uData[i][4] 
+            userInfo = {
+              name: uData[i][1],
+              group: formatGroupString(uData[i][2]),
+              region: uData[i][3],
+              role: uData[i][4]
             };
             break;
           }
@@ -300,7 +443,7 @@ function doGet(e) {
       return makeJsonResponse({ result: "success" });
     }
 
-    // 💡 5. 관리자 전용: 유저 복방 수량 및 예외 처리 수정 API
+    // 6. 관리자 전용: 유저 복방 수량 및 예외 처리 수정 API
     if (action === "updateUserStatus") {
       const targetName = e.parameter.targetName;
       const bookCount = e.parameter.bookCount;
@@ -311,10 +454,10 @@ function doGet(e) {
         for (let i = 1; i < uData.length; i++) {
           if (uData[i][1] && uData[i][1].toString().trim() === targetName.toString().trim()) {
             if (bookCount !== undefined) {
-              userSheet.getRange(i + 1, 14).setValue(parseInt(bookCount, 10)); // N열 (14번째)
+              userSheet.getRange(i + 1, 14).setValue(parseInt(bookCount, 10));
             }
             if (isExempt !== undefined) {
-              userSheet.getRange(i + 1, 15).setValue(isExempt === "true" ? "Y" : "N"); // O열 (15번째)
+              userSheet.getRange(i + 1, 15).setValue(isExempt === "true" ? "Y" : "N");
             }
             return makeJsonResponse({ result: "success" });
           }
@@ -323,7 +466,7 @@ function doGet(e) {
       return makeJsonResponse({ result: "fail", message: "유저를 찾을 수 없습니다." });
     }
 
-  } catch(err) {
+  } catch (err) {
     return makeJsonResponse({ error: err.message });
   }
 }
@@ -336,8 +479,8 @@ function calculateRangeDates(baseDateStr, rangeType) {
   if (rangeType === "today") {
     results.push(baseDateStr);
   } else if (rangeType === "week") {
-    const dayOfWeek = base.getDay(); 
-    const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; 
+    const dayOfWeek = base.getDay();
+    const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(base);
     monday.setDate(base.getDate() + diffToMon);
 
@@ -379,7 +522,7 @@ function parseTelegramUserId(initDataStr) {
     if (userParam) {
       return JSON.parse(userParam.split('user=')[1]).id.toString();
     }
-  } catch(e) {
+  } catch (e) {
     return "";
   }
   return "";

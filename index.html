@@ -7,8 +7,6 @@
     <title>팀 활동 관리</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
@@ -107,7 +105,6 @@
             box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
         }
 
-        /* 시간 필터 버튼 스타일 */
         .time-filter-btn {
             transition: all 0.2s ease;
             cursor: pointer;
@@ -226,6 +223,17 @@
             transform: translateY(0);
         }
 
+        .dash-main-tab.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .dash-main-tab {
+            background-color: #f4f4f5;
+            color: #71717a;
+        }
+
         ::-webkit-scrollbar {
             width: 4px;
         }
@@ -291,16 +299,18 @@
         </header>
 
         <!-- 🎯 신규: 주간 미션 달성 현황 카드 -->
-        <div id="weekly-mission-card" class="px-4 py-2.5 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between">
-          <div class="flex-1 pr-3">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs font-bold text-tg-blue">🎯 주간 찾기 미션 (온+오프만)</span>
-              <span id="mission-status-text" class="text-xs font-extrabold text-tg-blue">0 / 6건 (0%)</span>
+        <div id="weekly-mission-card"
+            class="px-4 py-2.5 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between">
+            <div class="flex-1 pr-3">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-tg-blue">🎯 주간 찾기 미션 (온+오프만)</span>
+                    <span id="mission-status-text" class="text-xs font-extrabold text-tg-blue">0 / 6건 (0%)</span>
+                </div>
+                <div class="w-full h-2 bg-blue-200/60 rounded-full overflow-hidden">
+                    <div id="mission-progress-bar" class="h-full bg-tg-blue rounded-full transition-all duration-500"
+                        style="width: 0%;"></div>
+                </div>
             </div>
-            <div class="w-full h-2 bg-blue-200/60 rounded-full overflow-hidden">
-              <div id="mission-progress-bar" class="h-full bg-tg-blue rounded-full transition-all duration-500" style="width: 0%;"></div>
-            </div>
-          </div>
         </div>
 
         <!-- DATE NAV -->
@@ -345,27 +355,21 @@
                 </div>
             </div>
 
-            <!-- 💡 신규 기능: 시간별 필터 파트 (관리자/조장/부조장 전용) -->
             <div id="admin-time-filter-bar" class="hidden pt-1 border-t border-tg-border/60">
                 <div class="flex items-center justify-between gap-1.5">
                     <button data-time="before"
-                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">
-                        ⏰ 시작 전
-                    </button>
+                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">⏰
+                        시작 전</button>
                     <button data-time="ongoing"
-                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">
-                        ⚡ 진행 중
-                    </button>
+                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">⚡
+                        진행 중</button>
                     <button data-time="ended"
-                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">
-                        🏁 종료건
-                    </button>
+                        class="time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted">🏁
+                        종료건</button>
                 </div>
             </div>
 
-            <p class="text-[11px] text-tg-muted text-center font-medium">
-                💡 해당하는 단계만 보려면 위 상태를 눌러주세요
-            </p>
+            <p class="text-[11px] text-tg-muted text-center font-medium">💡 해당하는 단계만 보려면 위 상태를 눌러주세요</p>
         </div>
 
         <!-- ACTIVITY LIST -->
@@ -390,7 +394,7 @@
             <div id="cards-container" class="space-y-3"></div>
         </main>
 
-        <!-- 📊 DASHBOARD BUTTON (관리자/조장 전용 - 좌측 하단) -->
+        <!-- 📊 DASHBOARD BUTTON -->
         <button id="dash-btn"
             class="hidden fixed bottom-6 left-5 z-30 w-14 h-14 bg-zinc-900 text-white rounded-full flex items-center justify-center active:scale-95 transition-transform">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -403,15 +407,17 @@
         <!-- ➕ FAB POP-OVER MENU -->
         <div id="fab-popover-overlay" class="fixed inset-0 z-30 bg-black/20 hidden"></div>
         <div id="fab-menu" class="hidden fixed bottom-24 right-5 z-40 flex-col gap-2">
-          <button id="btn-fab-direct-result" class="flex items-center gap-2 bg-emerald-600 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform">
-            ⚡ 계획 외 즉시 결과 기록
-          </button>
-          <button id="btn-fab-add-plan" class="flex items-center gap-2 bg-tg-blue text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform">
-            📅 새 활동 계획 등록
-          </button>
+            <button id="btn-fab-direct-result"
+                class="flex items-center gap-2 bg-emerald-600 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform">
+                ⚡ 계획 외 즉시 결과 기록
+            </button>
+            <button id="btn-fab-add-plan"
+                class="flex items-center gap-2 bg-tg-blue text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform">
+                📅 새 활동 계획 등록
+            </button>
         </div>
 
-        <!-- ➕ ADD BUTTON (우측 하단) -->
+        <!-- ➕ ADD BUTTON -->
         <button id="fab"
             class="fixed bottom-6 right-5 z-30 w-14 h-14 bg-tg-blue text-white rounded-full flex items-center justify-center active:scale-95 transition-transform">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
@@ -422,7 +428,7 @@
 
         <div id="modal-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
 
-        <!-- BOTTOM SHEET (일정 작성/수정) -->
+        <!-- BOTTOM SHEET -->
         <div id="modal-sheet"
             class="fixed inset-x-0 bottom-0 z-50 bg-tg-bg rounded-t-3xl shadow-2xl flex-col max-h-[92vh]">
             <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -444,7 +450,7 @@
                 <div
                     class="bg-blue-50 text-tg-blue border border-blue-100 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-semibold">
                     <span>선택된 날짜</span>
-                    <span id="target-date-display" class="font-bold">2026-07-22</span>
+                    <span id="target-date-display" class="font-bold">2026-07-26</span>
                 </div>
 
                 <div>
@@ -453,14 +459,12 @@
                         <div>
                             <span class="text-[10px] text-tg-muted block mb-1">시작 시간</span>
                             <select id="f-starttime"
-                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
-                            </select>
+                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue"></select>
                         </div>
                         <div>
                             <span class="text-[10px] text-tg-muted block mb-1">종료 시간</span>
                             <select id="f-endtime"
-                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
-                            </select>
+                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue"></select>
                         </div>
                     </div>
                 </div>
@@ -518,7 +522,6 @@
                 </div>
 
                 <div id="result-box" class="space-y-4">
-
                     <div class="bg-blue-50/50 rounded-2xl border border-blue-100 p-3.5">
                         <div class="flex items-center justify-between mb-2">
                             <label class="block text-xs font-bold text-tg-blue">📊 활동 결과 선택</label>
@@ -527,7 +530,6 @@
                                 <span>+ 결과 행 추가</span>
                             </button>
                         </div>
-
                         <div id="result-rows-container" class="space-y-2"></div>
                     </div>
 
@@ -536,7 +538,6 @@
                         <textarea id="f-result-text" rows="3" placeholder="활동 피드백을 입력하세요..."
                             class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue resize-none"></textarea>
                     </div>
-
                 </div>
 
                 <div class="h-2"></div>
@@ -555,9 +556,8 @@
                     <span id="save-label">계획 저장</span>
                 </button>
                 <button id="btn-cancel-activity"
-                    class="hidden w-full text-sm font-semibold py-3 rounded-xl border border-red-200 bg-red-50 text-red-600">
-                    이 활동 취소하기
-                </button>
+                    class="hidden w-full text-sm font-semibold py-3 rounded-xl border border-red-200 bg-red-50 text-red-600">이
+                    활동 취소하기</button>
             </div>
         </div>
 
@@ -573,12 +573,11 @@
             <div class="w-10 h-1 bg-tg-border rounded-full"></div>
         </div>
 
-        <!-- Header -->
         <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
             <div>
                 <h2 class="text-base font-bold text-tg-text">📊 관리자 대시보드</h2>
-                <p id="db-range-dates-text" class="text-[11px] text-tg-blue font-semibold mt-0.5">2026.07.21 ~
-                    2026.07.21</p>
+                <p id="db-range-dates-text" class="text-[11px] text-tg-blue font-semibold mt-0.5">2026.07.26 ~
+                    2026.07.26</p>
             </div>
             <button id="btn-close-dash"
                 class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
@@ -589,151 +588,206 @@
             </button>
         </div>
 
-        <!-- Range Selector Tabs -->
-        <div class="flex gap-2 p-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
-            <button data-range="today"
-                class="dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white">오늘</button>
-            <button data-range="week"
-                class="dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted">이번
-                주</button>
-            <button data-range="month"
-                class="dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted">이번
-                달</button>
+        <!-- 대시보드 메인 탭 선택 바 -->
+        <div class="flex border-b border-tg-border bg-tg-bg px-3 pt-1 flex-shrink-0">
+            <button data-tab="summary"
+                class="dash-main-tab active flex-1 py-2 text-xs font-bold rounded-t-xl transition-all">1. 현황 요약</button>
+            <button data-tab="risk" class="dash-main-tab flex-1 py-2 text-xs font-bold rounded-t-xl transition-all">2.
+                미취합/미달성</button>
+            <button data-tab="members"
+                class="dash-main-tab flex-1 py-2 text-xs font-bold rounded-t-xl transition-all">3. 멤버 관리</button>
         </div>
 
         <!-- Scrollable Dashboard Content -->
         <div class="overflow-y-auto flex-1 p-4 space-y-4">
 
-            <!-- 1. KPI 요약 카드 -->
-            <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4 relative">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-tg-muted font-medium">전체 등록 활동</p>
-                        <div class="flex items-baseline gap-1 mt-0.5">
-                            <span id="db-kpi-total" class="text-2xl font-extrabold text-tg-text">0</span>
-                            <span class="text-xs font-semibold text-tg-muted">건</span>
+            <!-- 탭 1: 현황 요약 -->
+            <div id="tab-sec-summary" class="space-y-4">
+                <div class="flex gap-2 bg-tg-bg p-2 rounded-xl border border-tg-border">
+                    <button data-range="today"
+                        class="dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-blue text-white">오늘</button>
+                    <button data-range="week"
+                        class="dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted">이번
+                        주</button>
+                    <button data-range="month"
+                        class="dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted">이번
+                        달</button>
+                </div>
+
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4 relative">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-tg-muted font-medium">전체 등록 활동</p>
+                            <div class="flex items-baseline gap-1 mt-0.5"><span id="db-kpi-total"
+                                    class="text-2xl font-extrabold text-tg-text">0</span><span
+                                    class="text-xs font-semibold text-tg-muted">건</span></div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-tg-muted font-medium">달성률 (완료)</p>
+                            <p id="db-kpi-rate" class="text-lg font-bold text-tg-blue mt-0.5">0%</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-xs text-tg-muted font-medium">달성률 (완료)</p>
-                        <p id="db-kpi-rate" class="text-lg font-bold text-tg-blue mt-0.5">0%</p>
+
+                    <div class="grid grid-cols-4 gap-1.5 pt-1 relative">
+                        <div id="btn-find-chip"
+                            class="bg-blue-50 border border-blue-200 hover:border-blue-400 rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
+                            <p class="text-[10px] text-blue-600 font-bold flex items-center justify-center gap-0.5">찾기
+                                💡</p>
+                            <p id="db-cat-find" class="text-sm font-bold text-blue-800">0건</p>
+                        </div>
+
+                        <div id="find-popover"
+                            class="absolute top-14 left-0 z-30 bg-zinc-900 text-white rounded-2xl p-3 shadow-2xl border border-zinc-700 w-64">
+                            <div class="flex items-center justify-between border-b border-zinc-700 pb-1.5 mb-2">
+                                <span class="text-xs font-bold text-blue-300">🔍 찾기 세부 유형별 합계</span>
+                                <span class="text-[10px] text-zinc-400">탭하여 닫기</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-1.5 text-xs">
+                                <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
+                                        class="text-zinc-400">매만찾</span><span id="pop-find-match"
+                                        class="font-bold text-blue-400">0건</span></div>
+                                <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
+                                        class="text-zinc-400">오프찾</span><span id="pop-find-off"
+                                        class="font-bold text-blue-400">0건</span></div>
+                                <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
+                                        class="text-zinc-400">번호찾</span><span id="pop-find-num"
+                                        class="font-bold text-blue-400">0건</span></div>
+                                <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
+                                        class="text-zinc-400">기타</span><span id="pop-find-etc"
+                                        class="font-bold text-zinc-300">0건</span></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-2 text-center">
+                            <p class="text-[10px] text-emerald-600 font-bold">매칭</p>
+                            <p id="db-cat-match" class="text-sm font-bold text-emerald-800">0건</p>
+                        </div>
+                        <div class="bg-amber-50/70 border border-amber-100 rounded-xl p-2 text-center">
+                            <p class="text-[10px] text-amber-600 font-bold">잎사귀</p>
+                            <p id="db-cat-leaf" class="text-sm font-bold text-amber-800">0건</p>
+                        </div>
+                        <div class="bg-purple-50/70 border border-purple-100 rounded-xl p-2 text-center">
+                            <p class="text-[10px] text-purple-600 font-bold">복방</p>
+                            <p id="db-cat-book" class="text-sm font-bold text-purple-800">0건</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-tg-border">
+                        <p class="text-xs font-bold text-tg-text mb-2">🏆 카테고리별 최다 활동 조</p>
+                        <div class="space-y-2 text-xs">
+                            <div class="bg-blue-50/40 p-2 rounded-xl border border-blue-100 space-y-1">
+                                <p class="text-[11px] font-bold text-tg-blue mb-1">🔍 찾기 세부 1위</p>
+                                <div class="grid grid-cols-3 gap-1 text-[11px]">
+                                    <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
+                                        <p class="text-tg-muted text-[10px]">매만찾</p>
+                                        <p id="db-top-find-meman" class="font-bold text-tg-blue truncate">-</p>
+                                    </div>
+                                    <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
+                                        <p class="text-tg-muted text-[10px]">오프찾</p>
+                                        <p id="db-top-find-off" class="font-bold text-tg-blue truncate">-</p>
+                                    </div>
+                                    <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
+                                        <p class="text-tg-muted text-[10px]">번호찾</p>
+                                        <p id="db-top-find-num" class="font-bold text-tg-blue truncate">-</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+                                <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
+                                    <p class="text-tg-muted text-[10px]">🤝 매칭 1위</p>
+                                    <p id="db-top-match" class="font-bold text-tg-text truncate mt-0.5">-</p>
+                                </div>
+                                <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
+                                    <p class="text-tg-muted text-[10px]">🍃 잎사귀 1위</p>
+                                    <p id="db-top-leaf" class="font-bold text-tg-text truncate mt-0.5">-</p>
+                                </div>
+                                <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
+                                    <p class="text-tg-muted text-[10px]">📖 복방 1위</p>
+                                    <p id="db-top-book" class="font-bold text-tg-text truncate mt-0.5">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-tg-border">
+                        <p class="text-xs font-bold text-tg-text mb-2">✨ 세부 성과 자동 집계</p>
+                        <div id="db-results-summary" class="flex flex-wrap gap-1 text-[11px]"><span
+                                class="text-tg-muted">집계된 성과가 없습니다.</span></div>
                     </div>
                 </div>
 
-                <!-- 카테고리별 건수 칩 -->
-                <div class="grid grid-cols-4 gap-1.5 pt-1 relative">
-                    <div id="btn-find-chip"
-                        class="bg-blue-50 border border-blue-200 hover:border-blue-400 rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
-                        <p class="text-[10px] text-blue-600 font-bold flex items-center justify-center gap-0.5">
-                            찾기 💡
-                        </p>
-                        <p id="db-cat-find" class="text-sm font-bold text-blue-800">0건</p>
-                    </div>
-
-                    <div id="find-popover"
-                        class="absolute top-14 left-0 z-30 bg-zinc-900 text-white rounded-2xl p-3 shadow-2xl border border-zinc-700 w-64">
-                        <div class="flex items-center justify-between border-b border-zinc-700 pb-1.5 mb-2">
-                            <span class="text-xs font-bold text-blue-300">🔍 찾기 세부 유형별 합계</span>
-                            <span class="text-[10px] text-zinc-400">탭하여 닫기</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-1.5 text-xs">
-                            <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
-                                    class="text-zinc-400">매만찾</span><span id="pop-find-match"
-                                    class="font-bold text-blue-400">0건</span></div>
-                            <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
-                                    class="text-zinc-400">오프찾</span><span id="pop-find-off"
-                                    class="font-bold text-blue-400">0건</span></div>
-                            <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
-                                    class="text-zinc-400">번호찾</span><span id="pop-find-num"
-                                    class="font-bold text-blue-400">0건</span></div>
-                            <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
-                                    class="text-zinc-400">기타</span><span id="pop-find-etc"
-                                    class="font-bold text-zinc-300">0건</span></div>
-                        </div>
-                    </div>
-
-                    <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-2 text-center">
-                        <p class="text-[10px] text-emerald-600 font-bold">매칭</p>
-                        <p id="db-cat-match" class="text-sm font-bold text-emerald-800">0건</p>
-                    </div>
-                    <div class="bg-amber-50/70 border border-amber-100 rounded-xl p-2 text-center">
-                        <p class="text-[10px] text-amber-600 font-bold">잎사귀</p>
-                        <p id="db-cat-leaf" class="text-sm font-bold text-amber-800">0건</p>
-                    </div>
-                    <div class="bg-purple-50/70 border border-purple-100 rounded-xl p-2 text-center">
-                        <p class="text-[10px] text-purple-600 font-bold">복방</p>
-                        <p id="db-cat-book" class="text-sm font-bold text-purple-800">0건</p>
-                    </div>
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
+                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📈 활동 카테고리 비중</h3>
+                    <div class="w-full h-48 relative flex items-center justify-center"><canvas
+                            id="chart-category"></canvas></div>
+                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊
+                        조별 활동 건수 비교 (1~8조)</h3>
+                    <div class="w-full h-52 relative"><canvas id="chart-group"></canvas></div>
                 </div>
 
-                <div class="pt-2 border-t border-tg-border">
-                    <p class="text-xs font-bold text-tg-text mb-2">🏆 카테고리별 최다 활동 조</p>
-                    <div class="space-y-2 text-xs">
-                        <div class="bg-blue-50/40 p-2 rounded-xl border border-blue-100 space-y-1">
-                            <p class="text-[11px] font-bold text-tg-blue mb-1">🔍 찾기 세부 1위</p>
-                            <div class="grid grid-cols-3 gap-1 text-[11px]">
-                                <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
-                                    <p class="text-tg-muted text-[10px]">매만찾</p>
-                                    <p id="db-top-find-meman" class="font-bold text-tg-blue truncate">-</p>
-                                </div>
-                                <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
-                                    <p class="text-tg-muted text-[10px]">오프찾</p>
-                                    <p id="db-top-find-off" class="font-bold text-tg-blue truncate">-</p>
-                                </div>
-                                <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
-                                    <p class="text-tg-muted text-[10px]">번호찾</p>
-                                    <p id="db-top-find-num" class="font-bold text-tg-blue truncate">-</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-1.5 text-[11px]">
-                            <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
-                                <p class="text-tg-muted text-[10px]">🤝 매칭 1위</p>
-                                <p id="db-top-match" class="font-bold text-tg-text truncate mt-0.5">-</p>
-                            </div>
-                            <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
-                                <p class="text-tg-muted text-[10px]">🍃 잎사귀 1위</p>
-                                <p id="db-top-leaf" class="font-bold text-tg-text truncate mt-0.5">-</p>
-                            </div>
-                            <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
-                                <p class="text-tg-muted text-[10px]">📖 복방 1위</p>
-                                <p id="db-top-book" class="font-bold text-tg-text truncate mt-0.5">-</p>
-                            </div>
-                        </div>
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📋 상세 활동 타임라인</h3><span
+                            id="db-list-count" class="text-xs text-tg-muted font-medium">0건</span>
                     </div>
-                </div>
-
-                <div class="pt-2 border-t border-tg-border">
-                    <p class="text-xs font-bold text-tg-text mb-2">✨ 세부 성과 자동 집계</p>
-                    <div id="db-results-summary" class="flex flex-wrap gap-1 text-[11px]">
-                        <span class="text-tg-muted">집계된 성과가 없습니다.</span>
-                    </div>
+                    <div id="db-timeline-container" class="space-y-2.5"></div>
                 </div>
             </div>
 
-            <!-- 2. 시각화 차트 (Chart.js) -->
-            <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
-                <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📈 활동 카테고리 비중</h3>
-                <div class="w-full h-48 relative flex items-center justify-center">
-                    <canvas id="chart-category"></canvas>
+            <!-- 탭 2: 미취합/미달성 관리 -->
+            <div id="tab-sec-risk" class="hidden space-y-4">
+                <!-- 1. 내일 계획 미취합 섹션 -->
+                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 id="risk-tomorrow-title" class="text-xs font-bold text-blue-800">🌙 내일 계획 미취합자 명단</h3>
+                            <p id="risk-tomorrow-sub" class="text-[10px] text-blue-600 mt-0.5">내일 일정 미등록 인원 (밤 독촉용)</p>
+                        </div>
+                        <span id="risk-tomorrow-count"
+                            class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
+                    </div>
+                    <div id="risk-tomorrow-list" class="space-y-1.5 text-xs"></div>
                 </div>
 
-                <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊 조별
-                    활동 건수 비교 (1~8조)</h3>
-                <div class="w-full h-52 relative">
-                    <canvas id="chart-group"></canvas>
+                <!-- 2. 당일 결과 미취합 섹션 -->
+                <div class="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 id="risk-today-title" class="text-xs font-bold text-red-700">⚠️ 당일 결과 미취합자 명단</h3>
+                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중(미완료) 상태 (저녁
+                                독촉용)</p>
+                        </div>
+                        <span id="risk-today-count"
+                            class="bg-red-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
+                    </div>
+                    <div id="risk-today-list" class="space-y-1.5 text-xs"></div>
+                </div>
+
+                <!-- 3. 주간 미달성 섹션 -->
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xs font-bold text-amber-800">🎯 이번 주 찾기 미달성자 명단</h3>
+                            <p class="text-[10px] text-amber-600 mt-0.5">복방 0개 + 이번 주 찾기(온+오프만) 6개 미만 인원</p>
+                        </div>
+                        <span id="risk-unachieved-count"
+                            class="bg-amber-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
+                    </div>
+                    <div id="risk-unachieved-list" class="space-y-1.5 text-xs"></div>
                 </div>
             </div>
 
-            <!-- 3. 상세 리스트 -->
-            <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📋 상세 활동 타임라인</h3>
-                    <span id="db-list-count" class="text-xs text-tg-muted font-medium">0건</span>
+            <!-- 탭 3: 멤버 관리 -->
+            <div id="tab-sec-members" class="hidden space-y-3">
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-tg-text">👥 전체 멤버 보유 자산 및 예외 설정</h3>
+                        <span id="member-total-count" class="text-xs text-tg-muted">0명</span>
+                    </div>
+                    <p class="text-[11px] text-tg-muted">복방 1개 이상 보유 시 주간 찾기 미션이 자동 면제됩니다.</p>
+                    <div id="member-management-list" class="space-y-2 pt-2 border-t border-tg-border"></div>
                 </div>
-
-                <div id="db-timeline-container" class="space-y-2.5"></div>
             </div>
 
         </div>
@@ -745,12 +799,10 @@
         <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
             <div class="w-10 h-1 bg-tg-border rounded-full"></div>
         </div>
-
         <div class="px-5 pt-3 pb-4 border-b border-tg-border flex-shrink-0">
             <h2 class="text-base font-bold text-tg-text">👋 사용자 첫 등록</h2>
             <p class="text-xs text-tg-muted mt-0.5">명단에서 본인의 이름을 찾아 선택해 주세요.</p>
         </div>
-
         <div class="p-5 space-y-4">
             <div>
                 <label class="block text-xs font-semibold text-tg-muted mb-1.5">사전 등록 명단 선택</label>
@@ -759,7 +811,6 @@
                     <option value="">-- 명단을 불러오는 중... --</option>
                 </select>
             </div>
-
             <button id="btn-reg-submit" onclick="submitRegistration()"
                 class="w-full bg-tg-blue text-white rounded-xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2">
                 <svg id="reg-spinner" class="spinner w-4 h-4 hidden" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -785,7 +836,7 @@
         let currentDate = new Date();
         let activities = [];
         let activeFilter = 'all';
-        let activeTimeFilter = 'all'; // 💡 신규: 시간별 필터 상태 ('all' | 'before' | 'ongoing' | 'ended')
+        let activeTimeFilter = 'all';
         let userHasActiveBook = false;
         let weeklyMissionCount = 0;
 
@@ -871,10 +922,6 @@
                 .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
-        /* ─────────────────────────────────────────────────────────────
-           DYNAMIC RESULT ROWS LOGIC
-        ───────────────────────────────────────────────────────────── */
-        /* 🎯 주간 미션 UI 렌더링 */
         function renderWeeklyMissionUI() {
             const card = $('weekly-mission-card');
             const statusText = $('mission-status-text');
@@ -903,10 +950,12 @@
 
             if (isOpening) {
                 menu.classList.remove('hidden');
-                overlay.classList.add('open');
+                menu.classList.add('flex');
+                overlay.classList.remove('hidden');
             } else {
                 menu.classList.add('hidden');
-                overlay.classList.remove('open');
+                menu.classList.remove('flex');
+                overlay.classList.add('hidden');
             }
         }
 
@@ -937,7 +986,7 @@
     </select>
 
     <select class="res-count rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-blue focus:outline-none focus:border-tg-blue w-16">
-      ${Array.from({length: 11}, (_, i) => i).map(num => `
+      ${Array.from({ length: 11 }, (_, i) => i).map(num => `
         <option value="${num}" ${num == data.count ? 'selected' : ''}>${num}개</option>
       `).join('')}
     </select>
@@ -1014,9 +1063,6 @@
             }
         }
 
-        /* ─────────────────────────────────────────────────────────────
-           SERVER API CALLS & DATE HELPER
-        ───────────────────────────────────────────────────────────── */
         function getRangeDateText(baseDateStr, range) {
             const parts = baseDateStr.split('-');
             const base = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -1074,9 +1120,8 @@
                     activities = data.activities || [];
 
                     weeklyMissionCount = data.weeklyMissionCount || 0;
-                    userHasActiveBook = data.userHasActiveBook || false;
+                    userHasActiveBook = (data.user && data.user.bookCount > 0);
 
-                    // 💡 관리자, 조장, 부조장 계정에만 버튼 및 시간 필터 바 노출
                     const role = profile.role || "";
                     const isAdminOrLeader = data.isAdmin || role.includes("조장") || role.includes("부조장") || role.includes("관리자");
 
@@ -1108,9 +1153,9 @@
 
             document.querySelectorAll('.dash-range-btn').forEach(btn => {
                 if (btn.dataset.range === range) {
-                    btn.className = "dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white";
+                    btn.className = "dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-blue text-white";
                 } else {
-                    btn.className = "dash-range-btn flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted";
+                    btn.className = "dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted";
                 }
             });
 
@@ -1127,6 +1172,154 @@
                 }
             } catch (err) {
                 showToast('대시보드 통신 오류: ' + err.message, 'error');
+            }
+        }
+
+        /* 💡 선택 날짜 연동 미취합 및 멤버 관리 데이터 로드 */
+        async function fetchRiskAndMemberData() {
+            const baseDate = dateKey(currentDate);
+            try {
+                const res = await fetch(`${GAS_URL}?action=getRiskData&initData=${encodeURIComponent(tg ? tg.initData : '')}&date=${baseDate}`);
+                const data = await res.json();
+
+                if (data.result === 'success') {
+                    renderRiskTab(data);
+                    renderMemberTab(data.allUsers || []);
+                }
+            } catch (err) {
+                showToast('관리자 통신 오류: ' + err.message, 'error');
+            }
+        }
+
+        /* 💡 듀얼 미취합 탭 렌더링 (Calendar 비계수 스킵 연동) */
+        function renderRiskTab(data) {
+            // 1. 내일 계획 미취합
+            const tmTitle = $('risk-tomorrow-title');
+            const tmSub = $('risk-tomorrow-sub');
+            const tmCount = $('risk-tomorrow-count');
+            const tmContainer = $('risk-tomorrow-list');
+
+            tmTitle.textContent = `🌙 내일(${data.tomorrowStr}) 계획 미취합자`;
+
+            if (data.tomorrowDateOff) {
+                tmCount.textContent = '0명';
+                tmContainer.innerHTML = `<p class="text-xs text-blue-700 text-center py-2 font-bold">☕ 내일은 휴무일/비계수일입니다. (${escHtml(data.tomorrowOffReason)})</p>`;
+            } else {
+                const tmList = data.tomorrowUncollected || [];
+                tmCount.textContent = tmList.length + '명';
+                if (tmList.length === 0) {
+                    tmContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 내일 계획 미취합자가 없습니다!</p>';
+                } else {
+                    tmContainer.innerHTML = tmList.map(u => `
+                        <div class="bg-white p-2.5 rounded-xl border border-blue-100 flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.group)}]</span>
+                                <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
+                            </div>
+                            <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">내일 일정 없음</span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // 2. 선택 날짜 당일 결과 미취합
+            const tdTitle = $('risk-today-title');
+            const tdCount = $('risk-today-count');
+            const tdContainer = $('risk-today-list');
+
+            tdTitle.textContent = `⚠️ 당일(${data.targetDateStr}) 결과 미취합자`;
+
+            if (data.targetDateOff) {
+                tdCount.textContent = '0명';
+                tdContainer.innerHTML = `<p class="text-xs text-red-700 text-center py-2 font-bold">☕ 선택된 날짜는 휴무일/비계수일입니다. (${escHtml(data.targetOffReason)})</p>`;
+            } else {
+                const tdList = data.todayUncollected || [];
+                tdCount.textContent = tdList.length + '명';
+                if (tdList.length === 0) {
+                    tdContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 당일 결과 미취합자가 없습니다!</p>';
+                } else {
+                    tdContainer.innerHTML = tdList.map(u => `
+                        <div class="bg-white p-2.5 rounded-xl border border-red-100 flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-red-700 mr-1.5">[${escHtml(u.group)}]</span>
+                                <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
+                            </div>
+                            <span class="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">
+                                ${!u.hasTodayActivity ? '오늘 일정 없음' : '계획중 (결과 미입력)'}
+                            </span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // 3. 주간 찾기 미달성
+            const unachieved = data.unachievedUsers || [];
+            $('risk-unachieved-count').textContent = unachieved.length + '명';
+            const unachContainer = $('risk-unachieved-list');
+            if (unachieved.length === 0) {
+                unachContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 주간 찾기 미달성자가 없습니다!</p>';
+            } else {
+                unachContainer.innerHTML = unachieved.map(u => `
+                    <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.group)}]</span>
+                            <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
+                        </div>
+                        <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">이번 주 ${u.weeklyFindCount}/6건</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        /* 멤버 관리 탭 렌더링 */
+        function renderMemberTab(allUsers) {
+            $('member-total-count').textContent = allUsers.length + '명';
+            const container = $('member-management-list');
+
+            container.innerHTML = allUsers.map(u => `
+                <div class="bg-tg-surface p-3 rounded-xl border border-tg-border flex items-center justify-between text-xs">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-tg-blue">[${escHtml(u.group)}]</span>
+                            <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
+                        </div>
+                        <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span></p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-1 bg-white border border-tg-border rounded-lg p-1">
+                            <span class="text-[10px] font-bold text-purple-700 px-1">📖 복방</span>
+                            <button onclick="updateUserBookCount('${escHtml(u.name)}', ${u.bookCount - 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">-</button>
+                            <span class="font-extrabold text-tg-text w-4 text-center">${u.bookCount}</span>
+                            <button onclick="updateUserBookCount('${escHtml(u.name)}', ${u.bookCount + 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">+</button>
+                        </div>
+
+                        <button onclick="toggleUserExempt('${escHtml(u.name)}', ${!u.isExempt})" class="px-2 py-1 rounded-lg font-bold text-[10px] ${u.isExempt ? 'bg-green-600 text-white' : 'bg-zinc-200 text-zinc-700'}">
+                            ${u.isExempt ? '예외 ON' : '예외 OFF'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateUserBookCount(targetName, newCount) {
+            if (newCount < 0) return;
+            try {
+                await fetch(`${GAS_URL}?action=updateUserStatus&targetName=${encodeURIComponent(targetName)}&bookCount=${newCount}`);
+                showToast(`${targetName}님 복방 수량 변경 완료 (${newCount}개)`, 'success');
+                fetchRiskAndMemberData();
+            } catch (err) {
+                showToast('수정 실패: ' + err.message, 'error');
+            }
+        }
+
+        async function toggleUserExempt(targetName, newExemptState) {
+            try {
+                await fetch(`${GAS_URL}?action=updateUserStatus&targetName=${encodeURIComponent(targetName)}&isExempt=${newExemptState}`);
+                showToast(`${targetName}님 예외 상태 변경 완료`, 'success');
+                fetchRiskAndMemberData();
+            } catch (err) {
+                showToast('수정 실패: ' + err.message, 'error');
             }
         }
 
@@ -1251,9 +1444,6 @@
             }
         }
 
-        /* ─────────────────────────────────────────────────────────────
-           DASHBOARD RENDER & CHARTS
-        ───────────────────────────────────────────────────────────── */
         function renderDashboard(list) {
             const total = list.length;
             const completedCount = list.filter(a => a.status === 'completed').length;
@@ -1450,9 +1640,6 @@
   `).join('');
         }
 
-        /* ─────────────────────────────────────────────────────────────
-           RENDER & FILTERING (MAIN LIST)
-        ───────────────────────────────────────────────────────────── */
         function renderHeader() {
             $('hdr-region').textContent = `${profile.group} | ${profile.region}`;
             $('hdr-team').textContent = `${profile.name}님의 활동`;
@@ -1488,23 +1675,18 @@
             } else {
                 activeFilter = type;
             }
-            // 상태 변경 시 시간 필터 초기화
             activeTimeFilter = 'all';
             updateTimeFilterUI();
             renderList();
         }
 
         function setTimeFilter(timeType) {
-            // 💡 B안: 시간 필터 누르면 상태 필터를 자동으로 'planned(계획중)'으로 세팅
             activeFilter = 'planned';
-
-            // 토글 처리
             if (activeTimeFilter === timeType) {
                 activeTimeFilter = 'all';
             } else {
                 activeTimeFilter = timeType;
             }
-
             updateFilterUI();
             updateTimeFilterUI();
             renderList();
@@ -1549,13 +1731,11 @@
 
             updateFilterUI();
 
-            // 1차: 상태별 필터링
             let filtered = activities;
             if (activeFilter !== 'all') {
                 filtered = activities.filter(a => a.status === activeFilter);
             }
 
-            // 💡 2차: 시간 기준 필터링 (계획중 상태일 때)
             if (activeFilter === 'planned' && activeTimeFilter !== 'all') {
                 const now = new Date();
                 const curHH = String(now.getHours()).padStart(2, '0');
@@ -1567,13 +1747,10 @@
                     const end = item.endTime || "23:59";
 
                     if (activeTimeFilter === 'before') {
-                        // 시작 전: 시작 시간이 현재 시간 이후
                         return start > currentTimeStr;
                     } else if (activeTimeFilter === 'ongoing') {
-                        // 진행 중: 시작시간 <= 현재시간 <= 종료시간
                         return start <= currentTimeStr && currentTimeStr <= end;
                     } else if (activeTimeFilter === 'ended') {
-                        // 종료건: 종료 시간이 현재 시간 이전 (지남)
                         return end < currentTimeStr;
                     }
                     return true;
@@ -1702,9 +1879,6 @@
             });
         }
 
-        /* ─────────────────────────────────────────────────────────────
-           MODAL & EVENT
-        ───────────────────────────────────────────────────────────── */
         function openModal() {
             const overlay = $('modal-overlay');
             const sheet = $('modal-sheet');
@@ -1871,9 +2045,6 @@
             toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2800);
         }
 
-        /* ─────────────────────────────────────────────────────────────
-           EVENT LISTENERS
-        ───────────────────────────────────────────────────────────── */
         document.addEventListener('DOMContentLoaded', () => {
 
             initTimeSelects();
@@ -1886,19 +2057,40 @@
                 addResultRow();
             });
 
-            // 상태 필터 클릭 이벤트
             $('btn-filter-planned').addEventListener('click', () => setFilter('planned'));
             $('btn-filter-completed').addEventListener('click', () => setFilter('completed'));
             $('btn-filter-canceled').addEventListener('click', () => setFilter('canceled'));
 
-            // 💡 신규: 시간별 필터 버튼 클릭 이벤트
             document.querySelectorAll('.time-filter-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     setTimeFilter(btn.dataset.time);
                 });
             });
 
-            // [찾기] 칩 클릭 시 말풍선 토글
+            // 대시보드 탭 클릭 이벤트
+            document.querySelectorAll('.dash-main-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTab = btn.dataset.tab;
+
+                    document.querySelectorAll('.dash-main-tab').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    $('tab-sec-summary').classList.add('hidden');
+                    $('tab-sec-risk').classList.add('hidden');
+                    $('tab-sec-members').classList.add('hidden');
+
+                    if (targetTab === 'summary') {
+                        $('tab-sec-summary').classList.remove('hidden');
+                    } else if (targetTab === 'risk') {
+                        $('tab-sec-risk').classList.remove('hidden');
+                        fetchRiskAndMemberData();
+                    } else if (targetTab === 'members') {
+                        $('tab-sec-members').classList.remove('hidden');
+                        fetchRiskAndMemberData();
+                    }
+                });
+            });
+
             const findChip = $('btn-find-chip');
             const findPopover = $('find-popover');
 
