@@ -591,11 +591,13 @@
         <!-- 대시보드 메인 탭 선택 바 -->
         <div class="flex border-b border-tg-border bg-tg-bg px-3 pt-1 flex-shrink-0">
             <button data-tab="summary"
-                class="dash-main-tab active flex-1 py-2 text-xs font-bold rounded-t-xl transition-all">1. 현황 요약</button>
-            <button data-tab="risk" class="dash-main-tab flex-1 py-2 text-xs font-bold rounded-t-xl transition-all">2.
-                미취합/미달성</button>
+                class="dash-main-tab active flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">1. 현황 요약</button>
+            <button data-tab="risk"
+                class="dash-main-tab flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">2. 미취합/미달성</button>
             <button data-tab="members"
-                class="dash-main-tab flex-1 py-2 text-xs font-bold rounded-t-xl transition-all">3. 멤버 관리</button>
+                class="dash-main-tab flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">3. 멤버 관리</button>
+            <button data-tab="semester"
+                class="dash-main-tab flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">4. 사이클 설정</button>
         </div>
 
         <!-- Scrollable Dashboard Content -->
@@ -787,6 +789,36 @@
                     </div>
                     <p class="text-[11px] text-tg-muted">복방 1개 이상 보유 시 주간 찾기 미션이 자동 면제됩니다.</p>
                     <div id="member-management-list" class="space-y-2 pt-2 border-t border-tg-border"></div>
+                </div>
+            </div>
+
+            <!-- 탭 4: 사이클 설정 -->
+            <div id="tab-sec-semester" class="hidden space-y-4">
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                    <h3 class="text-xs font-bold text-tg-text">🎓 개강 사이클 설정</h3>
+                    <p class="text-[11px] text-tg-muted">설정된 기간을 기준으로 유저 미션 및 통계 범위가 변경됩니다.</p>
+
+                    <div class="space-y-2 text-xs pt-2">
+                        <div>
+                            <label class="block text-tg-muted mb-1 font-semibold">사이클명</label>
+                            <input id="sem-name" type="text" placeholder="예: 2026-2학기 개강"
+                                class="w-full border border-tg-border rounded-xl px-3 py-2 bg-tg-surface font-semibold" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-tg-muted mb-1 font-semibold">시작일</label>
+                                <input id="sem-start" type="date"
+                                    class="w-full border border-tg-border rounded-xl px-3 py-2 bg-tg-surface font-semibold" />
+                            </div>
+                            <div>
+                                <label class="block text-tg-muted mb-1 font-semibold">종료일</label>
+                                <input id="sem-end" type="date"
+                                    class="w-full border border-tg-border rounded-xl px-3 py-2 bg-tg-surface font-semibold" />
+                            </div>
+                        </div>
+                        <button onclick="saveSemesterSetting()"
+                            class="w-full bg-tg-blue text-white rounded-xl py-2.5 font-bold mt-2">사이클 설정 저장</button>
+                    </div>
                 </div>
             </div>
 
@@ -1321,6 +1353,36 @@
             } catch (err) {
                 showToast('수정 실패: ' + err.message, 'error');
             }
+        }
+
+        async function saveSemesterSetting() {
+            const name = $('sem-name').value.trim();
+            const startDate = $('sem-start').value;
+            const endDate = $('sem-end').value;
+
+            if (!name || !startDate || !endDate) return showToast('⚠️ 모든 항목을 입력해 주세요.', 'error');
+
+            try {
+                await fetch(`${GAS_URL}?action=updateSemester&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}`);
+                showToast('개강 사이클 설정 완료!', 'success');
+            } catch (err) {
+                showToast('저장 실패: ' + err.message, 'error');
+            }
+        }
+
+        function copyRiskToClipboard(type) {
+            let text = "";
+            if (type === 'tomorrow') {
+                const items = Array.from(document.querySelectorAll('#risk-tomorrow-list .font-bold.text-tg-text')).map(el => el.textContent);
+                text = `[📢 내일 일정 미입력자 알림]\n\n내일 일정을 아직 등록하지 않은 멤버입니다. 확인 후 작성해 주세요!\n👉 명단: ${items.join(', ')}`;
+            } else {
+                const items = Array.from(document.querySelectorAll('#risk-today-list .font-bold.text-tg-text')).map(el => el.textContent);
+                text = `[⚠️ 오늘 결과 미입력자 알림]\n\n오늘 활동 결과를 입력하지 않은 멤버입니다. 마감 전 입력 바랍니다!\n👉 명단: ${items.join(', ')}`;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('독촉 알림 문구가 클립보드에 복사되었습니다!', 'success');
+            });
         }
 
         async function saveActivity() {
@@ -2078,6 +2140,7 @@
                     $('tab-sec-summary').classList.add('hidden');
                     $('tab-sec-risk').classList.add('hidden');
                     $('tab-sec-members').classList.add('hidden');
+                    $('tab-sec-semester').classList.add('hidden');
 
                     if (targetTab === 'summary') {
                         $('tab-sec-summary').classList.remove('hidden');
@@ -2087,6 +2150,8 @@
                     } else if (targetTab === 'members') {
                         $('tab-sec-members').classList.remove('hidden');
                         fetchRiskAndMemberData();
+                    } else if (targetTab === 'semester') {
+                        $('tab-sec-semester').classList.remove('hidden');
                     }
                 });
             });
