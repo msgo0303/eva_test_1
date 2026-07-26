@@ -142,7 +142,8 @@ function doGet(e) {
         activities: activities,
         unregisteredList: unregisteredList,
         isAdmin: (isSuperAdmin || isGroupAdmin),
-        weeklyMissionCount: weeklyMissionCount
+        weeklyMissionCount: weeklyMissionCount,
+        currentSemester: getCurrentSemesterObj()
       });
     }
 
@@ -607,4 +608,26 @@ function updateSemester(name, startDate, endDate) {
 
   semSheet.appendRow([name, startDate, endDate, "Y"]);
   return makeJsonResponse({ result: "success", message: "개강 사이클이 변경되었습니다." });
+}
+
+// 순수 객체 반환 헬퍼 (getInitialData 등에서 재사용)
+function getCurrentSemesterObj() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const semSheet = ss.getSheetByName("Semesters");
+
+  if (!semSheet) {
+    return { name: "2026-2학기 개강", startDate: "2026-09-01", endDate: "2026-12-31" };
+  }
+
+  const data = semSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][3]).trim().toUpperCase() === "Y") {
+      return {
+        name: String(data[i][0]),
+        startDate: formatDateStr(new Date(data[i][1])),
+        endDate: formatDateStr(new Date(data[i][2]))
+      };
+    }
+  }
+  return { name: "2026-2학기 개강", startDate: "2026-09-01", endDate: "2026-12-31" };
 }
