@@ -466,6 +466,16 @@ function doGet(e) {
       return makeJsonResponse({ result: "fail", message: "유저를 찾을 수 없습니다." });
     }
 
+    // 7. 개강 사이클 조회
+    if (action === "getSemesterData") {
+      return getSemesterData();
+    }
+
+    // 8. 개강 사이클 업데이트
+    if (action === "updateSemester") {
+      return updateSemester(e.parameter.name, e.parameter.startDate, e.parameter.endDate);
+    }
+
   } catch (err) {
     return makeJsonResponse({ error: err.message });
   }
@@ -551,4 +561,50 @@ function formatGroupString(val) {
   const str = val.toString().trim();
   if (!str) return "";
   return str.endsWith("조") ? str : `${str}조`;
+}
+
+function getSemesterData() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let semSheet = ss.getSheetByName("Semesters");
+
+  if (!semSheet) {
+    semSheet = ss.insertSheet("Semesters");
+    semSheet.appendRow(["사이클명", "시작일", "종료일", "현재여부"]);
+    semSheet.appendRow(["2026-2학기 개강", "2026-09-01", "2026-12-31", "Y"]);
+  }
+
+  const data = semSheet.getDataRange().getValues();
+  let currentSem = { name: "2026-2학기 개강", startDate: "2026-09-01", endDate: "2026-12-31" };
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][3]).trim().toUpperCase() === "Y") {
+      currentSem = {
+        name: String(data[i][0]),
+        startDate: formatDateStr(new Date(data[i][1])),
+        endDate: formatDateStr(new Date(data[i][2]))
+      };
+      break;
+    }
+  }
+
+  return makeJsonResponse({ result: "success", semester: currentSem });
+}
+
+function updateSemester(name, startDate, endDate) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let semSheet = ss.getSheetByName("Semesters");
+
+  if (!semSheet) {
+    semSheet = ss.insertSheet("Semesters");
+    semSheet.appendRow(["사이클명", "시작일", "종료일", "현재여부"]);
+  }
+
+  // 기존 Y를 N으로 바꾸고 신규 사이클 Y로 설정
+  const data = semSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    semSheet.getRange(i + 1, 4).setValue("N");
+  }
+
+  semSheet.appendRow([name, startDate, endDate, "Y"]);
+  return makeJsonResponse({ result: "success", message: "개강 사이클이 변경되었습니다." });
 }
