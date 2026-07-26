@@ -830,24 +830,24 @@
                     <h3 class="text-xs font-bold text-tg-text">🎓 개강 사이클 설정</h3>
                     <p class="text-[11px] text-tg-muted">설정된 기간을 기준으로 유저 미션 및 통계 범위가 변경됩니다.</p>
 
-                    <div class="space-y-2 text-xs pt-2">
+                    <div class="space-y-3 text-xs pt-2">
                         <div>
                             <label class="block text-tg-muted mb-1 font-semibold">사이클명</label>
                             <input id="sem-name" type="text" placeholder="예: 2026-2학기 개강"
-                                class="w-full border border-tg-border rounded-xl px-3 py-2 bg-tg-surface font-semibold" />
+                                class="w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface font-semibold focus:outline-none focus:border-tg-blue" />
                         </div>
                         <div>
                             <label class="block text-tg-muted mb-1 font-semibold">시작일</label>
                             <input id="sem-start" type="date"
-                                class="w-full border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface font-semibold" />
+                                class="w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface font-semibold focus:outline-none focus:border-tg-blue text-tg-text" />
                         </div>
                         <div>
                             <label class="block text-tg-muted mb-1 font-semibold">종료일</label>
                             <input id="sem-end" type="date"
-                                class="w-full border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface font-semibold" />
+                                class="w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface font-semibold focus:outline-none focus:border-tg-blue text-tg-text" />
                         </div>
                         <button onclick="saveSemesterSetting()"
-                            class="w-full bg-tg-blue text-white rounded-xl py-2.5 font-bold mt-2">사이클 설정 저장</button>
+                            class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">사이클 설정 저장</button>
                     </div>
                 </div>
             </div>
@@ -1206,6 +1206,8 @@
                         $('admin-time-filter-bar').classList.add('hidden');
                     }
 
+                    populateDashboardRegionFilterOptions([], data.allRegions || []);
+
                     renderHeader();
                     renderWeeklyMissionUI();
                     renderDateNav();
@@ -1256,6 +1258,7 @@
                 const data = await res.json();
 
                 if (data.result === 'success') {
+                    populateDashboardRegionFilterOptions(data.allUsers || [], data.allRegions || []);
                     renderRiskTab(data);
                     renderMemberTab(data.allUsers || []);
                 }
@@ -1373,6 +1376,28 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        function populateDashboardRegionFilterOptions(allUsers, allRegions) {
+            // 백엔드에서 받은 전체 지역 목록이 없으면 allUsers에서 추출
+            const regions = (allRegions && allRegions.length > 0) 
+                ? allRegions 
+                : Array.from(new Set((allUsers || []).map(u => u.region).filter(Boolean)));
+
+            const fillSelect = (selectId) => {
+                const el = $(selectId);
+                if (!el) return;
+                const curVal = el.value || "ALL";
+                let html = '<option value="ALL">전체 지역</option>';
+                regions.forEach(r => {
+                    html += `<option value="${escHtml(r)}" ${r === curVal ? 'selected' : ''}>${escHtml(r)}</option>`;
+                });
+                el.innerHTML = html;
+            };
+
+            fillSelect('risk-region-select');
+            fillSelect('member-region-select');
+            fillSelect('home-region-select'); // 메인 홈 화면 지역 필터도 동일하게 채움
         }
 
         async function updateUserBookCount(targetName, newCount) {
@@ -2155,21 +2180,30 @@
             const dateTrigger = $('date-picker-trigger');
             const hiddenPicker = $('hidden-date-picker');
 
-            dateTrigger.addEventListener('click', () => {
-                hiddenPicker.showPicker ? hiddenPicker.showPicker() : hiddenPicker.click();
-            });
+            if (dateTrigger && hiddenPicker) {
+                dateTrigger.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // 모바일/PC 네이티브 달력 팝업 호출
+                    if (typeof hiddenPicker.showPicker === 'function') {
+                        hiddenPicker.showPicker();
+                    } else {
+                        hiddenPicker.focus();
+                        hiddenPicker.click();
+                    }
+                });
 
-            hiddenPicker.addEventListener('change', (e) => {
-                if (e.target.value) {
-                    const parts = e.target.value.split('-');
-                    currentDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-                    activeFilter = 'all';
-                    activeTimeFilter = 'all';
-                    updateTimeFilterUI();
-                    $('loading-overlay').classList.remove('hidden');
-                    fetchAppData();
-                }
-            });
+                hiddenPicker.addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        const parts = e.target.value.split('-');
+                        currentDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                        activeFilter = 'all';
+                        activeTimeFilter = 'all';
+                        updateTimeFilterUI();
+                        $('loading-overlay').classList.remove('hidden');
+                        fetchAppData();
+                    }
+                });
+            }
 
             $('f-starttime').addEventListener('change', () => {
                 updateEndTimeOptions();
