@@ -1206,8 +1206,6 @@
                         $('admin-time-filter-bar').classList.add('hidden');
                     }
 
-                    populateDashboardRegionFilterOptions([], data.allRegions || []);
-
                     renderHeader();
                     renderWeeklyMissionUI();
                     renderDateNav();
@@ -1258,7 +1256,6 @@
                 const data = await res.json();
 
                 if (data.result === 'success') {
-                    populateDashboardRegionFilterOptions(data.allUsers || [], data.allRegions || []);
                     renderRiskTab(data);
                     renderMemberTab(data.allUsers || []);
                 }
@@ -1378,26 +1375,27 @@
             `).join('');
         }
 
-        function populateDashboardRegionFilterOptions(allUsers, allRegions) {
-            // 백엔드에서 받은 전체 지역 목록이 없으면 allUsers에서 추출
-            const regions = (allRegions && allRegions.length > 0) 
-                ? allRegions 
-                : Array.from(new Set((allUsers || []).map(u => u.region).filter(Boolean)));
+        const FIXED_REGIONS = [
+          "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
+          "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
+        ];
 
-            const fillSelect = (selectId) => {
-                const el = $(selectId);
-                if (!el) return;
-                const curVal = el.value || "ALL";
-                let html = '<option value="ALL">전체 지역</option>';
-                regions.forEach(r => {
-                    html += `<option value="${escHtml(r)}" ${r === curVal ? 'selected' : ''}>${escHtml(r)}</option>`;
-                });
-                el.innerHTML = html;
-            };
+        function initAllRegionDropdowns() {
+          const fillSelect = (selectId) => {
+            const el = $(selectId);
+            if (!el) return;
+            const curVal = el.value || "ALL";
+            
+            let html = '<option value="ALL">전체 지역</option>';
+            FIXED_REGIONS.forEach(r => {
+              html += `<option value="${r}" ${r === curVal ? 'selected' : ''}>${r}</option>`;
+            });
+            el.innerHTML = html;
+          };
 
-            fillSelect('risk-region-select');
-            fillSelect('member-region-select');
-            fillSelect('home-region-select'); // 메인 홈 화면 지역 필터도 동일하게 채움
+          fillSelect('home-region-select');   // 홈 화면
+          fillSelect('risk-region-select');   // 대시보드 미취합/미달성 탭
+          fillSelect('member-region-select'); // 대시보드 멤버관리 탭
         }
 
         async function updateUserBookCount(targetName, newCount) {
@@ -2176,6 +2174,7 @@
         document.addEventListener('DOMContentLoaded', () => {
 
             initTimeSelects();
+            initAllRegionDropdowns();
 
             const dateTrigger = $('date-picker-trigger');
             const hiddenPicker = $('hidden-date-picker');
