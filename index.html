@@ -1159,7 +1159,7 @@
         const SUPABASE_URL = "https://qrrnvmskijxwtutgfrhf.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFycm52bXNraWp4d3R1dGdmcmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNDAyNTUsImV4cCI6MjEwMDcxNjI1NX0.-EcLv73jL7yw3vwGQqIQ330ajq6_HHy2UDVNxmpzGa4";
 
-        const supabase = (window.supabase && SUPABASE_URL && SUPABASE_URL !== "YOUR_SUPABASE_URL")
+        const supabaseClient = (window.supabase && SUPABASE_URL && SUPABASE_URL !== "YOUR_SUPABASE_URL")
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
             : null;
 
@@ -1452,7 +1452,7 @@
             if (supabase) {
                 try {
                     // 1. 유저 정보 조회
-                    const { data: userData, error: userErr } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+                    const { data: userData, error: userErr } = await supabaseClient.from('users').select('*').eq('id', userId).maybeSingle();
 
                     if (userErr) throw userErr;
 
@@ -1469,7 +1469,7 @@
                         const isSuper = role.includes("관리자") || role.includes("전체관리자");
                         const isGroup = role.includes("조장") || role.includes("부조장");
 
-                        let query = supabase.from('activities').select('*').eq('activity_date', targetDate);
+                        let query = supabaseClient.from('activities').select('*').eq('activity_date', targetDate);
 
                         if (isGroup) {
                             query = query.eq('region', profile.region);
@@ -1501,7 +1501,7 @@
                         const sunday = new Date(baseDate); sunday.setDate(baseDate.getDate() - baseDate.getDay());
                         const saturday = new Date(sunday); saturday.setDate(sunday.getDate() + 6);
 
-                        const { data: weekActs } = await supabase.from('activities')
+                        const { data: weekActs } = await supabaseClient.from('activities')
                             .select('result_data')
                             .eq('user_id', profile.id)
                             .eq('status', 'completed')
@@ -1523,7 +1523,7 @@
                         });
 
                         // 4. 공지사항 조회
-                        const { data: noticeData } = await supabase.from('notices').select('*').order('id', { ascending: false });
+                        const { data: noticeData } = await supabaseClient.from('notices').select('*').order('id', { ascending: false });
 
                         activeNotices = (noticeData || []).map(n => ({
                             id: n.id,
@@ -1540,7 +1540,7 @@
                         }));
 
                         // 5. 개강 사이클 정보
-                        const { data: semData } = await supabase.from('semesters').select('*').order('id', { ascending: true });
+                        const { data: semData } = await supabaseClient.from('semesters').select('*').order('id', { ascending: true });
                         semestersList = (semData || []).map(s => ({
                             name: s.name,
                             startDate: s.start_date,
@@ -1569,7 +1569,7 @@
 
                     } else {
                         // 미등록 사용자 명단 조회 (UNREG_ 패턴 대응)
-                        const { data: unregData } = await supabase.from('users').select('*').like('id', 'UNREG_%');
+                        const { data: unregData } = await supabaseClient.from('users').select('*').like('id', 'UNREG_%');
                         clearTimeout(safetyTimer);
                         $('loading-overlay').classList.add('hidden');
                         openRegSheet(unregData || []);
@@ -1678,7 +1678,7 @@
                     const role = profile.role || "";
                     const isSuper = role.includes("관리자") || role.includes("전체관리자");
 
-                    let query = supabase.from('activities').select('*').in('activity_date', dates);
+                    let query = supabaseClient.from('activities').select('*').in('activity_date', dates);
                     if (!isSuper) {
                         query = query.eq('region', profile.region);
                     }
@@ -1763,7 +1763,7 @@
                     const saturdayStr = dateKey(saturday);
 
                     // 1. Calendar 비계수일 확인
-                    const { data: calData } = await supabase.from('calendar').select('*').in('off_date', [baseDate, tomorrowStr]);
+                    const { data: calData } = await supabaseClient.from('calendar').select('*').in('off_date', [baseDate, tomorrowStr]);
                     let targetDateOff = false; let targetOffReason = "";
                     let tomorrowDateOff = false; let tomorrowOffReason = "";
 
@@ -1773,7 +1773,7 @@
                     });
 
                     // 2. 유저 명단 로드
-                    const { data: userData } = await supabase.from('users').select('*');
+                    const { data: userData } = await supabaseClient.from('users').select('*');
                     cachedAllUsers = userData || [];
 
                     const role = profile.role || "";
@@ -1782,7 +1782,7 @@
                     const filteredUsers = isSuper ? cachedAllUsers : cachedAllUsers.filter(u => u.region === profile.region);
 
                     // 3. 활동 로그 로드
-                    const { data: actData } = await supabase.from('activities').select('*')
+                    const { data: actData } = await supabaseClient.from('activities').select('*')
                         .gte('activity_date', sundayStr)
                         .lte('activity_date', saturdayStr);
 
@@ -1875,7 +1875,7 @@
 
             if (supabase) {
                 try {
-                    const { error } = await supabase.from('users').update({ book_count: newCount }).eq('name', targetName);
+                    const { error } = await supabaseClient.from('users').update({ book_count: newCount }).eq('name', targetName);
                     if (error) throw error;
                 } catch (err) {
                     showToast('저장 실패 (원복 중...): ' + err.message, 'error');
@@ -1903,7 +1903,7 @@
 
             if (supabase) {
                 try {
-                    const { error } = await supabase.from('users').update({ is_exempt: newExemptState }).eq('name', targetName);
+                    const { error } = await supabaseClient.from('users').update({ is_exempt: newExemptState }).eq('name', targetName);
                     if (error) throw error;
                 } catch (err) {
                     showToast('저장 실패 (원복 중...): ' + err.message, 'error');
@@ -2093,7 +2093,7 @@
         async function toggleNoticeVisibility(id, newVisible) {
             if (supabase) {
                 try {
-                    await supabase.from('notices').update({ visible: newVisible === 'Y' }).eq('id', id);
+                    await supabaseClient.from('notices').update({ visible: newVisible === 'Y' }).eq('id', id);
                     showToast('공지 상태가 수정되었습니다.', 'success');
                     await fetchAppData();
                     renderManageNoticeLists();
@@ -2116,7 +2116,7 @@
             if (!confirm('정말 이 공지사항을 삭제하시겠습니까?')) return;
             if (supabase) {
                 try {
-                    await supabase.from('notices').delete().eq('id', id);
+                    await supabaseClient.from('notices').delete().eq('id', id);
                     showToast('공지사항이 삭제되었습니다.', 'success');
                     await fetchAppData();
                     renderManageNoticeLists();
@@ -2256,7 +2256,7 @@
                         visible: visible,
                         is_important: isImportant
                     };
-                    const { error } = await supabase.from('notices').insert([payload]);
+                    const { error } = await supabaseClient.from('notices').insert([payload]);
                     if (error) throw error;
 
                     showToast('공지사항이 등록되었습니다.', 'success');
@@ -2414,8 +2414,8 @@
 
             if (supabase) {
                 try {
-                    await supabase.from('semesters').update({ is_active: false }).neq('id', 0);
-                    await supabase.from('semesters').insert([{ name: name, start_date: startDate, end_date: endDate, is_active: true }]);
+                    await supabaseClient.from('semesters').update({ is_active: false }).neq('id', 0);
+                    await supabaseClient.from('semesters').insert([{ name: name, start_date: startDate, end_date: endDate, is_active: true }]);
                     showToast('개강 사이클 설정 완료!', 'success');
                     await fetchAppData();
                     return;
@@ -2485,10 +2485,10 @@
                     };
 
                     if (modalMode === 'add') {
-                        const { error } = await supabase.from('activities').insert([payload]);
+                        const { error } = await supabaseClient.from('activities').insert([payload]);
                         if (error) throw error;
                     } else {
-                        const { error } = await supabase.from('activities').update(payload).eq('id', actId);
+                        const { error } = await supabaseClient.from('activities').update(payload).eq('id', actId);
                         if (error) throw error;
                     }
 
@@ -2537,7 +2537,7 @@
 
             if (supabase) {
                 try {
-                    const { error } = await supabase.from('activities').update({ status: 'canceled' }).eq('id', editId);
+                    const { error } = await supabaseClient.from('activities').update({ status: 'canceled' }).eq('id', editId);
                     if (error) throw error;
                     closeModal();
                     showToast('활동이 취소 처리되었습니다.', 'success');
@@ -2582,7 +2582,7 @@
 
             if (supabase) {
                 try {
-                    const { error } = await supabase.from('users').update({ id: tgUserId }).eq('id', selectedUserId);
+                    const { error } = await supabaseClient.from('users').update({ id: tgUserId }).eq('id', selectedUserId);
                     if (error) throw error;
                     closeRegSheet();
                     showToast("사용자 등록 완료!", "success");
@@ -3129,7 +3129,7 @@
 
             if (supabase) {
                 try {
-                    const { data } = await supabase.from('activities').select('*')
+                    const { data } = await supabaseClient.from('activities').select('*')
                         .eq('user_id', profile.id)
                         .gte('activity_date', startDate)
                         .lte('activity_date', endDate);
