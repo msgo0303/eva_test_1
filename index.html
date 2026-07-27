@@ -2776,19 +2776,14 @@
             btn.disabled = true;
 
             if (currentSendType === 'now') {
-                // ⚡ 1. 즉시 전송 (Telegram Bot API 호출)
                 btn.textContent = "발송 중...";
                 try {
                     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
                     const payload = {
                         chat_id: TELEGRAM_CHAT_ID,
-                        text: messageText
+                        text: messageText,
+                        message_thread_id: parseInt(threadId || "3", 10) // 기본값 3 (General)
                     };
-
-                    // 토픽 ID(message_thread_id) 파라미터 적용
-                    if (threadId) {
-                        payload.message_thread_id = parseInt(threadId, 10);
-                    }
 
                     const response = await fetch(url, {
                         method: 'POST',
@@ -2797,8 +2792,10 @@
                     });
 
                     const resData = await response.json();
+                    console.log("Telegram Response:", resData);
+
                     if (resData.ok) {
-                        showToast("텔레그램 지정 토픽으로 메시지가 즉시 발송되었습니다!", "success");
+                        showToast("General 방으로 알림이 전송되었습니다!", "success");
                         closeRiskSendModal();
                     } else {
                         showToast("전송 실패: " + resData.description, "error");
@@ -2810,15 +2807,15 @@
                     btn.textContent = "⚡ 즉시 발송하기";
                 }
             } else {
-                // 📅 2. 시간 지정 예약 저장 (Supabase DB 저장)
-                const scheduledTime = $('risk-send-time').value; // HH:mm
+                // 예약 발송
+                const scheduledTime = $('risk-send-time').value;
                 btn.textContent = "예약 저장 중...";
 
                 try {
                     if (supabaseClient) {
                         const payload = {
                             chat_id: TELEGRAM_CHAT_ID,
-                            thread_id: parseInt(threadId, 10),
+                            thread_id: parseInt(threadId || "3", 10),
                             scheduled_time: scheduledTime,
                             message: messageText,
                             status: 'pending'
@@ -2829,8 +2826,6 @@
 
                         showToast(`오늘 ${scheduledTime}에 발송되도록 예약 저장되었습니다!`, "success");
                         closeRiskSendModal();
-                    } else {
-                        showToast("DB 연결 정보를 확인할 수 없습니다.", "error");
                     }
                 } catch (e) {
                     showToast("예약 저장 실패: " + e.message, "error");
@@ -3937,14 +3932,12 @@
 
             <div class="space-y-3 text-xs">
                 <!-- 1. 전송할 토픽 선택 -->
+                <!-- 1. 전송할 토픽 선택 -->
                 <div>
                     <label class="block font-bold text-tg-muted mb-1">📍 전송 대상 토픽(Topic) 선택</label>
                     <select id="risk-send-topic"
                         class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
-                        <option value="1">일반 (General Topic - 1)</option>
-                        <option value="2">1조 / 사당 방 (2)</option>
-                        <option value="3">2조 / 안양 방 (3)</option>
-                        <!-- 운영 중이신 텔레그램 그룹방의 토픽 ID에 맞게 option 숫자를 추가/수정하실 수 있습니다 -->
+                        <option value="3" selected>General (기본 메인방 - 3)</option>
                     </select>
                 </div>
 
