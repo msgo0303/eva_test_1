@@ -1021,6 +1021,7 @@
             </div>
 
             <!-- 탭 2: 미취합/미달성 관리 -->
+            <!-- 탭 2: 미취합/미달성 관리 -->
             <div id="tab-sec-risk" class="hidden space-y-4">
                 <div
                     class="bg-white p-3 rounded-2xl border border-tg-border flex items-center justify-between shadow-sm">
@@ -1031,39 +1032,54 @@
                     </select>
                 </div>
 
+                <!-- 1. 내일 계획 미취합자 -->
                 <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between cursor-pointer select-none"
-                        onclick="toggleTomorrowList()">
-                        <div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 cursor-pointer select-none" onclick="toggleTomorrowList()">
                             <h3 id="risk-tomorrow-title" class="text-xs font-bold text-blue-800">🌙 내일 계획 미취합자 명단</h3>
                             <p id="risk-tomorrow-sub" class="text-[10px] text-blue-600 mt-0.5">내일 일정 미등록 인원 (밤 독촉용)</p>
                         </div>
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-2">
+                            <!-- 📣 내일 독촉 전송 버튼 -->
+                            <button onclick="openRiskSendModal('tomorrow')"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                                <span>📣</span>
+                                <span>독촉 전송</span>
+                            </button>
                             <span id="risk-tomorrow-count"
                                 class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
-                            <span id="risk-tomorrow-arrow" class="text-blue-800 text-[10px]">▼</span>
+                            <span id="risk-tomorrow-arrow" onclick="toggleTomorrowList()"
+                                class="text-blue-800 text-[10px] cursor-pointer">▼</span>
                         </div>
                     </div>
                     <div id="risk-tomorrow-list" class="space-y-1.5 text-xs"></div>
                 </div>
 
+                <!-- 2. 당일 결과 미취합자 -->
                 <div class="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between cursor-pointer select-none"
-                        onclick="toggleTodayList()">
-                        <div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 cursor-pointer select-none" onclick="toggleTodayList()">
                             <h3 id="risk-today-title" class="text-xs font-bold text-red-700">⚠️ 당일 결과 미취합자 명단</h3>
-                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중(미완료) 상태 (저녁
-                                독촉용)</p>
+                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중 상태 (저녁 독촉용)
+                            </p>
                         </div>
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-2">
+                            <!-- 📣 당일 독촉 전송 버튼 -->
+                            <button onclick="openRiskSendModal('today')"
+                                class="bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                                <span>📣</span>
+                                <span>독촉 전송</span>
+                            </button>
                             <span id="risk-today-count"
                                 class="bg-red-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
-                            <span id="risk-today-arrow" class="text-red-700 text-[10px]">▼</span>
+                            <span id="risk-today-arrow" onclick="toggleTodayList()"
+                                class="text-red-700 text-[10px] cursor-pointer">▼</span>
                         </div>
                     </div>
                     <div id="risk-today-list" class="space-y-1.5 text-xs"></div>
                 </div>
 
+                <!-- 3. 주간 찾기 미달성자 -->
                 <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between">
                         <div>
@@ -2682,6 +2698,149 @@
             });
         }
 
+        // 텔레그램 봇 API 설정 (지정하신 Chat ID 및 Token)
+        const TELEGRAM_BOT_TOKEN = "8356704503:AAFV9YoSCGKvZAjIWgqa0prjMZyQkF3XySM";
+        const TELEGRAM_CHAT_ID = "-1003955494530";
+
+        let currentSendCategory = 'today';
+        let currentSendType = 'now';
+
+        // 1. 독촉 알림 전송 모달 열기
+        function openRiskSendModal(category) {
+            currentSendCategory = category;
+            const overlay = $('risk-send-overlay');
+            if (!overlay) return;
+
+            let msgText = "";
+            if (category === 'today') {
+                const names = Array.from(document.querySelectorAll('#risk-today-list .font-bold.text-tg-text')).map(el => el.textContent);
+                if (names.length === 0) {
+                    showToast('당일 결과 미취합자가 없습니다!', 'info');
+                    return;
+                }
+                msgText = `[⚠️ 오늘 결과 미입력자 알림]\n\n오늘 활동 결과를 아직 입력하지 않은 멤버입니다. 확인 후 완료 작성 바랍니다!\n👉 명단: ${names.join(', ')}`;
+                $('risk-send-title').textContent = "⚠️ 당일 결과 미취합 독촉 알림";
+            } else {
+                const names = Array.from(document.querySelectorAll('#risk-tomorrow-list .font-bold.text-tg-text')).map(el => el.textContent);
+                if (names.length === 0) {
+                    showToast('내일 계획 미취합자가 없습니다!', 'info');
+                    return;
+                }
+                msgText = `[📢 내일 일정 미입력자 알림]\n\n내일 일정을 아직 등록하지 않은 멤버입니다. 확인 후 작성 바랍니다!\n👉 명단: ${names.join(', ')}`;
+                $('risk-send-title').textContent = "🌙 내일 계획 미취합 독촉 알림";
+            }
+
+            $('risk-send-preview').textContent = msgText;
+            setSendType('now');
+            overlay.classList.remove('hidden');
+        }
+
+        // 2. 독촉 알림 전송 모달 닫기
+        function closeRiskSendModal() {
+            const overlay = $('risk-send-overlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        // 3. 발송 방식 탭 전환 (즉시 vs 시간 지정)
+        function setSendType(type) {
+            currentSendType = type;
+            const btnNow = $('btn-send-now');
+            const btnSched = $('btn-send-schedule');
+            const box = $('schedule-time-box');
+            const submitBtn = $('btn-submit-risk-send');
+
+            if (type === 'now') {
+                btnNow.className = "py-2 rounded-xl border font-bold text-xs bg-tg-blue text-white border-tg-blue";
+                btnSched.className = "py-2 rounded-xl border font-bold text-xs bg-tg-surface text-tg-muted border-tg-border";
+                box.classList.add('hidden');
+                submitBtn.textContent = "⚡ 즉시 발송하기";
+            } else {
+                btnSched.className = "py-2 rounded-xl border font-bold text-xs bg-tg-blue text-white border-tg-blue";
+                btnNow.className = "py-2 rounded-xl border font-bold text-xs bg-tg-surface text-tg-muted border-tg-border";
+                box.classList.remove('hidden');
+                submitBtn.textContent = "📅 선택한 시간에 예약 저장";
+            }
+        }
+
+        // 4. 전송 버튼 클릭 실행 함수 (Bot API 직접 통신 또는 Supabase 예약 등록)
+        async function submitRiskNotification() {
+            const threadId = $('risk-send-topic').value;
+            const messageText = $('risk-send-preview').textContent;
+            const btn = $('btn-submit-risk-send');
+
+            if (!messageText) {
+                showToast('전송할 메시지가 없습니다.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+
+            if (currentSendType === 'now') {
+                // ⚡ 1. 즉시 전송 (Telegram Bot API 호출)
+                btn.textContent = "발송 중...";
+                try {
+                    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                    const payload = {
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: messageText
+                    };
+
+                    // 토픽 ID(message_thread_id) 파라미터 적용
+                    if (threadId) {
+                        payload.message_thread_id = parseInt(threadId, 10);
+                    }
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const resData = await response.json();
+                    if (resData.ok) {
+                        showToast("텔레그램 지정 토픽으로 메시지가 즉시 발송되었습니다!", "success");
+                        closeRiskSendModal();
+                    } else {
+                        showToast("전송 실패: " + resData.description, "error");
+                    }
+                } catch (e) {
+                    showToast("텔레그램 통신 오류: " + e.message, "error");
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = "⚡ 즉시 발송하기";
+                }
+            } else {
+                // 📅 2. 시간 지정 예약 저장 (Supabase DB 저장)
+                const scheduledTime = $('risk-send-time').value; // HH:mm
+                btn.textContent = "예약 저장 중...";
+
+                try {
+                    if (supabaseClient) {
+                        const payload = {
+                            chat_id: TELEGRAM_CHAT_ID,
+                            thread_id: parseInt(threadId, 10),
+                            scheduled_time: scheduledTime,
+                            message: messageText,
+                            status: 'pending'
+                        };
+
+                        const { error } = await supabaseClient.from('notification_schedules').insert([payload]);
+                        if (error) throw error;
+
+                        showToast(`오늘 ${scheduledTime}에 발송되도록 예약 저장되었습니다!`, "success");
+                        closeRiskSendModal();
+                    } else {
+                        showToast("DB 연결 정보를 확인할 수 없습니다.", "error");
+                    }
+                } catch (e) {
+                    showToast("예약 저장 실패: " + e.message, "error");
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = "📅 선택한 시간에 예약 저장";
+                }
+            }
+        }
+
         async function saveActivity() {
             const targetDate = dateKey(currentDate);
             const startTime = $('f-starttime').value;
@@ -3757,6 +3916,74 @@
             if (window.Telegram && window.Telegram.WebApp) { tg.setHeaderColor('#ffffff'); }
         });
     </script>
+
+    <!-- 독촉 알림 전송 설정 모달 SHEET -->
+    <div id="risk-send-overlay" class="fixed inset-0 z-[60] bg-black/50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-tg-border pb-3">
+                <div>
+                    <h3 id="risk-send-title" class="text-sm font-extrabold text-tg-text">📣 텔레그램 독촉 알림 전송</h3>
+                    <p id="risk-send-sub" class="text-[10px] text-tg-blue font-semibold mt-0.5">지정된 단체방의 토픽으로 알림을 전송합니다.
+                    </p>
+                </div>
+                <button onclick="closeRiskSendModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                        stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <!-- 1. 전송할 토픽 선택 -->
+                <div>
+                    <label class="block font-bold text-tg-muted mb-1">📍 전송 대상 토픽(Topic) 선택</label>
+                    <select id="risk-send-topic"
+                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                        <option value="1">일반 (General Topic - 1)</option>
+                        <option value="2">1조 / 사당 방 (2)</option>
+                        <option value="3">2조 / 안양 방 (3)</option>
+                        <!-- 운영 중이신 텔레그램 그룹방의 토픽 ID에 맞게 option 숫자를 추가/수정하실 수 있습니다 -->
+                    </select>
+                </div>
+
+                <!-- 2. 전송 시각 선택 -->
+                <div>
+                    <label class="block font-bold text-tg-muted mb-1">⏰ 발송 시각 선택</label>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button type="button" id="btn-send-now" onclick="setSendType('now')"
+                            class="py-2 rounded-xl border font-bold text-xs bg-tg-blue text-white border-tg-blue">⚡ 즉시
+                            발송</button>
+                        <button type="button" id="btn-send-schedule" onclick="setSendType('schedule')"
+                            class="py-2 rounded-xl border font-bold text-xs bg-tg-surface text-tg-muted border-tg-border">📅
+                            시간 지정 발송</button>
+                    </div>
+
+                    <!-- 시간 지정 입력 박스 -->
+                    <div id="schedule-time-box" class="hidden bg-tg-surface p-2.5 rounded-xl border border-tg-border">
+                        <span class="text-[10px] text-tg-muted block mb-1">오늘 발송할 시각 선택</span>
+                        <input id="risk-send-time" type="time" value="21:00"
+                            class="w-full rounded-lg border border-tg-border bg-white px-3 py-1.5 font-bold text-tg-text focus:outline-none focus:border-tg-blue" />
+                    </div>
+                </div>
+
+                <!-- 3. 발송 메시지 미리보기 -->
+                <div>
+                    <label class="block font-bold text-tg-muted mb-1">💬 발송 메시지 미리보기</label>
+                    <div id="risk-send-preview"
+                        class="bg-tg-surface p-3 rounded-xl border border-tg-border text-[11px] text-tg-text whitespace-pre-wrap max-h-32 overflow-y-auto font-mono">
+                        메시지 준비 중...
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-submit-risk-send" onclick="submitRiskNotification()"
+                class="w-full py-3.5 bg-tg-blue text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform">
+                ⚡ 즉시 발송하기
+            </button>
+        </div>
+    </div>
 
 </body>
 
