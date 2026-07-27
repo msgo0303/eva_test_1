@@ -2713,21 +2713,42 @@
 
             let msgText = "";
             if (category === 'today') {
-                const names = Array.from(document.querySelectorAll('#risk-today-list .font-bold.text-tg-text')).map(el => el.textContent);
-                if (names.length === 0) {
+                const list = rawRiskData ? rawRiskData.todayUncollected : [];
+                if (!list || list.length === 0) {
                     showToast('당일 결과 미취합자가 없습니다!', 'info');
                     return;
                 }
-                msgText = `[⚠️ 오늘 결과 미입력자 알림]\n\n오늘 활동 결과를 아직 입력하지 않은 멤버입니다. 확인 후 완료 작성 바랍니다!\n👉 명단: ${names.join(', ')}`;
-                $('risk-send-title').textContent = "⚠️ 당일 결과 미취합 안내 알림";
+
+                // 지역별 그룹핑
+                const grouped = {};
+                list.forEach(u => {
+                    const reg = u.region || '미정';
+                    if (!grouped[reg]) grouped[reg] = [];
+                    grouped[reg].push(u.name);
+                });
+
+                const lines = Object.keys(grouped).map(reg => `📍 [${reg}]: ${grouped[reg].join(', ')}`);
+                msgText = `[⚠️ 오늘 결과 미입력자 알림]\n\n오늘 활동 결과를 아직 입력하지 않은 멤버입니다. 마감 전 입력 바랍니다!\n\n${lines.join('\n')}`;
+                $('risk-send-title').textContent = "⚠️ 당일 결과 미취합 독촉 알림";
+
             } else {
-                const names = Array.from(document.querySelectorAll('#risk-tomorrow-list .font-bold.text-tg-text')).map(el => el.textContent);
-                if (names.length === 0) {
+                const list = rawRiskData ? rawRiskData.tomorrowUncollected : [];
+                if (!list || list.length === 0) {
                     showToast('내일 계획 미취합자가 없습니다!', 'info');
                     return;
                 }
-                msgText = `[📢 내일 일정 미입력자 알림]\n\n내일 일정을 아직 등록하지 않은 멤버입니다. 확인 후 작성 바랍니다!\n👉 명단: ${names.join(', ')}`;
-                $('risk-send-title').textContent = "🌙 내일 계획 미취합 안내 알림";
+
+                // 지역별 그룹핑
+                const grouped = {};
+                list.forEach(u => {
+                    const reg = u.region || '미정';
+                    if (!grouped[reg]) grouped[reg] = [];
+                    grouped[reg].push(u.name);
+                });
+
+                const lines = Object.keys(grouped).map(reg => `📍 [${reg}]: ${grouped[reg].join(', ')}`);
+                msgText = `[📢 내일 일정 미입력자 알림]\n\n내일 일정을 아직 등록하지 않은 멤버입니다. 확인 후 작성 바랍니다!\n\n${lines.join('\n')}`;
+                $('risk-send-title').textContent = "🌙 내일 계획 미취합 독촉 알림";
             }
 
             $('risk-send-preview').textContent = msgText;
