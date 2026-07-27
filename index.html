@@ -1256,7 +1256,7 @@
         let groupChartInstance = null;
 
         const RESULT_SCHEMA = {
-            '찾기(오프라인)': { types: ['오프번찾', '구두만픽', '오프만찾'], hasCount: true },
+            '찾기(오프라인)': { types: ['오프만찾', '오프번찾'], hasCount: true },
             '찾기(온라인)': { types: ['온만찾'], hasCount: true },
             '매칭': { types: ['취소', '2차', '비합', '따기'], hasCount: false },
             '잎사귀': { types: ['간증잎', '생노잎', '서류잎', '풍문잎', '기타'], hasCount: false },
@@ -1578,7 +1578,8 @@
                                 const parsed = typeof w.result_data === 'string' ? JSON.parse(w.result_data) : w.result_data;
                                 if (Array.isArray(parsed)) {
                                     parsed.forEach(r => {
-                                        if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") && (r.type === "온만찾" || r.type === "오프만찾")) {
+                                        if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") &&
+                                            (r.type === "온만찾" || r.type === "오프만찾" || r.type === "오프번찾" || r.type === "구두만픽")) {
                                             weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                         }
                                     });
