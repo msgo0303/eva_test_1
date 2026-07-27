@@ -1089,9 +1089,22 @@
 
             <!-- 탭 4: 사이클 설정 -->
             <div id="tab-sec-semester" class="hidden space-y-4">
+
+                <!-- 등록된 사이클 목록 -->
                 <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
-                    <h3 class="text-xs font-bold text-tg-text">🎓 개강 사이클 설정</h3>
-                    <p class="text-[11px] text-tg-muted">설정된 기간을 기준으로 유저 미션 및 통계 범위가 변경됩니다.</p>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-tg-text">📋 등록된 사이클 목록</h3>
+                        <span id="sem-list-count" class="text-xs text-tg-muted">0개</span>
+                    </div>
+                    <div id="sem-list-container" class="space-y-2 pt-1">
+                        <p class="text-xs text-tg-muted text-center py-3">등록된 사이클이 없습니다.</p>
+                    </div>
+                </div>
+
+                <!-- 새 사이클 추가 폼 -->
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                    <h3 class="text-xs font-bold text-tg-text">🎓 새 사이클 등록</h3>
+                    <p class="text-[11px] text-tg-muted">새 사이클을 추가하면 자동으로 현재 활성 사이클로 설정됩니다.</p>
 
                     <div class="space-y-3 text-xs pt-2">
                         <div>
@@ -1110,8 +1123,7 @@
                                 class="w-full min-w-0 max-w-full block appearance-none box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
                         </div>
                         <button onclick="saveSemesterSetting()"
-                            class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">사이클
-                            설정 저장</button>
+                            class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">+ 새 사이클 저장</button>
                     </div>
                 </div>
             </div>
@@ -1542,6 +1554,7 @@
                         // 5. 개강 사이클 정보
                         const { data: semData } = await supabaseClient.from('semesters').select('*').order('id', { ascending: true });
                         semestersList = (semData || []).map(s => ({
+                            id: s.id,
                             name: s.name,
                             startDate: s.start_date,
                             endDate: s.end_date,
@@ -1553,15 +1566,16 @@
                             const badgeEl = $('hdr-semester-badge');
                             badgeEl.textContent = `🎓 ${activeSem.name}`;
                             badgeEl.classList.remove('hidden');
-                            $('sem-name').value = activeSem.name || '';
-                            $('sem-start').value = activeSem.startDate || '';
-                            $('sem-end').value = activeSem.endDate || '';
+                            $('sem-name').value = '';
+                            $('sem-start').value = '';
+                            $('sem-end').value = '';
                         }
 
                         clearTimeout(safetyTimer);
                         $('loading-overlay').classList.add('hidden');
                         applyUserPermissionsUI(isSuper || isGroup);
                         renderNoticeList(activeNotices);
+                        renderSemesterList();
                         renderHeader();
                         renderWeeklyMissionUI();
                         renderDateNav();
@@ -2405,6 +2419,158 @@
             }
         }
 
+        function renderSemesterList() {
+            const container = $('sem-list-container');
+            const countEl = $('sem-list-count');
+            if (!container) return;
+
+            countEl.textContent = `${semestersList.length}개`;
+
+            if (semestersList.length === 0) {
+                container.innerHTML = '<p class="text-xs text-tg-muted text-center py-3">등록된 사이클이 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = semestersList.slice().reverse().map(sem => {
+                const activeBadge = sem.isCurrent
+                    ? '<span class="bg-tg-blue text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full ml-1">활성</span>'
+                    : '<span class="bg-tg-surface text-tg-muted text-[9px] font-bold px-2 py-0.5 rounded-full border border-tg-border ml-1">비활성</span>';
+                return `
+                    <div class="bg-tg-surface rounded-xl border border-tg-border p-3 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1 min-w-0 flex-1">
+                                <span class="text-xs font-bold text-tg-text truncate">${escHtml(sem.name)}</span>
+                                ${activeBadge}
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                                <button onclick="openEditSemester(${sem.id})" class="text-[10px] font-bold text-tg-blue bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg active:scale-95 transition-transform">수정</button>
+                                <button onclick="deleteSemester(${sem.id}, '${escHtml(sem.name)}')" class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg active:scale-95 transition-transform">삭제</button>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-tg-muted">${sem.startDate || '-'} ~ ${sem.endDate || '-'}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openEditSemester(id) {
+            const sem = semestersList.find(s => s.id === id);
+            if (!sem) return;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'sem-edit-overlay';
+            overlay.className = 'fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4';
+            overlay.innerHTML = `
+                <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden">
+                    <div class="bg-tg-blue px-5 py-4 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-extrabold text-white">✏️ 사이클 수정</h3>
+                            <p class="text-[10px] text-blue-100 mt-0.5">ID: ${id}</p>
+                        </div>
+                        <button onclick="document.getElementById('sem-edit-overlay').remove()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-tg-muted mb-1.5">사이클명</label>
+                            <input id="sem-edit-name" type="text" value="${escHtml(sem.name)}"
+                                class="w-full border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-tg-muted mb-1.5">시작일</label>
+                            <input id="sem-edit-start" type="date" value="${sem.startDate || ''}"
+                                class="w-full block appearance-none border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-tg-muted mb-1.5">종료일</label>
+                            <input id="sem-edit-end" type="date" value="${sem.endDate || ''}"
+                                class="w-full block appearance-none border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2.5 p-3 bg-blue-50 border border-blue-200 rounded-xl cursor-pointer select-none">
+                                <input id="sem-edit-active" type="checkbox" ${sem.isCurrent ? 'checked' : ''} class="w-4 h-4 rounded text-tg-blue" />
+                                <span class="text-xs font-bold text-blue-800">✅ 현재 활성 사이클로 설정</span>
+                            </label>
+                        </div>
+                        <button onclick="updateSemester(${id})" class="w-full py-3 bg-tg-blue text-white rounded-xl font-bold text-sm active:scale-95 transition-transform mt-1">저장하기</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        }
+
+        async function updateSemester(id) {
+            const name = document.getElementById('sem-edit-name').value.trim();
+            const startDate = document.getElementById('sem-edit-start').value;
+            const endDate = document.getElementById('sem-edit-end').value;
+            const isActive = document.getElementById('sem-edit-active').checked;
+
+            if (!name || !startDate || !endDate) return showToast('⚠️ 모든 항목을 입력해 주세요.', 'error');
+
+            if (!supabase) return showToast('Supabase가 연결되지 않았습니다.', 'error');
+            try {
+                if (isActive) {
+                    await supabaseClient.from('semesters').update({ is_active: false }).neq('id', id);
+                }
+                const { error } = await supabaseClient.from('semesters').update({
+                    name: name,
+                    start_date: startDate,
+                    end_date: endDate,
+                    is_active: isActive
+                }).eq('id', id);
+                if (error) throw error;
+
+                const overlay = document.getElementById('sem-edit-overlay');
+                if (overlay) overlay.remove();
+                showToast('사이클이 수정되었습니다!', 'success');
+
+                // 로컬 데이터 갱신
+                const sem = semestersList.find(s => s.id === id);
+                if (sem) {
+                    sem.name = name;
+                    sem.startDate = startDate;
+                    sem.endDate = endDate;
+                    if (isActive) semestersList.forEach(s => { s.isCurrent = (s.id === id); });
+                    else sem.isCurrent = false;
+                }
+
+                // 헤더 배지 갱신
+                const activeSem = semestersList.find(s => s.isCurrent);
+                if (activeSem) {
+                    const badgeEl = $('hdr-semester-badge');
+                    badgeEl.textContent = `🎓 ${activeSem.name}`;
+                    badgeEl.classList.remove('hidden');
+                }
+                renderSemesterList();
+            } catch (e) { showToast('수정 실패: ' + e.message, 'error'); }
+        }
+
+        async function deleteSemester(id, name) {
+            if (!confirm(`'${name}' 사이클을 삭제하시겠습니까?\n\n삭제 후 복구가 불가능합니다.`)) return;
+
+            if (!supabase) return showToast('Supabase가 연결되지 않았습니다.', 'error');
+            try {
+                const { error } = await supabaseClient.from('semesters').delete().eq('id', id);
+                if (error) throw error;
+
+                semestersList = semestersList.filter(s => s.id !== id);
+                showToast('사이클이 삭제되었습니다.', 'success');
+
+                // 헤더 배지 갱신
+                const activeSem = semestersList.find(s => s.isCurrent);
+                const badgeEl = $('hdr-semester-badge');
+                if (activeSem) {
+                    badgeEl.textContent = `🎓 ${activeSem.name}`;
+                    badgeEl.classList.remove('hidden');
+                } else {
+                    badgeEl.classList.add('hidden');
+                }
+                renderSemesterList();
+            } catch (e) { showToast('삭제 실패: ' + e.message, 'error'); }
+        }
+
         async function saveSemesterSetting() {
             const name = $('sem-name').value.trim();
             const startDate = $('sem-start').value;
@@ -2415,9 +2581,29 @@
             if (supabase) {
                 try {
                     await supabaseClient.from('semesters').update({ is_active: false }).neq('id', 0);
-                    await supabaseClient.from('semesters').insert([{ name: name, start_date: startDate, end_date: endDate, is_active: true }]);
-                    showToast('개강 사이클 설정 완료!', 'success');
-                    await fetchAppData();
+                    const { error } = await supabaseClient.from('semesters').insert([{ name: name, start_date: startDate, end_date: endDate, is_active: true }]);
+                    if (error) throw error;
+                    showToast('새 사이클이 등록되었습니다!', 'success');
+                    $('sem-name').value = '';
+                    $('sem-start').value = '';
+                    $('sem-end').value = '';
+
+                    // 목록 새로 불러오기
+                    const { data: semData } = await supabaseClient.from('semesters').select('*').order('id', { ascending: true });
+                    semestersList = (semData || []).map(s => ({
+                        id: s.id,
+                        name: s.name,
+                        startDate: s.start_date,
+                        endDate: s.end_date,
+                        isCurrent: s.is_active
+                    }));
+                    const activeSem = semestersList.find(s => s.isCurrent);
+                    if (activeSem) {
+                        const badgeEl = $('hdr-semester-badge');
+                        badgeEl.textContent = `🎓 ${activeSem.name}`;
+                        badgeEl.classList.remove('hidden');
+                    }
+                    renderSemesterList();
                     return;
                 } catch (e) { showToast('저장 실패: ' + e.message, 'error'); }
             }
