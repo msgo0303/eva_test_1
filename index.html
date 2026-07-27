@@ -128,14 +128,16 @@
 
         #modal-overlay.open,
         #reg-overlay.open,
-        #dash-overlay.open {
+        #dash-overlay.open,
+        #tracker-overlay.open {
             display: block;
             opacity: 1;
         }
 
         #modal-sheet,
         #reg-sheet,
-        #dash-sheet {
+        #dash-sheet,
+        #tracker-sheet {
             display: none;
             transform: translateY(100%);
             transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
@@ -143,7 +145,8 @@
 
         #modal-sheet.open,
         #reg-sheet.open,
-        #dash-sheet.open {
+        #dash-sheet.open,
+        #tracker-sheet.open {
             display: flex;
             transform: translateY(0);
         }
@@ -317,7 +320,7 @@
                 class="px-4 py-2.5 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between">
                 <div class="flex-1 pr-3">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-bold text-tg-blue">🎯 주간 찾기 미션 (온+오프만)</span>
+                        <span id="mission-title" class="text-xs font-bold text-tg-blue">🎯 주간 찾기 미션</span>
                         <span id="mission-status-text" class="text-xs font-extrabold text-tg-blue">0 / 6건 (0%)</span>
                     </div>
                     <div class="w-full h-2 bg-blue-200/60 rounded-full overflow-hidden">
@@ -436,6 +439,78 @@
             </svg>
         </button>
 
+        <!-- 📊 DASHBOARD POP-OVER MENU -->
+        <div id="dash-popover-overlay" class="fixed inset-0 z-30 bg-black/20 hidden"></div>
+        <div id="dash-menu" class="hidden fixed bottom-24 left-5 z-40 flex-col gap-2">
+            <button id="btn-dash-admin"
+                class="flex items-center gap-2 bg-zinc-900 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform">
+                📊 관리자 대시보드
+            </button>
+            <button id="btn-dash-tracker"
+                class="flex items-center gap-2 bg-tg-blue text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform">
+                🏃 나의 활동 추적
+            </button>
+        </div>
+
+        <!-- 🏃 MY TRACKER FULL MODAL SHEET -->
+        <div id="tracker-overlay" class="fixed inset-0 z-40 bg-black/40 hidden"></div>
+        <div id="tracker-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex flex-col h-[94vh] hidden transition-transform duration-300 translate-y-full">
+            <div class="flex justify-center pt-3 pb-1 flex-shrink-0 bg-tg-bg rounded-t-3xl">
+                <div class="w-10 h-1 bg-tg-border rounded-full"></div>
+            </div>
+
+            <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
+                <div>
+                    <h2 class="text-base font-bold text-tg-text">🏃 나의 활동 추적</h2>
+                    <p id="tracker-dates-text" class="text-[11px] text-tg-blue font-semibold mt-0.5">-</p>
+                </div>
+                <button id="btn-close-tracker"
+                    class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                        stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-4 bg-tg-bg border-b border-tg-border flex-shrink-0">
+                <label class="block text-xs font-semibold text-tg-muted mb-1.5">조회할 주차 선택</label>
+                <select id="tracker-week-select"
+                    class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm font-bold text-tg-text focus:outline-none focus:border-tg-blue">
+                </select>
+            </div>
+
+            <div class="overflow-y-auto flex-1 p-4 space-y-4 bg-tg-surface">
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📊 주차별 활동 결과 한눈에 보기</h3>
+                    <div class="grid grid-cols-4 gap-2">
+                        <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-3 text-center">
+                            <p class="text-[10px] text-blue-600 font-bold">🔍 찾기</p>
+                            <p id="track-sum-find" class="text-base font-extrabold text-blue-800 mt-1">0건</p>
+                        </div>
+                        <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 text-center">
+                            <p class="text-[10px] text-emerald-600 font-bold">🤝 매칭</p>
+                            <p id="track-sum-match" class="text-base font-extrabold text-emerald-800 mt-1">0건</p>
+                        </div>
+                        <div class="bg-amber-50/70 border border-amber-100 rounded-xl p-3 text-center">
+                            <p class="text-[10px] text-amber-600 font-bold">🍃 잎사귀</p>
+                            <p id="track-sum-leaf" class="text-base font-extrabold text-amber-800 mt-1">0건</p>
+                        </div>
+                        <div class="bg-purple-50/70 border border-purple-100 rounded-xl p-3 text-center">
+                            <p class="text-[10px] text-purple-600 font-bold">📖 복방</p>
+                            <p id="track-sum-book" class="text-base font-extrabold text-purple-800 mt-1">0건</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📅 일별 활동 상세</h3>
+                    <div id="tracker-daily-list" class="space-y-3">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ➕ FAB POP-OVER MENU -->
         <div id="fab-popover-overlay" class="fixed inset-0 z-30 bg-black/20 hidden"></div>
         <div id="fab-menu" class="hidden fixed bottom-24 right-5 z-40 flex-col gap-2">
@@ -527,7 +602,8 @@
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 내용 선택 (1개)</label>
                     <select id="f-content-category"
                         class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm font-bold text-tg-text focus:outline-none focus:border-tg-blue">
-                        <option value="찾기">찾기</option>
+                        <option value="찾기(오프라인)">찾기(오프라인)</option>
+                        <option value="찾기(온라인)">찾기(온라인)</option>
                         <option value="매칭">매칭</option>
                         <option value="잎사귀">잎사귀</option>
                         <option value="복방">복방</option>
@@ -662,12 +738,11 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-4 gap-1.5 pt-1 relative">
+                    <div class="grid grid-cols-5 gap-1 pt-1 relative">
                         <div id="btn-find-chip"
                             class="bg-blue-50 border border-blue-200 hover:border-blue-400 rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
-                            <p class="text-[10px] text-blue-600 font-bold flex items-center justify-center gap-0.5">찾기
-                                💡</p>
-                            <p id="db-cat-find" class="text-sm font-bold text-blue-800">0건</p>
+                            <p class="text-[9px] text-blue-600 font-bold flex items-center justify-center gap-0.5">찾기(오프) 💡</p>
+                            <p id="db-cat-find-off" class="text-sm font-bold text-blue-800">0건</p>
                         </div>
 
                         <div id="find-popover"
@@ -692,16 +767,20 @@
                             </div>
                         </div>
 
-                        <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-2 text-center">
-                            <p class="text-[10px] text-emerald-600 font-bold">매칭</p>
+                        <div class="bg-sky-50 border border-sky-100 rounded-xl p-2 text-center shadow-sm">
+                            <p class="text-[9px] text-sky-600 font-bold">찾기(온)</p>
+                            <p id="db-cat-find-on" class="text-sm font-bold text-sky-800">0건</p>
+                        </div>
+                        <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-2 text-center shadow-sm">
+                            <p class="text-[9px] text-emerald-600 font-bold">매칭</p>
                             <p id="db-cat-match" class="text-sm font-bold text-emerald-800">0건</p>
                         </div>
-                        <div class="bg-amber-50/70 border border-amber-100 rounded-xl p-2 text-center">
-                            <p class="text-[10px] text-amber-600 font-bold">잎사귀</p>
+                        <div class="bg-amber-50/70 border border-amber-100 rounded-xl p-2 text-center shadow-sm">
+                            <p class="text-[9px] text-amber-600 font-bold">잎사귀</p>
                             <p id="db-cat-leaf" class="text-sm font-bold text-amber-800">0건</p>
                         </div>
-                        <div class="bg-purple-50/70 border border-purple-100 rounded-xl p-2 text-center">
-                            <p class="text-[10px] text-purple-600 font-bold">복방</p>
+                        <div class="bg-purple-50/70 border border-purple-100 rounded-xl p-2 text-center shadow-sm">
+                            <p class="text-[9px] text-purple-600 font-bold">복방</p>
                             <p id="db-cat-book" class="text-sm font-bold text-purple-800">0건</p>
                         </div>
                     </div>
@@ -915,6 +994,8 @@
         let userHasActiveBook = false;
         let weeklyMissionCount = 0;
         let rawRiskData = null; // 💡 대시보드 미취합/멤버 원본 데이터 캐시 추가
+        let currentWeekName = ""; // 💡 현재 날짜의 주차명 캐시
+        let semestersList = [];   // 💡 주차 선택용 전체 주차 리스트 캐시
 
         let modalMode = 'add';
         let editId = null;
@@ -926,7 +1007,8 @@
         let groupChartInstance = null;
 
         const RESULT_SCHEMA = {
-            '찾기': { types: ['온만찾', '오프번찾', '구두만픽', '오프만찾'], hasCount: true },
+            '찾기(오프라인)': { types: ['오프번찾', '구두만픽', '오프만찾'], hasCount: true },
+            '찾기(온라인)': { types: ['온만찾'], hasCount: true },
             '매칭': { types: ['취소', '2차', '비합', '따기'], hasCount: false },
             '잎사귀': { types: ['간증잎', '생노잎', '서류잎', '풍문잎', '기타'], hasCount: false },
             '복방': { types: ['진행', '취소'], hasCount: false }
@@ -1002,6 +1084,12 @@
             const card = $('weekly-mission-card');
             const statusText = $('mission-status-text');
             const progressBar = $('mission-progress-bar');
+
+            // 💡 D-day 계산 (선택 날짜의 요일 기준 토요일 마감까지 남은 일수 계산)
+            const dayOfWeek = currentDate.getDay(); // 0: 일, 1: 월, ..., 6: 토
+            const diff = 6 - dayOfWeek;
+            const ddayText = diff === 0 ? "D-Day" : `D-${diff}`;
+            $('mission-title').textContent = `🎯 주간 찾기 미션 (${ddayText})`;
 
             if (userHasActiveBook) {
                 card.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
@@ -1198,6 +1286,9 @@
                     weeklyMissionCount = data.weeklyMissionCount || 0;
                     userHasActiveBook = (data.user && data.user.bookCount > 0);
 
+                    currentWeekName = data.weekName || "";
+                    semestersList = data.semestersList || [];
+
                     if (data.currentSemester && data.currentSemester.name) {
                         const badgeEl = $('hdr-semester-badge');
                         badgeEl.textContent = `🎓 ${data.currentSemester.name}`;
@@ -1212,12 +1303,13 @@
                     const role = profile.role || "";
                     const isAdminOrLeader = data.isAdmin || role.includes("조장") || role.includes("부조장") || role.includes("관리자");
 
+                    // 💡 대시보드 버튼은 등록된 사용자 전체에게 노출함 (조원은 클릭 시 '나의 활동 추적'으로 바로 진입)
+                    $('dash-btn').classList.remove('hidden');
+
                     if (isAdminOrLeader) {
-                        $('dash-btn').classList.remove('hidden');
                         $('admin-time-filter-bar').classList.remove('hidden');
                         $('admin-home-region-bar').classList.remove('hidden');
                     } else {
-                        $('dash-btn').classList.add('hidden');
                         $('admin-time-filter-bar').classList.add('hidden');
                         $('admin-home-region-bar').classList.add('hidden');
                     }
@@ -1638,16 +1730,16 @@
             $('db-kpi-total').textContent = total;
             $('db-kpi-rate').textContent = rate + '%';
 
-            const catCounts = { '찾기': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            const catCounts = { '찾기(오프라인)': 0, '찾기(온라인)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
             const findSubTypes = { '매만찾': 0, '오프찾': 0, '번호찾': 0, '기타': 0 };
             const findSubTopGroupMap = { '매만찾': {}, '오프찾': {}, '번호찾': {} };
 
-            const catTopGroupMap = { '매칭': {}, '잎사귀': {}, '복방': {} };
+            const catTopGroupMap = { '매칭': {}, '잎사귀': {}, '복방': {}, '찾기(오프라인)': {}, '찾기(온라인)': {} };
             const groupTotalCounts = {};
             const detailedResultsMap = {};
 
             list.forEach(item => {
-                const cat = item.content || '찾기';
+                const cat = item.content || '찾기(오프라인)';
                 const group = item.group || '미정';
 
                 if (catCounts[cat] !== undefined) catCounts[cat]++;
@@ -1655,10 +1747,8 @@
 
                 groupTotalCounts[group] = (groupTotalCounts[group] || 0) + 1;
 
-                if (cat !== '찾기') {
-                    if (!catTopGroupMap[cat]) catTopGroupMap[cat] = {};
-                    catTopGroupMap[cat][group] = (catTopGroupMap[cat][group] || 0) + 1;
-                }
+                if (!catTopGroupMap[cat]) catTopGroupMap[cat] = {};
+                catTopGroupMap[cat][group] = (catTopGroupMap[cat][group] || 0) + 1;
 
                 if (item.status === 'completed' && item.resultData) {
                     try {
@@ -1670,7 +1760,7 @@
                                 const countVal = (r.count ? parseInt(r.count, 10) : 1);
                                 detailedResultsMap[key] += countVal;
 
-                                if (r.category === '찾기') {
+                                if (r.category === '찾기' || r.category === '찾기(오프라인)' || r.category === '찾기(온라인)') {
                                     let subKey = '기타';
                                     if (r.type === '온만찾') subKey = '매만찾';
                                     else if (r.type === '오프만찾') subKey = '오프찾';
@@ -1688,7 +1778,8 @@
                 }
             });
 
-            $('db-cat-find').textContent = catCounts['찾기'] + '건';
+            $('db-cat-find-off').textContent = (catCounts['찾기(오프라인)'] || 0) + '건';
+            $('db-cat-find-on').textContent = (catCounts['찾기(온라인)'] || 0) + '건';
             $('db-cat-match').textContent = catCounts['매칭'] + '건';
             $('db-cat-leaf').textContent = catCounts['잎사귀'] + '건';
             $('db-cat-book').textContent = catCounts['복방'] + '건';
@@ -1741,10 +1832,16 @@
             catChartInstance = new Chart(ctxCat, {
                 type: 'doughnut',
                 data: {
-                    labels: ['찾기', '매칭', '잎사귀', '복방'],
+                    labels: ['찾기(오프라인)', '찾기(온라인)', '매칭', '잎사귀', '복방'],
                     datasets: [{
-                        data: [catCounts['찾기'], catCounts['매칭'], catCounts['잎사귀'], catCounts['복방']],
-                        backgroundColor: ['#2563eb', '#16a34a', '#d97706', '#9333ea']
+                        data: [
+                            catCounts['찾기(오프라인)'] || 0,
+                            catCounts['찾기(온라인)'] || 0,
+                            catCounts['매칭'] || 0,
+                            catCounts['잎사귀'] || 0,
+                            catCounts['복방'] || 0
+                        ],
+                        backgroundColor: ['#2563eb', '#60a5fa', '#16a34a', '#d97706', '#9333ea']
                     }]
                 },
                 options: {
@@ -1847,9 +1944,11 @@
         }
 
         function renderDateNav() {
-            $('display-date').textContent = currentDate.toLocaleDateString('ko-KR', {
-                year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
+            // 년도를 지우고 "7월 26일 (일)" 형태로 포맷
+            const dateStr = currentDate.toLocaleDateString('ko-KR', {
+                month: 'long', day: 'numeric', weekday: 'short',
             });
+            $('display-date').textContent = currentWeekName ? `${dateStr} - ${currentWeekName}` : dateStr;
             const today = new Date();
             const isToday = today.toDateString() === currentDate.toDateString();
             $('display-today').textContent = isToday ? '오늘' : '';
@@ -2124,7 +2223,7 @@
             $('f-starttime').value = defaultStartTime;
             updateEndTimeOptions();
 
-            $('f-content-category').value = '찾기';
+            $('f-content-category').value = '찾기(오프라인)';
             $('f-location').value = '';
             $('f-result-text').value = '';
             $('result-rows-container').innerHTML = '';
@@ -2149,7 +2248,7 @@
             }
             updateEndTimeOptions(item.endTime);
 
-            $('f-content-category').value = item.content || '찾기';
+            $('f-content-category').value = item.content || '찾기(오프라인)';
             $('f-location').value = item.location || '';
             $('f-result-text').value = item.resultText || '';
 
@@ -2219,6 +2318,201 @@
             overlay.classList.remove('open');
             sheet.classList.remove('open');
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
+        }
+
+        // 💡 대시보드 진입 버튼 클릭 처리 (관리자급은 선택 메뉴 토글, 일반 조원은 바로 나의 활동 추적 모달 열기)
+        function handleDashButtonClick() {
+            const role = profile.role || "";
+            const isAdminOrLeader = (role.includes("조장") || role.includes("부조장") || role.includes("관리자"));
+
+            if (isAdminOrLeader) {
+                toggleDashMenu();
+            } else {
+                openTrackerModal();
+            }
+        }
+
+        function toggleDashMenu() {
+            const menu = $('dash-menu');
+            const overlay = $('dash-popover-overlay');
+            const isOpening = menu.classList.contains('hidden');
+
+            if (isOpening) {
+                menu.classList.remove('hidden');
+                menu.classList.add('flex');
+                overlay.classList.remove('hidden');
+            } else {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function closeDashMenu() {
+            $('dash-menu').classList.add('hidden');
+            $('dash-menu').classList.remove('flex');
+            $('dash-popover-overlay').classList.add('hidden');
+        }
+
+        function openTrackerModal() {
+            const overlay = $('tracker-overlay');
+            const sheet = $('tracker-sheet');
+
+            sheet.style.display = 'flex';
+            sheet.offsetHeight;
+            overlay.classList.add('open');
+            sheet.classList.add('open');
+
+            // semestersList 정보를 셀렉트 박스에 바인딩
+            const selectEl = $('tracker-week-select');
+            selectEl.innerHTML = '';
+            if (semestersList && semestersList.length > 0) {
+                selectEl.innerHTML = semestersList.map(sem => `
+                    <option value="${sem.startDate}:${sem.endDate}" ${sem.isCurrent ? 'selected' : ''}>
+                        ${sem.name} (${sem.startDate} ~ ${sem.endDate})
+                    </option>
+                `).join('');
+            } else {
+                selectEl.innerHTML = `<option value="${dateKey(new Date())}:${dateKey(new Date())}">현재 주차 정보 없음</option>`;
+            }
+
+            fetchTrackerData();
+        }
+
+        function closeTrackerModal() {
+            const overlay = $('tracker-overlay');
+            const sheet = $('tracker-sheet');
+            overlay.classList.remove('open');
+            sheet.classList.remove('open');
+            setTimeout(() => { sheet.style.display = 'none'; }, 360);
+        }
+
+        async function fetchTrackerData() {
+            const selectEl = $('tracker-week-select');
+            if (!selectEl.value) return;
+
+            const [startDate, endDate] = selectEl.value.split(':');
+            $('tracker-dates-text').textContent = `${startDate} ~ ${endDate}`;
+
+            const dailyList = $('tracker-daily-list');
+            dailyList.innerHTML = '<p class="text-xs text-tg-muted text-center py-4">데이터 로딩 중...</p>';
+
+            try {
+                const res = await fetch(`${GAS_URL}?action=getUserTrackerData&initData=${encodeURIComponent(tg ? tg.initData : '')}&startDate=${startDate}&endDate=${endDate}`);
+                const data = await res.json();
+                if (data.result === 'success') {
+                    renderTrackerData(data.list || [], startDate, endDate);
+                } else {
+                    dailyList.innerHTML = `<p class="text-xs text-red-600 text-center py-4">${escHtml(data.message || '조회 실패')}</p>`;
+                }
+            } catch (e) {
+                dailyList.innerHTML = `<p class="text-xs text-red-600 text-center py-4">오류 발생: ${escHtml(e.message)}</p>`;
+            }
+        }
+
+        function getDatesInRange(start, end) {
+            const dates = [];
+            let curr = new Date(start);
+            const last = new Date(end);
+            while (curr <= last) {
+                dates.push(dateKey(curr));
+                curr.setDate(curr.getDate() + 1);
+            }
+            return dates;
+        }
+
+        function renderTrackerData(list, startDate, endDate) {
+            let countFind = 0;
+            let countMatch = 0;
+            let countLeaf = 0;
+            let countBook = 0;
+
+            list.forEach(item => {
+                if (item.status === 'completed') {
+                    if (item.resultData) {
+                        try {
+                            const parsed = JSON.parse(item.resultData);
+                            if (Array.isArray(parsed)) {
+                                parsed.forEach(r => {
+                                    const cVal = r.count !== undefined ? parseInt(r.count, 10) : 1;
+                                    if (r.category === '찾기(오프라인)' || r.category === '찾기(온라인)' || r.category === '찾기') {
+                                        countFind += cVal;
+                                    } else if (r.category === '매칭') {
+                                        countMatch += cVal;
+                                    } else if (r.category === '잎사귀') {
+                                        countLeaf += cVal;
+                                    } else if (r.category === '복방') {
+                                        countBook += cVal;
+                                    }
+                                });
+                            }
+                        } catch (e) {}
+                    }
+                }
+            });
+
+            $('track-sum-find').textContent = countFind + '건';
+            $('track-sum-match').textContent = countMatch + '건';
+            $('track-sum-leaf').textContent = countLeaf + '건';
+            $('track-sum-book').textContent = countBook + '건';
+
+            const dailyContainer = $('tracker-daily-list');
+            dailyContainer.innerHTML = '';
+
+            const rangeDates = getDatesInRange(startDate, endDate);
+
+            rangeDates.forEach(dateStr => {
+                const dayActs = list.filter(item => item.date === dateStr);
+                const d = new Date(dateStr);
+                const dayLabel = d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'border-b border-tg-border/50 pb-2.5 last:border-b-0 last:pb-0';
+
+                let actsHtml = '';
+                if (dayActs.length === 0) {
+                    actsHtml = `<p class="text-[11px] text-tg-muted py-1 italic">활동 기록이 없습니다.</p>`;
+                } else {
+                    actsHtml = dayActs.map(item => {
+                        const badgeClass = { planned: 'bg-blue-50 text-blue-700 border-blue-200', completed: 'bg-green-50 text-green-700 border-green-200', canceled: 'bg-red-50 text-red-700 border-red-200' }[item.status] || 'bg-gray-50 text-gray-700';
+                        const statusLabel = { planned: '계획중', completed: '완료', canceled: '취소' }[item.status] || item.status;
+
+                        let resultDetail = '';
+                        if (item.status === 'completed' && item.resultData) {
+                            try {
+                                const parsed = JSON.parse(item.resultData);
+                                if (Array.isArray(parsed) && parsed.length > 0) {
+                                    resultDetail = `<div class="mt-1 flex flex-wrap gap-1 text-[10px]">
+                                        ${parsed.map(r => `<span class="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 font-semibold">${r.category} [${r.type}]${r.count !== undefined ? ` ${r.count}개` : ''}</span>`).join('')}
+                                    </div>`;
+                                }
+                            } catch (e) {}
+                        }
+
+                        return `
+                            <div class="bg-tg-surface p-2 rounded-xl border border-tg-border mt-1.5 shadow-sm">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-tg-text">${item.content}</span>
+                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeClass}">${statusLabel}</span>
+                                </div>
+                                <p class="text-[11px] text-tg-muted mt-0.5">⏰ ${item.startTime} ~ ${item.endTime} ${item.location ? `📍 ${item.location}` : ''}</p>
+                                ${resultDetail}
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                dayDiv.innerHTML = `
+                    <p class="text-xs font-bold text-tg-blue flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 bg-tg-blue rounded-full"></span>
+                        ${dayLabel}
+                    </p>
+                    <div class="pl-3 space-y-1.5">
+                        ${actsHtml}
+                    </div>
+                `;
+                dailyContainer.appendChild(dayDiv);
+            });
         }
 
         function showToast(message, type) {
@@ -2366,7 +2660,20 @@
                 openAdd('completed');
             });
 
-            $('dash-btn').addEventListener('click', openDashModal);
+            $('dash-btn').addEventListener('click', handleDashButtonClick);
+            $('dash-popover-overlay').addEventListener('click', closeDashMenu);
+            $('btn-dash-admin').addEventListener('click', () => {
+                closeDashMenu();
+                openDashModal();
+            });
+            $('btn-dash-tracker').addEventListener('click', () => {
+                closeDashMenu();
+                openTrackerModal();
+            });
+
+            $('btn-close-tracker').addEventListener('click', closeTrackerModal);
+            $('tracker-overlay').addEventListener('click', closeTrackerModal);
+            $('tracker-week-select').addEventListener('change', fetchTrackerData);
 
             $('btn-close-modal').addEventListener('click', closeModal);
             $('modal-overlay').addEventListener('click', closeModal);

@@ -101,7 +101,7 @@ function doGet(e) {
                   const parsed = JSON.parse(rowResultData);
                   if (Array.isArray(parsed)) {
                     parsed.forEach(r => {
-                      if (r.category === "찾기" && (r.type === "온만찾" || r.type === "오프만찾")) {
+                      if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") && (r.type === "온만찾" || r.type === "오프만찾")) {
                         weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                       }
                     });
@@ -151,7 +151,9 @@ function doGet(e) {
         isAdmin: (isSuperAdmin || isGroupAdmin),
         weeklyMissionCount: weeklyMissionCount,
         currentSemester: getCurrentSemesterObj(),
-        allRegions: allRegions
+        allRegions: allRegions,
+        weekName: getWeekNameForDate(targetDate),
+        semestersList: getSemestersList()
       });
     }
 
@@ -223,6 +225,64 @@ function doGet(e) {
       }
 
       return makeJsonResponse({ result: "success", range: rangeType, list: rawList });
+    }
+
+    // 💡 2.5. 나의 활동 추적 API
+    if (action === "getUserTrackerData") {
+      const startDate = e.parameter.startDate;
+      const endDate = e.parameter.endDate;
+
+      let isRegistered = false;
+      if (userSheet) {
+        const uData = userSheet.getDataRange().getValues();
+        for (let i = 1; i < uData.length; i++) {
+          const cellId = uData[i][0] ? uData[i][0].toString().trim() : "";
+          if (cellId && cellId === userId.toString().trim()) {
+            isRegistered = true;
+            break;
+          }
+        }
+      }
+
+      if (!isRegistered) {
+        return makeJsonResponse({ result: "fail", message: "미등록 사용자입니다." });
+      }
+
+      const trackerList = [];
+      if (actSheet) {
+        const actData = actSheet.getDataRange().getValues();
+        for (let i = 1; i < actData.length; i++) {
+          let rowDate = actData[i][6];
+          if (rowDate instanceof Date) {
+            rowDate = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
+          } else {
+            rowDate = rowDate ? rowDate.toString().trim() : "";
+          }
+
+          const rowUserId = actData[i][1] ? actData[i][1].toString().trim() : "";
+
+          if (rowUserId === userId.toString().trim() && rowDate >= startDate && rowDate <= endDate) {
+            trackerList.push({
+              id: actData[i][0],
+              userId: rowUserId,
+              name: actData[i][2],
+              group: formatGroupString(actData[i][3]),
+              region: actData[i][4],
+              role: actData[i][5],
+              date: rowDate,
+              startTime: formatTimeString(actData[i][7]),
+              endTime: formatTimeString(actData[i][8]),
+              location: actData[i][9],
+              content: actData[i][10] ? actData[i][10].toString() : "찾기(오프라인)",
+              status: actData[i][11],
+              resultData: actData[i][12] ? actData[i][12].toString() : "",
+              resultText: actData[i][13] ? actData[i][13].toString() : ""
+            });
+          }
+        }
+      }
+
+      return makeJsonResponse({ result: "success", list: trackerList });
     }
 
     // 💡 3. 미취합자(선택 날짜 당일 결과 + 내일 계획) 및 미달성자, 휴무일 스킵 API
@@ -338,7 +398,7 @@ function doGet(e) {
                 const parsed = JSON.parse(resultData);
                 if (Array.isArray(parsed)) {
                   parsed.forEach(r => {
-                    if (r.category === '찾기' && (r.type === '온만찾' || r.type === '오프만찾')) {
+                    if ((r.category === '찾기' || r.category === '찾기(오프라인)' || r.category === '찾기(온라인)') && (r.type === '온만찾' || r.type === '오프만찾')) {
                       userMap[name].weeklyFindCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                     }
                   });
@@ -624,6 +684,7 @@ function updateSemester(name, startDate, endDate) {
 }
 
 // 순수 객체 반환 헬퍼 (getInitialData 등에서 재사용)
+// 순수 객체 반환 헬퍼 (getInitialData 등에서 재사용, 5열/4열 하이브리드 지원)
 function getCurrentSemesterObj() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const semSheet = ss.getSheetByName("Semesters");
@@ -634,13 +695,116 @@ function getCurrentSemesterObj() {
 
   const data = semSheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][3]).trim().toUpperCase() === "Y") {
-      return {
-        name: String(data[i][0]),
-        startDate: formatDateStr(new Date(data[i][1])),
-        endDate: formatDateStr(new Date(data[i][2]))
-      };
+    const row = data[i];
+    if (row.length < 4) continue;
+
+    let name = String(row[0]).trim();
+    let weekName = "";
+    let startVal = null;
+    let endVal = null;
+    let isCurrent = false;
+
+    if (row.length >= 5) {
+      weekName = String(row[1]).trim();
+      startVal = row[2];
+      endVal = row[3];
+      isCurrent = String(row[4]).trim().toUpperCase() === "Y";
+    } else {
+      startVal = row[1];
+      endVal = row[2];
+      isCurrent = String(row[3]).trim().toUpperCase() === "Y";
+    }
+
+    if (isCurrent && startVal && endVal) {
+      try {
+        return {
+          name: weekName ? `${name} ${weekName}` : name,
+          startDate: formatDateStr(new Date(startVal)),
+          endDate: formatDateStr(new Date(endVal))
+        };
+      } catch (e) { }
     }
   }
   return { name: "2026-2학기 개강", startDate: "2026-09-01", endDate: "2026-12-31" };
+}
+
+// 📅 선택된 날짜가 속한 주차(또는 사이클) 이름을 가져오는 헬퍼 함수
+function getWeekNameForDate(targetDate) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const semSheet = ss.getSheetByName("Semesters");
+  if (!semSheet) return "";
+
+  const data = semSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row.length < 4) continue;
+
+    let name = String(row[0]).trim();
+    let weekName = "";
+    let startVal = null;
+    let endVal = null;
+
+    if (row.length >= 5) {
+      weekName = String(row[1]).trim();
+      startVal = row[2];
+      endVal = row[3];
+    } else {
+      startVal = row[1];
+      endVal = row[2];
+    }
+
+    if (startVal && endVal) {
+      try {
+        const startStr = formatDateStr(new Date(startVal));
+        const endStr = formatDateStr(new Date(endVal));
+        if (targetDate >= startStr && targetDate <= endStr) {
+          return weekName ? weekName : name;
+        }
+      } catch (e) { }
+    }
+  }
+  return "";
+}
+
+// 📅 대시보드/활동 추적의 주차 목록을 조회하는 헬퍼 함수
+function getSemestersList() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const semSheet = ss.getSheetByName("Semesters");
+  const list = [];
+  if (!semSheet) return list;
+
+  const data = semSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row.length < 4) continue;
+
+    let name = String(row[0]).trim();
+    let weekName = "";
+    let startVal = null;
+    let endVal = null;
+    let isCurrent = false;
+
+    if (row.length >= 5) {
+      weekName = String(row[1]).trim();
+      startVal = row[2];
+      endVal = row[3];
+      isCurrent = String(row[4]).trim().toUpperCase() === "Y";
+    } else {
+      startVal = row[1];
+      endVal = row[2];
+      isCurrent = String(row[3]).trim().toUpperCase() === "Y";
+    }
+
+    if (startVal && endVal) {
+      try {
+        list.push({
+          name: weekName ? `${name} ${weekName}` : name,
+          startDate: formatDateStr(new Date(startVal)),
+          endDate: formatDateStr(new Date(endVal)),
+          isCurrent: isCurrent
+        });
+      } catch (e) { }
+    }
+  }
+  return list;
 }
