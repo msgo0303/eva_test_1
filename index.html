@@ -8,6 +8,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         tailwind.config = {
@@ -253,13 +254,13 @@
             border-radius: 2px;
         }
 
-        /* 💡 모바일 WebKit 브라우저의 date input 마진 및 튀어나감 정규화 */
         input[type="date"]::-webkit-date-and-time-value {
             margin: 0 !important;
             padding: 0 !important;
             min-height: 1.25em;
             line-height: 1.25em;
         }
+
         input[type="date"] {
             -webkit-appearance: none;
             appearance: none;
@@ -278,7 +279,6 @@
     <!-- APP WRAPPER -->
     <div id="app" class="flex flex-col h-screen max-w-md mx-auto relative bg-tg-bg">
 
-        <!-- sticky wrapper가 header, mission-card, date-nav를 감쌈 -->
         <div class="sticky top-0 z-20 bg-tg-bg shadow-sm">
             <!-- HEADER -->
             <header class="border-b border-tg-border px-4 pt-3 pb-3">
@@ -318,7 +318,7 @@
                 </div>
             </header>
 
-            <!-- 🎯 신규: 주간 미션 달성 현황 카드 -->
+            <!-- 주간 미션 달성 현황 카드 -->
             <div id="weekly-mission-card"
                 class="px-4 py-2.5 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between">
                 <div class="flex-1 pr-3">
@@ -327,8 +327,8 @@
                         <span id="mission-status-text" class="text-xs font-extrabold text-tg-blue">0 / 6건 (0%)</span>
                     </div>
                     <div class="w-full h-2 bg-blue-200/60 rounded-full overflow-hidden">
-                        <div id="mission-progress-bar" class="h-full bg-tg-blue rounded-full transition-all duration-500"
-                            style="width: 0%;"></div>
+                        <div id="mission-progress-bar"
+                            class="h-full bg-tg-blue rounded-full transition-all duration-500" style="width: 0%;"></div>
                     </div>
                 </div>
             </div>
@@ -342,16 +342,17 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                     </svg>
                 </button>
-                
-                <!-- 💡 클릭 시 캘린더 피커가 열리는 날짜 영역 -->
+
                 <div id="date-picker-trigger" class="text-center cursor-pointer hover:opacity-80 transition-opacity">
                     <div class="flex items-center justify-center gap-1.5 mb-0.5">
                         <p id="display-date" class="text-sm font-bold text-tg-blue underline underline-offset-4"></p>
                         <span id="hdr-semester-badge"
-                            class="hidden bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">🎓 -</span>
+                            class="hidden bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">🎓
+                            -</span>
                     </div>
                     <p id="display-today" class="text-xs text-tg-muted h-4"></p>
-                    <input id="hidden-date-picker" type="date" class="absolute opacity-0 pointer-events-none inset-0 w-full h-full" />
+                    <input id="hidden-date-picker" type="date"
+                        class="absolute opacity-0 pointer-events-none inset-0 w-full h-full" />
                 </div>
 
                 <button id="btn-next-day"
@@ -366,34 +367,37 @@
 
         <!-- ACTIVITY LIST -->
         <main class="flex-1 overflow-y-auto px-4 pb-24 pt-3 bg-tg-surface">
-            <!-- 📢 NOTICE ACCORDION SECTION -->
+            <!-- NOTICE ACCORDION SECTION -->
             <div class="bg-tg-bg rounded-2xl border border-tg-border mb-3 shadow-sm overflow-hidden">
-                <div id="notice-header-trigger" class="flex items-center justify-between px-4 py-3 bg-emerald-50 border-b border-emerald-100 cursor-pointer select-none active:bg-emerald-100/50 transition-colors">
+                <div id="notice-header-trigger"
+                    class="flex items-center justify-between px-4 py-3 bg-emerald-50 border-b border-emerald-100 cursor-pointer select-none active:bg-emerald-100/50 transition-colors">
                     <div class="flex items-center gap-1.5 min-w-0 flex-1">
                         <span class="text-sm">📢</span>
                         <span class="text-xs font-extrabold text-emerald-800 flex-shrink-0">공지사항</span>
-                        <span id="notice-summary-text" class="text-[10px] text-emerald-600 font-semibold truncate mr-2"></span>
-                        <span id="notice-unread-count" class="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full hidden">New</span>
+                        <span id="notice-summary-text"
+                            class="text-[10px] text-emerald-600 font-semibold truncate mr-2"></span>
+                        <span id="notice-unread-count"
+                            class="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full hidden">New</span>
                     </div>
                     <div class="flex items-center gap-1 flex-shrink-0">
                         <span id="notice-toggle-arrow" class="text-emerald-800 text-[10px]">▼</span>
                     </div>
                 </div>
-                <div id="notice-vertical-list" class="hidden divide-y divide-tg-border/50 max-h-60 overflow-y-auto transition-all bg-white">
-                    <!-- 공지사항 목록이 세로로 렌더링됨 -->
+                <div id="notice-vertical-list"
+                    class="hidden divide-y divide-tg-border/50 max-h-60 overflow-y-auto transition-all bg-white">
                 </div>
             </div>
-            
+
             <div class="bg-tg-bg rounded-2xl p-3 border border-tg-border space-y-2.5 mb-3 shadow-sm">
-                <!-- 💡 리더 전용 메인 홈 지역 필터 -->
-                <div id="admin-home-region-bar" class="hidden flex items-center justify-between pb-2 border-b border-tg-border">
+                <div id="admin-home-region-bar"
+                    class="hidden flex items-center justify-between pb-2 border-b border-tg-border">
                     <span class="text-xs font-bold text-tg-muted">📍 지역별 필터</span>
-                    <select id="home-region-select" class="border border-tg-border rounded-lg bg-tg-surface px-2.5 py-1 text-xs font-bold text-tg-blue focus:outline-none">
+                    <select id="home-region-select"
+                        class="border border-tg-border rounded-lg bg-tg-surface px-2.5 py-1 text-xs font-bold text-tg-blue focus:outline-none">
                         <option value="ALL">전체 지역</option>
                     </select>
                 </div>
 
-                <!-- 기존 STATS BAR & TIME FILTERS 버튼들 그대로 유지 -->
                 <div class="grid grid-cols-3 gap-2">
                     <div id="btn-filter-planned"
                         class="stat-btn bg-blue-50/60 rounded-xl p-2.5 text-center border border-blue-100">
@@ -449,7 +453,7 @@
             <div id="cards-container" class="space-y-3"></div>
         </main>
 
-        <!-- 📊 DASHBOARD BUTTON -->
+        <!-- DASHBOARD BUTTON -->
         <button id="dash-btn"
             class="hidden fixed bottom-6 left-5 z-30 w-14 h-14 bg-zinc-900 text-white rounded-full flex items-center justify-center active:scale-95 transition-transform">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -459,7 +463,7 @@
             </svg>
         </button>
 
-        <!-- 📊 DASHBOARD POP-OVER MENU -->
+        <!-- DASHBOARD POP-OVER MENU -->
         <div id="dash-popover-overlay" class="fixed inset-0 z-30 bg-black/20 hidden"></div>
         <div id="dash-menu" class="hidden fixed bottom-24 left-5 z-40 flex-col gap-2">
             <button id="btn-dash-admin"
@@ -476,17 +480,20 @@
             </button>
         </div>
 
-        <!-- 📢 NOTICE MANAGER FULL MODAL SHEET -->
+        <!-- NOTICE MANAGER FULL MODAL SHEET -->
         <div id="notice-overlay" class="fixed inset-0 z-40 bg-black/40 hidden"></div>
-        <div id="notice-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex flex-col h-[92vh] hidden transition-transform duration-300 translate-y-full">
+        <div id="notice-sheet"
+            class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex flex-col h-[92vh] hidden transition-transform duration-300 translate-y-full">
             <div class="flex justify-center pt-3 pb-1 flex-shrink-0 bg-tg-bg rounded-t-3xl">
                 <div class="w-10 h-1 bg-tg-border rounded-full"></div>
             </div>
 
-            <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
+            <div
+                class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
                 <div>
                     <h2 class="text-base font-bold text-tg-text">📢 공지사항 관리 및 작성</h2>
-                    <p class="text-[11px] text-tg-blue font-semibold mt-0.5" id="notice-sheet-subtitle">공지사항을 관리하고 새로 등록합니다.</p>
+                    <p class="text-[11px] text-tg-blue font-semibold mt-0.5" id="notice-sheet-subtitle">공지사항을 관리하고 새로
+                        등록합니다.</p>
                 </div>
                 <button id="btn-close-notice"
                     class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
@@ -497,32 +504,31 @@
                 </button>
             </div>
 
-            <!-- Tab Navigation inside Notice Sheet -->
             <div class="flex bg-tg-bg px-4 py-2 border-b border-tg-border gap-2 flex-shrink-0">
-                <button id="tab-notice-manage" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm">
+                <button id="tab-notice-manage"
+                    class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm">
                     공지사항 관리
                 </button>
-                <button id="tab-notice-write" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted">
+                <button id="tab-notice-write"
+                    class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted">
                     공지사항 작성
                 </button>
             </div>
 
-            <!-- Content Area -->
             <div class="overflow-y-auto flex-1 p-5 space-y-4 bg-white">
-                <!-- VIEW 1: 공지사항 관리 -->
                 <div id="notice-view-manage" class="space-y-4">
-                    <!-- 관리자 섹션 1: 전체(관리자) 공지사항 -->
                     <div id="section-admin-notices" class="space-y-2">
-                        <h3 class="text-xs font-bold text-purple-800 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100 flex items-center gap-1.5">
+                        <h3
+                            class="text-xs font-bold text-purple-800 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100 flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
                             전체(관리자) 공지사항 관리
                         </h3>
                         <div id="manage-admin-list" class="space-y-2 pl-1 text-xs"></div>
                     </div>
 
-                    <!-- 관리자 섹션 2: 조별 공지사항 -->
                     <div id="section-group-notices" class="space-y-2">
-                        <h3 id="group-notices-title" class="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-1.5">
+                        <h3 id="group-notices-title"
+                            class="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
                             지역별 공지사항 관리
                         </h3>
@@ -530,7 +536,6 @@
                     </div>
                 </div>
 
-                <!-- VIEW 2: 공지사항 작성 -->
                 <div id="notice-view-write" class="hidden space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-tg-muted mb-1.5">공지 제목</label>
@@ -545,28 +550,32 @@
                     </div>
 
                     <div>
-                        <label class="flex items-center gap-2 p-3 bg-red-50/50 border border-red-200 rounded-xl cursor-pointer select-none">
-                            <input id="n-important" type="checkbox" class="w-4 h-4 rounded text-red-600 focus:ring-red-500" />
+                        <label
+                            class="flex items-center gap-2 p-3 bg-red-50/50 border border-red-200 rounded-xl cursor-pointer select-none">
+                            <input id="n-important" type="checkbox"
+                                class="w-4 h-4 rounded text-red-600 focus:ring-red-500" />
                             <span class="text-xs font-bold text-red-800">📌 중요 공지로 지정 (상단 고정)</span>
                         </label>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-tg-muted mb-1.5">대상 지역</label>
-                        <div id="n-region-checkboxes" class="p-3 bg-tg-surface rounded-xl border border-tg-border space-y-2">
+                        <div id="n-region-checkboxes"
+                            class="p-3 bg-tg-surface rounded-xl border border-tg-border space-y-2">
                             <label class="flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" id="n-region-all" value="ALL" class="w-4 h-4 rounded text-tg-blue focus:ring-tg-blue" checked />
+                                <input type="checkbox" id="n-region-all" value="ALL"
+                                    class="w-4 h-4 rounded text-tg-blue focus:ring-tg-blue" checked />
                                 <span class="text-xs font-bold text-tg-text">전체 지역</span>
                             </label>
                             <div id="n-region-items" class="grid grid-cols-3 gap-2 pt-2 border-t border-tg-border">
-                                <!-- Dynamically populated -->
                             </div>
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-tg-muted mb-1.5">공개 여부</label>
-                        <select id="n-visible" class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                        <select id="n-visible"
+                            class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
                             <option value="Y">공개</option>
                             <option value="N">비공개</option>
                         </select>
@@ -580,33 +589,39 @@
             </div>
         </div>
 
-        <!-- 📢 NOTICE DETAIL POPUP -->
-        <div id="notice-detail-overlay" class="fixed inset-0 z-50 bg-black/40 hidden flex items-center justify-center p-4">
+        <!-- NOTICE DETAIL POPUP -->
+        <div id="notice-detail-overlay"
+            class="fixed inset-0 z-50 bg-black/40 hidden flex items-center justify-center p-4">
             <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col max-h-[80vh]">
                 <div class="flex items-center justify-between border-b border-tg-border pb-3 mb-3">
                     <span id="nd-badge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full">-</span>
-                    <button id="btn-close-nd" class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                    <button id="btn-close-nd"
+                        class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                            stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
                 <h3 id="nd-title" class="text-sm font-extrabold text-tg-text mb-1.5">공지 제목</h3>
                 <p id="nd-meta" class="text-[10px] text-tg-muted mb-4">작성자: - | 작성일: - | 대상: -</p>
-                <div id="nd-content" class="text-xs text-tg-text leading-relaxed overflow-y-auto whitespace-pre-wrap flex-1 bg-tg-surface p-3 rounded-xl border border-tg-border font-medium">
+                <div id="nd-content"
+                    class="text-xs text-tg-text leading-relaxed overflow-y-auto whitespace-pre-wrap flex-1 bg-tg-surface p-3 rounded-xl border border-tg-border font-medium">
                     공지 내용
                 </div>
             </div>
         </div>
 
-        <!-- 🏃 MY TRACKER FULL MODAL SHEET -->
+        <!-- MY TRACKER FULL MODAL SHEET -->
         <div id="tracker-overlay" class="fixed inset-0 z-40 bg-black/40 hidden"></div>
-        <div id="tracker-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex flex-col h-[94vh] hidden transition-transform duration-300 translate-y-full">
+        <div id="tracker-sheet"
+            class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex flex-col h-[94vh] hidden transition-transform duration-300 translate-y-full">
             <div class="flex justify-center pt-3 pb-1 flex-shrink-0 bg-tg-bg rounded-t-3xl">
                 <div class="w-10 h-1 bg-tg-border rounded-full"></div>
             </div>
 
-            <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
+            <div
+                class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
                 <div>
                     <h2 class="text-base font-bold text-tg-text">🏃 나의 활동 추적</h2>
                     <p id="tracker-dates-text" class="text-[11px] text-tg-blue font-semibold mt-0.5">-</p>
@@ -658,7 +673,7 @@
             </div>
         </div>
 
-        <!-- ➕ FAB POP-OVER MENU -->
+        <!-- FAB POP-OVER MENU -->
         <div id="fab-popover-overlay" class="fixed inset-0 z-30 bg-black/20 hidden"></div>
         <div id="fab-menu" class="hidden fixed bottom-24 right-5 z-40 flex-col gap-2">
             <button id="btn-fab-direct-result"
@@ -671,7 +686,7 @@
             </button>
         </div>
 
-        <!-- ➕ ADD BUTTON -->
+        <!-- ADD BUTTON -->
         <button id="fab"
             class="fixed bottom-6 right-5 z-30 w-14 h-14 bg-tg-blue text-white rounded-full flex items-center justify-center active:scale-95 transition-transform">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
@@ -821,7 +836,7 @@
         </div>
     </div>
 
-    <!-- 📊 DASHBOARD FULL MODAL SHEET -->
+    <!-- DASHBOARD FULL MODAL SHEET -->
     <div id="dash-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
     <div id="dash-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex-col h-[94vh]">
         <div class="flex justify-center pt-3 pb-1 flex-shrink-0 bg-tg-bg rounded-t-3xl">
@@ -843,10 +858,10 @@
             </button>
         </div>
 
-        <!-- 대시보드 메인 탭 선택 바 -->
         <div class="flex border-b border-tg-border bg-tg-bg px-3 pt-1 flex-shrink-0">
             <button data-tab="summary"
-                class="dash-main-tab active flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">1. 현황 요약</button>
+                class="dash-main-tab active flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">1. 현황
+                요약</button>
             <button data-tab="risk"
                 class="dash-main-tab flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">2. 미취합/미달성</button>
             <button data-tab="members"
@@ -855,7 +870,6 @@
                 class="dash-main-tab flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">4. 사이클 설정</button>
         </div>
 
-        <!-- Scrollable Dashboard Content -->
         <div class="overflow-y-auto flex-1 p-4 space-y-4">
 
             <!-- 탭 1: 현황 요약 -->
@@ -888,7 +902,8 @@
                     <div class="grid grid-cols-5 gap-1 pt-1 relative">
                         <div id="btn-find-chip"
                             class="bg-blue-50 border border-blue-200 hover:border-blue-400 rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
-                            <p class="text-[9px] text-blue-600 font-bold flex items-center justify-center gap-0.5">찾기(오프)</p>
+                            <p class="text-[9px] text-blue-600 font-bold flex items-center justify-center gap-0.5">
+                                찾기(오프)</p>
                             <p id="db-cat-find-off" class="text-sm font-bold text-blue-800">0건</p>
                         </div>
 
@@ -997,15 +1012,18 @@
 
             <!-- 탭 2: 미취합/미달성 관리 -->
             <div id="tab-sec-risk" class="hidden space-y-4">
-                <div class="bg-white p-3 rounded-2xl border border-tg-border flex items-center justify-between shadow-sm">
+                <div
+                    class="bg-white p-3 rounded-2xl border border-tg-border flex items-center justify-between shadow-sm">
                     <span class="text-xs font-bold text-tg-text">📍 지역별 필터</span>
-                    <select id="risk-region-select" onchange="filterRiskDataByRegion()" class="border border-tg-border rounded-xl bg-tg-surface px-3 py-1.5 text-xs font-bold text-tg-blue focus:outline-none">
+                    <select id="risk-region-select" onchange="filterRiskDataByRegion()"
+                        class="border border-tg-border rounded-xl bg-tg-surface px-3 py-1.5 text-xs font-bold text-tg-blue focus:outline-none">
                         <option value="ALL">전체 지역</option>
                     </select>
                 </div>
-                <!-- 1. 내일 계획 미취합 섹션 -->
+
                 <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleTomorrowList()">
+                    <div class="flex items-center justify-between cursor-pointer select-none"
+                        onclick="toggleTomorrowList()">
                         <div>
                             <h3 id="risk-tomorrow-title" class="text-xs font-bold text-blue-800">🌙 내일 계획 미취합자 명단</h3>
                             <p id="risk-tomorrow-sub" class="text-[10px] text-blue-600 mt-0.5">내일 일정 미등록 인원 (밤 독촉용)</p>
@@ -1019,12 +1037,13 @@
                     <div id="risk-tomorrow-list" class="space-y-1.5 text-xs"></div>
                 </div>
 
-                <!-- 2. 당일 결과 미취합 섹션 -->
                 <div class="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleTodayList()">
+                    <div class="flex items-center justify-between cursor-pointer select-none"
+                        onclick="toggleTodayList()">
                         <div>
                             <h3 id="risk-today-title" class="text-xs font-bold text-red-700">⚠️ 당일 결과 미취합자 명단</h3>
-                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중(미완료) 상태 (저녁 독촉용)</p>
+                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중(미완료) 상태 (저녁
+                                독촉용)</p>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span id="risk-today-count"
@@ -1035,7 +1054,6 @@
                     <div id="risk-today-list" class="space-y-1.5 text-xs"></div>
                 </div>
 
-                <!-- 3. 주간 미달성 섹션 -->
                 <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between">
                         <div>
@@ -1051,9 +1069,11 @@
 
             <!-- 탭 3: 멤버 관리 -->
             <div id="tab-sec-members" class="hidden space-y-3">
-                <div class="bg-white p-3 rounded-2xl border border-tg-border flex items-center justify-between shadow-sm">
+                <div
+                    class="bg-white p-3 rounded-2xl border border-tg-border flex items-center justify-between shadow-sm">
                     <span class="text-xs font-bold text-tg-text">📍 지역별 필터</span>
-                    <select id="member-region-select" onchange="filterMemberDataByRegion()" class="border border-tg-border rounded-xl bg-tg-surface px-3 py-1.5 text-xs font-bold text-tg-blue focus:outline-none">
+                    <select id="member-region-select" onchange="filterMemberDataByRegion()"
+                        class="border border-tg-border rounded-xl bg-tg-surface px-3 py-1.5 text-xs font-bold text-tg-blue focus:outline-none">
                         <option value="ALL">전체 지역</option>
                     </select>
                 </div>
@@ -1090,7 +1110,8 @@
                                 class="w-full min-w-0 max-w-full block appearance-none box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
                         </div>
                         <button onclick="saveSemesterSetting()"
-                            class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">사이클 설정 저장</button>
+                            class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">사이클
+                            설정 저장</button>
                     </div>
                 </div>
             </div>
@@ -1135,6 +1156,16 @@
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwOnzceBFUvKYlqB0r-MBTYWC3jfv6ebqhuy2UV9alE5S83isURYGSbG4de0pFWsGMM/exec";
 
+        // 💡 Supabase 설정 정보 (본인의 Supabase 프로젝트 URL 및 Anon Key 입력)
+        // 💡 수정 반영된 Supabase 접속 정보
+        const SUPABASE_URL = "https://qrrnvmskijxwtutgfrhf.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFycm52bXNraWp4d3R1dGdmcmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNDAyNTUsImV4cCI6MjEwMDcxNjI1NX0.-EcLv73jL7yw3vwGQqIQ330ajq6_HHy2UDVNxmpzGa4";
+
+        // 💡 SUPABASE_URL이 정상 지정되었을 때만 클라이언트를 생성하도록 수정
+        const supabase = (window.supabase && SUPABASE_URL && SUPABASE_URL !== "YOUR_SUPABASE_URL")
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+            : null;
+
         const tg = window.Telegram ? window.Telegram.WebApp : null;
 
         let profile = { region: '', role: '', name: '', group: '', id: '' };
@@ -1142,16 +1173,17 @@
         let activities = [];
         let activeFilter = 'all';
         let activeTimeFilter = 'all';
-        let activeHomeRegionFilter = 'ALL'; // 💡 홈 화면 지역 필터 상태 추가
+        let activeHomeRegionFilter = 'ALL';
         let userHasActiveBook = false;
         let weeklyMissionCount = 0;
-        let rawRiskData = null; // 💡 대시보드 미취합/멤버 원본 데이터 캐시 추가
-        let currentWeekName = ""; // 💡 현재 날짜의 주차명 캐시
-        let semestersList = [];   // 💡 주차 선택용 전체 주차 리스트 캐시
+        let rawRiskData = null;
+        let currentWeekName = "";
+        let semestersList = [];
         let isTomorrowCollapsed = false;
         let isTodayCollapsed = false;
-        let allRegionsList = [];  // 💡 전체 지역 목록 캐시 추가
-        let activeNotices = [];   // 💡 활성 공지사항 캐시 추가
+        let allRegionsList = [];
+        let activeNotices = [];
+        let cachedAllUsers = [];
 
         let modalMode = 'add';
         let editId = null;
@@ -1170,6 +1202,11 @@
             '복방': { types: ['진행', '취소'], hasCount: false }
         };
 
+        const FIXED_REGIONS = [
+            "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
+            "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
+        ];
+
         const $ = id => document.getElementById(id);
 
         function generateTimeOptions() {
@@ -1187,12 +1224,8 @@
         function initTimeSelects() {
             const times = generateTimeOptions();
             const startEl = $('f-starttime');
-
             startEl.innerHTML = '';
-            times.forEach(t => {
-                startEl.innerHTML += `<option value="${t}">${t}</option>`;
-            });
-
+            times.forEach(t => { startEl.innerHTML += `<option value="${t}">${t}</option>`; });
             updateEndTimeOptions();
         }
 
@@ -1200,13 +1233,10 @@
             const startVal = $('f-starttime').value;
             const times = generateTimeOptions();
             const endEl = $('f-endtime');
-
             const validEndTimes = times.filter(t => t > startVal);
 
             endEl.innerHTML = '';
-            validEndTimes.forEach(t => {
-                endEl.innerHTML += `<option value="${t}">${t}</option>`;
-            });
+            validEndTimes.forEach(t => { endEl.innerHTML += `<option value="${t}">${t}</option>`; });
 
             if (selectedEndTime && validEndTimes.includes(selectedEndTime)) {
                 endEl.value = selectedEndTime;
@@ -1236,13 +1266,24 @@
                 .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
+        function parseTelegramUserId(initDataStr) {
+            if (!initDataStr) return "GUEST_USER";
+            try {
+                const decoded = decodeURIComponent(initDataStr);
+                const userParam = decoded.split('&').find(p => p.startsWith('user='));
+                if (userParam) {
+                    return JSON.parse(userParam.split('user=')[1]).id.toString();
+                }
+            } catch (e) { }
+            return "GUEST_USER";
+        }
+
         function renderWeeklyMissionUI() {
             const card = $('weekly-mission-card');
             const statusText = $('mission-status-text');
             const progressBar = $('mission-progress-bar');
 
-            // 💡 D-day 계산 (선택 날짜의 요일 기준 토요일 마감까지 남은 일수 계산)
-            const dayOfWeek = currentDate.getDay(); // 0: 일, 1: 월, ..., 6: 토
+            const dayOfWeek = currentDate.getDay();
             const diff = 6 - dayOfWeek;
             const ddayText = diff === 0 ? "D-Day" : `D-${diff}`;
             $('mission-title').textContent = `🎯 주간 찾기 미션 (${ddayText})`;
@@ -1267,7 +1308,6 @@
             const menu = $('fab-menu');
             const overlay = $('fab-popover-overlay');
             const isOpening = menu.classList.contains('hidden');
-
             if (isOpening) {
                 menu.classList.remove('hidden');
                 menu.classList.add('flex');
@@ -1282,7 +1322,6 @@
         function addResultRow(data = { category: '', type: '', count: 1 }) {
             const container = $('result-rows-container');
             const existingCategories = Array.from(container.querySelectorAll('.res-category')).map(el => el.value);
-
             const availableCategories = Object.keys(RESULT_SCHEMA).filter(cat => !existingCategories.includes(cat) || cat === data.category);
 
             if (availableCategories.length === 0 && !data.category) {
@@ -1291,7 +1330,6 @@
             }
 
             const defaultCategory = data.category || availableCategories[0];
-
             const rowDiv = document.createElement('div');
             rowDiv.className = 'result-row flex items-center gap-1.5 bg-white p-2 rounded-xl border border-tg-border shadow-sm';
 
@@ -1326,12 +1364,10 @@
             const updateTypeOptions = () => {
                 const selectedCat = categorySelect.value;
                 const schema = RESULT_SCHEMA[selectedCat];
-
                 typeSelect.innerHTML = schema.types.map(t => `<option value="${t}">${t}</option>`).join('');
                 if (data.type && schema.types.includes(data.type)) {
                     typeSelect.value = data.type;
                 }
-
                 if (schema.hasCount) {
                     countSelect.classList.remove('hidden');
                 } else {
@@ -1345,36 +1381,31 @@
             });
 
             delBtn.addEventListener('click', () => rowDiv.remove());
-
             updateTypeOptions();
         }
 
         function getResultDataJson() {
             const rows = document.querySelectorAll('.result-row');
             const results = [];
-
             rows.forEach(row => {
                 const category = row.querySelector('.res-category').value;
                 const type = row.querySelector('.res-type').value;
                 const countEl = row.querySelector('.res-count');
                 const count = !countEl.classList.contains('hidden') ? parseInt(countEl.value, 10) : null;
-
                 if (category && type) {
                     const item = { category, type };
                     if (count !== null) item.count = count;
                     results.push(item);
                 }
             });
-
             return JSON.stringify(results);
         }
 
         function loadResultDataJson(jsonStr) {
             $('result-rows-container').innerHTML = '';
             if (!jsonStr) return;
-
             try {
-                const parsed = JSON.parse(jsonStr);
+                const parsed = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
                 if (Array.isArray(parsed)) {
                     parsed.forEach(item => addResultRow(item));
                 }
@@ -1386,23 +1417,15 @@
         function getRangeDateText(baseDateStr, range) {
             const parts = baseDateStr.split('-');
             const base = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-
-            const fmt = d => {
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${y}.${m}.${day}`;
-            };
+            const fmt = d => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 
             if (range === 'today') {
                 return `${fmt(base)} ~ ${fmt(base)}`;
             } else if (range === 'week') {
                 const dayOfWeek = base.getDay();
                 const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-                const mon = new Date(base);
-                mon.setDate(base.getDate() + diffToMon);
-                const sun = new Date(mon);
-                sun.setDate(mon.getDate() + 6);
+                const mon = new Date(base); mon.setDate(base.getDate() + diffToMon);
+                const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
                 return `${fmt(mon)} ~ ${fmt(sun)}`;
             } else if (range === 'month') {
                 const start = new Date(base.getFullYear(), base.getMonth(), 1);
@@ -1412,22 +1435,151 @@
             return '';
         }
 
+        // 🚀 Supabase 고속 앱 초기화
         async function fetchAppData() {
             if (tg) { tg.ready(); tg.expand(); }
 
             const initData = tg ? tg.initData : "";
-            if (!initData) {
-                $('loading-overlay').classList.add('hidden');
-                showToast('텔레그램 앱 내에서 접속해 주세요.', 'error');
-                return;
-            }
-
+            const userId = parseTelegramUserId(initData);
             const targetDate = dateKey(currentDate);
 
+            if (supabase) {
+                try {
+                    // 1. 유저 정보 조회
+                    const { data: userData, error: userErr } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+
+                    if (userErr) throw userErr;
+
+                    if (userData) {
+                        profile.id = userData.id;
+                        profile.name = userData.name;
+                        profile.group = userData.group_name || '-';
+                        profile.region = userData.region || '-';
+                        profile.role = userData.role || '-';
+                        userHasActiveBook = (userData.book_count > 0);
+
+                        // 2. 당일 활동 및 전체 유저 정보 조회
+                        const role = profile.role || "";
+                        const isSuper = role.includes("관리자") || role.includes("전체관리자");
+                        const isGroup = role.includes("조장") || role.includes("부조장");
+
+                        let query = supabase.from('activities').select('*').eq('activity_date', targetDate);
+
+                        if (isGroup) {
+                            query = query.eq('region', profile.region);
+                        } else if (!isSuper) {
+                            query = query.eq('user_id', profile.id);
+                        }
+
+                        const { data: actData, error: actErr } = await query;
+                        if (actErr) throw actErr;
+
+                        activities = (actData || []).map(a => ({
+                            id: a.id,
+                            userId: a.user_id,
+                            name: a.name,
+                            group: a.group_name,
+                            region: a.region,
+                            role: a.role,
+                            date: a.activity_date,
+                            startTime: a.start_time,
+                            endTime: a.end_time,
+                            location: a.location,
+                            content: a.content,
+                            status: a.status,
+                            resultData: typeof a.result_data === 'object' ? JSON.stringify(a.result_data) : a.result_data,
+                            resultText: a.result_text
+                        }));
+
+                        // 3. 이번 주 미션 수치 계산 (일요일~토요일)
+                        const baseDate = new Date(targetDate);
+                        const sunday = new Date(baseDate); sunday.setDate(baseDate.getDate() - baseDate.getDay());
+                        const saturday = new Date(sunday); saturday.setDate(sunday.getDate() + 6);
+
+                        const { data: weekActs } = await supabase.from('activities')
+                            .select('result_data')
+                            .eq('user_id', profile.id)
+                            .eq('status', 'completed')
+                            .gte('activity_date', dateKey(sunday))
+                            .lte('activity_date', dateKey(saturday));
+
+                        weeklyMissionCount = 0;
+                        (weekActs || []).forEach(w => {
+                            if (w.result_data) {
+                                const parsed = typeof w.result_data === 'string' ? JSON.parse(w.result_data) : w.result_data;
+                                if (Array.isArray(parsed)) {
+                                    parsed.forEach(r => {
+                                        if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") && (r.type === "온만찾" || r.type === "오프만찾")) {
+                                            weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
+                                        }
+                                    });
+                                }
+                            }
+                        });
+
+                        // 4. 공지사항 조회
+                        const { data: noticeData } = await supabase.from('notices').select('*').order('id', { ascending: false });
+
+                        activeNotices = (noticeData || []).map(n => ({
+                            id: n.id,
+                            type: n.type,
+                            authorName: n.author_name,
+                            authorRole: n.author_role,
+                            group: n.group_name,
+                            title: n.title,
+                            content: n.content,
+                            region: n.region,
+                            visible: n.visible ? 'Y' : 'N',
+                            isImportant: n.is_important ? 'Y' : 'N',
+                            createdAt: n.created_at ? n.created_at.substring(5, 16).replace('T', ' ') : ''
+                        }));
+
+                        // 5. 개강 사이클 정보
+                        const { data: semData } = await supabase.from('semesters').select('*').order('id', { ascending: true });
+                        semestersList = (semData || []).map(s => ({
+                            name: s.name,
+                            startDate: s.start_date,
+                            endDate: s.end_date,
+                            isCurrent: s.is_active
+                        }));
+
+                        const activeSem = semestersList.find(s => s.isCurrent) || semestersList[0];
+                        if (activeSem) {
+                            const badgeEl = $('hdr-semester-badge');
+                            badgeEl.textContent = `🎓 ${activeSem.name}`;
+                            badgeEl.classList.remove('hidden');
+                            $('sem-name').value = activeSem.name || '';
+                            $('sem-start').value = activeSem.startDate || '';
+                            $('sem-end').value = activeSem.endDate || '';
+                        }
+
+                        $('loading-overlay').classList.add('hidden');
+                        applyUserPermissionsUI(isSuper || isGroup);
+                        renderNoticeList(activeNotices);
+                        renderHeader();
+                        renderWeeklyMissionUI();
+                        renderDateNav();
+                        renderList();
+
+                    } else {
+                        // 미등록 사용자 -> 가입 레이어 팝업
+                        const { data: unregData } = await supabase.from('users').select('*').filter('id', 'is', null);
+                        $('loading-overlay').classList.add('hidden');
+                        openRegSheet(unregData || []);
+                    }
+                } catch (err) {
+                    console.error("Supabase 초기화 실패, GAS Fallback 시작:", err);
+                    fetchAppDataGAS(initData, targetDate);
+                }
+            } else {
+                fetchAppDataGAS(initData, targetDate);
+            }
+        }
+
+        async function fetchAppDataGAS(initData, targetDate) {
             try {
                 const res = await fetch(`${GAS_URL}?action=getInitialData&initData=${encodeURIComponent(initData)}&date=${targetDate}`);
                 const data = await res.json();
-
                 $('loading-overlay').classList.add('hidden');
 
                 if (data.isRegistered) {
@@ -1436,13 +1588,9 @@
                     profile.group = data.user.group || '-';
                     profile.region = data.user.region || '-';
                     profile.role = data.user.role || '-';
-
                     activities = data.activities || [];
-
                     weeklyMissionCount = data.weeklyMissionCount || 0;
                     userHasActiveBook = (data.user && data.user.bookCount > 0);
-
-                    currentWeekName = data.weekName || "";
                     semestersList = data.semestersList || [];
                     allRegionsList = data.allRegions || [];
 
@@ -1450,61 +1598,13 @@
                         const badgeEl = $('hdr-semester-badge');
                         badgeEl.textContent = `🎓 ${data.currentSemester.name}`;
                         badgeEl.classList.remove('hidden');
-
-                        // 💡 현재 설정된 사이클 정보를 4탭 인풋에 채움
                         $('sem-name').value = data.currentSemester.name || '';
                         $('sem-start').value = data.currentSemester.startDate || '';
                         $('sem-end').value = data.currentSemester.endDate || '';
                     }
 
-                    const role = profile.role || "";
-                    const isAdminOrLeader = data.isAdmin || role.includes("조장") || role.includes("부조장") || role.includes("관리자");
-
-                    // 💡 대시보드 버튼은 등록된 사용자 전체에게 노출함 (조원은 클릭 시 '나의 활동 추적'으로 바로 진입)
-                    $('dash-btn').classList.remove('hidden');
-
-                    if (isAdminOrLeader) {
-                        $('admin-time-filter-bar').classList.remove('hidden');
-                        $('admin-home-region-bar').classList.remove('hidden');
-                        $('btn-dash-notice').classList.remove('hidden');
-                    } else {
-                        $('admin-time-filter-bar').classList.add('hidden');
-                        $('admin-home-region-bar').classList.add('hidden');
-                        $('btn-dash-notice').classList.add('hidden');
-                    }
-
-                    // 💡 조장/부조장 로그인 시 본인 지역으로 드롭다운 고정 및 비활성화 (지역 중심 권한 위임)
-                    const isSuper = role.includes("관리자") || role.includes("전체관리자");
-                    const isGroup = role.includes("조장") || role.includes("부조장");
-
-                    const homeSelect = $('home-region-select');
-                    const riskSelect = $('risk-region-select');
-                    const memberSelect = $('member-region-select');
-
-                    if (isGroup) {
-                        const userRegion = profile.region || "";
-                        if (homeSelect) {
-                            homeSelect.value = userRegion;
-                            homeSelect.disabled = true;
-                            activeHomeRegionFilter = userRegion;
-                        }
-                        if (riskSelect) {
-                            riskSelect.value = userRegion;
-                            riskSelect.disabled = true;
-                        }
-                        if (memberSelect) {
-                            memberSelect.value = userRegion;
-                            memberSelect.disabled = true;
-                        }
-                    } else {
-                        if (homeSelect) homeSelect.disabled = false;
-                        if (riskSelect) riskSelect.disabled = false;
-                        if (memberSelect) memberSelect.disabled = false;
-                    }
-
-                    // 💡 공지사항 렌더링
+                    applyUserPermissionsUI(data.isAdmin);
                     renderNoticeList(data.notices || []);
-
                     renderHeader();
                     renderWeeklyMissionUI();
                     renderDateNav();
@@ -1518,25 +1618,89 @@
             }
         }
 
+        function applyUserPermissionsUI(isAdminOrLeader) {
+            $('dash-btn').classList.remove('hidden');
+            if (isAdminOrLeader) {
+                $('admin-time-filter-bar').classList.remove('hidden');
+                $('admin-home-region-bar').classList.remove('hidden');
+                $('btn-dash-notice').classList.remove('hidden');
+            } else {
+                $('admin-time-filter-bar').classList.add('hidden');
+                $('admin-home-region-bar').classList.add('hidden');
+                $('btn-dash-notice').classList.add('hidden');
+            }
+
+            const role = profile.role || "";
+            const isGroup = role.includes("조장") || role.includes("부조장");
+            const homeSelect = $('home-region-select');
+            const riskSelect = $('risk-region-select');
+            const memberSelect = $('member-region-select');
+
+            if (isGroup) {
+                const userRegion = profile.region || "";
+                if (homeSelect) { homeSelect.value = userRegion; homeSelect.disabled = true; activeHomeRegionFilter = userRegion; }
+                if (riskSelect) { riskSelect.value = userRegion; riskSelect.disabled = true; }
+                if (memberSelect) { memberSelect.value = userRegion; memberSelect.disabled = true; }
+            } else {
+                if (homeSelect) homeSelect.disabled = false;
+                if (riskSelect) riskSelect.disabled = false;
+                if (memberSelect) memberSelect.disabled = false;
+            }
+        }
+
         async function fetchDashboardData(range = 'today') {
             currentDashRange = range;
-
             $('db-range-dates-text').textContent = getRangeDateText(dateKey(currentDate), range);
 
             document.querySelectorAll('.dash-range-btn').forEach(btn => {
-                if (btn.dataset.range === range) {
-                    btn.className = "dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-blue text-white";
-                } else {
-                    btn.className = "dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted";
-                }
+                btn.className = (btn.dataset.range === range)
+                    ? "dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-blue text-white"
+                    : "dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted";
             });
 
             const baseDate = dateKey(currentDate);
 
+            if (supabase) {
+                try {
+                    const dates = calculateRangeDates(baseDate, range);
+                    const role = profile.role || "";
+                    const isSuper = role.includes("관리자") || role.includes("전체관리자");
+
+                    let query = supabase.from('activities').select('*').in('activity_date', dates);
+                    if (!isSuper) {
+                        query = query.eq('region', profile.region);
+                    }
+
+                    const { data, error } = await query;
+                    if (error) throw error;
+
+                    const list = (data || []).map(a => ({
+                        id: a.id,
+                        userId: a.user_id,
+                        name: a.name,
+                        group: a.group_name,
+                        region: a.region,
+                        role: a.role,
+                        date: a.activity_date,
+                        startTime: a.start_time,
+                        endTime: a.end_time,
+                        location: a.location,
+                        content: a.content,
+                        status: a.status,
+                        resultData: typeof a.result_data === 'object' ? JSON.stringify(a.result_data) : a.result_data,
+                        resultText: a.result_text
+                    }));
+
+                    renderDashboard(list);
+                    return;
+                } catch (e) {
+                    console.error("Supabase 대시보드 조회 실패, Fallback:", e);
+                }
+            }
+
             try {
                 const res = await fetch(`${GAS_URL}?action=getDashboardData&initData=${encodeURIComponent(tg ? tg.initData : '')}&range=${range}&date=${baseDate}`);
                 const data = await res.json();
-
                 if (data.result === 'success') {
                     renderDashboard(data.list || []);
                 } else {
@@ -1547,13 +1711,133 @@
             }
         }
 
-        /* 💡 선택 날짜 연동 미취합 및 멤버 관리 데이터 로드 */
+        function calculateRangeDates(baseDateStr, rangeType) {
+            const parts = baseDateStr.split('-');
+            const base = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const results = [];
+
+            if (rangeType === "today") {
+                results.push(baseDateStr);
+            } else if (rangeType === "week") {
+                const dayOfWeek = base.getDay();
+                const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const monday = new Date(base); monday.setDate(base.getDate() + diffToMon);
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(monday); d.setDate(monday.getDate() + i);
+                    results.push(dateKey(d));
+                }
+            } else if (rangeType === "month") {
+                const y = base.getFullYear(); const m = base.getMonth();
+                const lastDay = new Date(y, m + 1, 0).getDate();
+                for (let i = 1; i <= lastDay; i++) {
+                    results.push(dateKey(new Date(y, m, i)));
+                }
+            }
+            return results;
+        }
+
         async function fetchRiskAndMemberData() {
             const baseDate = dateKey(currentDate);
+
+            if (supabase) {
+                try {
+                    const targetDateObj = new Date(baseDate);
+                    const tomorrowObj = new Date(targetDateObj); tomorrowObj.setDate(targetDateObj.getDate() + 1);
+                    const tomorrowStr = dateKey(tomorrowObj);
+
+                    const sunday = new Date(targetDateObj); sunday.setDate(targetDateObj.getDate() - targetDateObj.getDay());
+                    const saturday = new Date(sunday); saturday.setDate(sunday.getDate() + 6);
+                    const sundayStr = dateKey(sunday);
+                    const saturdayStr = dateKey(saturday);
+
+                    // 1. Calendar 비계수일 확인
+                    const { data: calData } = await supabase.from('calendar').select('*').in('off_date', [baseDate, tomorrowStr]);
+                    let targetDateOff = false; let targetOffReason = "";
+                    let tomorrowDateOff = false; let tomorrowOffReason = "";
+
+                    (calData || []).forEach(c => {
+                        if (c.off_date === baseDate && c.status === 'OFF') { targetDateOff = true; targetOffReason = c.note || "공식 비계수일"; }
+                        if (c.off_date === tomorrowStr && c.status === 'OFF') { tomorrowDateOff = true; tomorrowOffReason = c.note || "공식 비계수일"; }
+                    });
+
+                    // 2. 유저 명단 로드
+                    const { data: userData } = await supabase.from('users').select('*');
+                    cachedAllUsers = userData || [];
+
+                    const role = profile.role || "";
+                    const isSuper = role.includes("관리자") || role.includes("전체관리자");
+
+                    const filteredUsers = isSuper ? cachedAllUsers : cachedAllUsers.filter(u => u.region === profile.region);
+
+                    // 3. 활동 로그 로드
+                    const { data: actData } = await supabase.from('activities').select('*')
+                        .gte('activity_date', sundayStr)
+                        .lte('activity_date', saturdayStr);
+
+                    const userMap = {};
+                    const allUsersList = filteredUsers.map(u => {
+                        const uObj = {
+                            id: u.id,
+                            name: u.name,
+                            group: u.group_name,
+                            region: u.region,
+                            bookCount: u.book_count || 0,
+                            isExempt: u.is_exempt || false,
+                            hasTodayActivity: false,
+                            isTodayCompleted: false,
+                            hasTomorrowActivity: false,
+                            weeklyFindCount: 0
+                        };
+                        userMap[u.name] = uObj;
+                        return uObj;
+                    });
+
+                    (actData || []).forEach(a => {
+                        if (userMap[a.name]) {
+                            if (a.activity_date === baseDate) {
+                                userMap[a.name].hasTodayActivity = true;
+                                if (a.status === 'completed') userMap[a.name].isTodayCompleted = true;
+                            }
+                            if (a.activity_date === tomorrowStr) {
+                                userMap[a.name].hasTomorrowActivity = true;
+                            }
+                            if (a.status === 'completed' && a.result_data) {
+                                const parsed = typeof a.result_data === 'string' ? JSON.parse(a.result_data) : a.result_data;
+                                if (Array.isArray(parsed)) {
+                                    parsed.forEach(r => {
+                                        if ((r.category === '찾기' || r.category === '찾기(오프라인)' || r.category === '찾기(온라인)') && (r.type === '온만찾' || r.type === '오프만찾')) {
+                                            userMap[a.name].weeklyFindCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    });
+
+                    rawRiskData = {
+                        targetDateStr: baseDate,
+                        tomorrowStr: tomorrowStr,
+                        targetDateOff: targetDateOff,
+                        targetOffReason: targetOffReason,
+                        tomorrowDateOff: tomorrowDateOff,
+                        tomorrowOffReason: tomorrowOffReason,
+                        todayUncollected: targetDateOff ? [] : allUsersList.filter(u => (!u.hasTodayActivity || !u.isTodayCompleted) && !u.isExempt),
+                        tomorrowUncollected: tomorrowDateOff ? [] : allUsersList.filter(u => !u.hasTomorrowActivity && !u.isExempt),
+                        unachievedUsers: allUsersList.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6),
+                        allUsers: allUsersList
+                    };
+
+                    renderRiskTab();
+                    renderMemberTab();
+                    return;
+                } catch (e) {
+                    console.error("Supabase 관리자 로직 처리 실패, Fallback:", e);
+                }
+            }
+
             try {
                 const res = await fetch(`${GAS_URL}?action=getRiskData&initData=${encodeURIComponent(tg ? tg.initData : '')}&date=${baseDate}`);
                 const data = await res.json();
-
                 if (data.result === 'success') {
                     rawRiskData = data;
                     renderRiskTab();
@@ -1564,50 +1848,100 @@
             }
         }
 
-        /* 💡 오늘/내일 계획 미취합 접기/펴기 로직 */
+        // 🚀 [Optimistic UI] 복방 수량 고속 변경 함수
+        async function updateUserBookCount(targetName, newCount) {
+            if (newCount < 0) return;
+
+            // 1. 낙관적 로컬 상태 즉시 변경
+            if (rawRiskData && rawRiskData.allUsers) {
+                const target = rawRiskData.allUsers.find(u => u.name === targetName);
+                if (target) {
+                    target.bookCount = newCount;
+                    renderMemberTab();
+                }
+            }
+
+            showToast(`${targetName}님 복방 수량 변경 (${newCount}개)`, 'success');
+
+            // 2. 백그라운드 DB 동기화
+            if (supabase) {
+                try {
+                    const { error } = await supabase.from('users').update({ book_count: newCount }).eq('name', targetName);
+                    if (error) throw error;
+                } catch (err) {
+                    showToast('저장 실패 (원복 중...): ' + err.message, 'error');
+                    fetchRiskAndMemberData();
+                }
+            } else {
+                try {
+                    await fetch(`${GAS_URL}?action=updateUserStatus&targetName=${encodeURIComponent(targetName)}&bookCount=${newCount}`);
+                } catch (err) {
+                    showToast('수정 실패: ' + err.message, 'error');
+                }
+            }
+        }
+
+        // 🚀 [Optimistic UI] 미취합 예외 설정 고속 토글 함수
+        async function toggleUserExempt(targetName, newExemptState) {
+            // 1. 낙관적 로컬 상태 즉시 변경
+            if (rawRiskData && rawRiskData.allUsers) {
+                const target = rawRiskData.allUsers.find(u => u.name === targetName);
+                if (target) {
+                    target.isExempt = newExemptState;
+                    renderMemberTab();
+                }
+            }
+
+            showToast(`${targetName}님 예외 상태 변경 완료`, 'success');
+
+            // 2. 백그라운드 DB 동기화
+            if (supabase) {
+                try {
+                    const { error } = await supabase.from('users').update({ is_exempt: newExemptState }).eq('name', targetName);
+                    if (error) throw error;
+                } catch (err) {
+                    showToast('저장 실패 (원복 중...): ' + err.message, 'error');
+                    fetchRiskAndMemberData();
+                }
+            } else {
+                try {
+                    await fetch(`${GAS_URL}?action=updateUserStatus&targetName=${encodeURIComponent(targetName)}&isExempt=${newExemptState}`);
+                } catch (err) {
+                    showToast('수정 실패: ' + err.message, 'error');
+                }
+            }
+        }
+
         function toggleTomorrowList() {
             const list = $('risk-tomorrow-list');
             const arrow = $('risk-tomorrow-arrow');
             isTomorrowCollapsed = !isTomorrowCollapsed;
-            if (isTomorrowCollapsed) {
-                list.classList.add('hidden');
-                arrow.textContent = '▲';
-            } else {
-                list.classList.remove('hidden');
-                arrow.textContent = '▼';
-            }
+            if (isTomorrowCollapsed) { list.classList.add('hidden'); arrow.textContent = '▲'; }
+            else { list.classList.remove('hidden'); arrow.textContent = '▼'; }
         }
 
         function toggleTodayList() {
             const list = $('risk-today-list');
             const arrow = $('risk-today-arrow');
             isTodayCollapsed = !isTodayCollapsed;
-            if (isTodayCollapsed) {
-                list.classList.add('hidden');
-                arrow.textContent = '▲';
-            } else {
-                list.classList.remove('hidden');
-                arrow.textContent = '▼';
-            }
+            if (isTodayCollapsed) { list.classList.add('hidden'); arrow.textContent = '▲'; }
+            else { list.classList.remove('hidden'); arrow.textContent = '▼'; }
         }
 
-        /* 💡 공지사항 관련 JS 핸들러 */
         function renderNoticeList(notices) {
             activeNotices = notices;
             const container = $('notice-vertical-list');
             const badge = $('notice-unread-count');
             if (!container) return;
 
-            // 공개된(Visible === Y) 공지만 필터링하여 홈 화면에 표시
             const visibleNotices = notices.filter(n => n.visible === 'Y');
             const totalCount = visibleNotices.length;
             const importantCount = visibleNotices.filter(n => n.isImportant === 'Y').length;
             const normalCount = totalCount - importantCount;
 
-            // 요약 정보 표시
             const summaryEl = $('notice-summary-text');
             if (summaryEl) {
-                summaryEl.textContent = totalCount > 0 
+                summaryEl.textContent = totalCount > 0
                     ? ` - ${totalCount}개의 공지가 있습니다(중요 ${importantCount}개 일반 ${normalCount}개)`
                     : ' - 등록된 공지사항이 없습니다';
             }
@@ -1633,7 +1967,7 @@
                 const isAll = (n.region === 'ALL' || !n.region);
                 const typeLabel = isAll ? '전체' : `${n.region}`;
                 const badgeClass = isAll ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
-                
+
                 const isImp = n.isImportant === 'Y';
                 const impBadge = isImp ? '<span class="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded flex-shrink-0 mr-1.5">중요</span>' : '';
                 const itemBgClass = isImp ? 'bg-red-50/50 hover:bg-red-50 border-red-100' : 'hover:bg-tg-surface border-tg-border/40';
@@ -1687,23 +2021,15 @@
             overlay.classList.remove('hidden');
         }
 
-        function closeNoticeDetail() {
-            $('notice-detail-overlay').classList.add('hidden');
-        }
+        function closeNoticeDetail() { $('notice-detail-overlay').classList.add('hidden'); }
 
         function toggleNoticeList() {
             const list = $('notice-vertical-list');
             const arrow = $('notice-toggle-arrow');
             if (!list || !arrow) return;
-
             isNoticeListExpanded = !isNoticeListExpanded;
-            if (isNoticeListExpanded) {
-                list.classList.remove('hidden');
-                arrow.textContent = '▲';
-            } else {
-                list.classList.add('hidden');
-                arrow.textContent = '▼';
-            }
+            if (isNoticeListExpanded) { list.classList.remove('hidden'); arrow.textContent = '▲'; }
+            else { list.classList.add('hidden'); arrow.textContent = '▼'; }
         }
 
         let isNoticeListExpanded = false;
@@ -1721,10 +2047,10 @@
             const buildItemHtml = n => {
                 const isImp = n.isImportant === 'Y';
                 const impBadge = isImp ? '<span class="bg-red-100 text-red-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded flex-shrink-0 mr-1.5">중요</span>' : '';
-                const stateBadge = n.visible === 'Y' 
+                const stateBadge = n.visible === 'Y'
                     ? '<span class="bg-green-100 text-green-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded flex-shrink-0 mr-1.5">공개중</span>'
                     : '<span class="bg-gray-100 text-gray-600 text-[9px] font-extrabold px-1.5 py-0.5 rounded flex-shrink-0 mr-1.5">비공개</span>';
-                
+
                 return `
                     <div class="bg-tg-surface p-3 rounded-xl border border-tg-border flex items-center justify-between gap-3 shadow-sm">
                         <div class="min-w-0 flex-1">
@@ -1748,21 +2074,27 @@
             };
 
             if (isSuper) {
-                if (adminNotices.length === 0) {
-                    adminListEl.innerHTML = '<p class="text-[11px] text-tg-muted py-2 italic text-center">등록된 관리자 공지가 없습니다.</p>';
-                } else {
-                    adminListEl.innerHTML = adminNotices.map(buildItemHtml).join('');
-                }
+                adminListEl.innerHTML = adminNotices.length === 0
+                    ? '<p class="text-[11px] text-tg-muted py-2 italic text-center">등록된 관리자 공지가 없습니다.</p>'
+                    : adminNotices.map(buildItemHtml).join('');
             }
 
-            if (groupNotices.length === 0) {
-                groupListEl.innerHTML = '<p class="text-[11px] text-tg-muted py-2 italic text-center">등록된 지역별 공지가 없습니다.</p>';
-            } else {
-                groupListEl.innerHTML = groupNotices.map(buildItemHtml).join('');
-            }
+            groupListEl.innerHTML = groupNotices.length === 0
+                ? '<p class="text-[11px] text-tg-muted py-2 italic text-center">등록된 지역별 공지가 없습니다.</p>'
+                : groupNotices.map(buildItemHtml).join('');
         }
 
         async function toggleNoticeVisibility(id, newVisible) {
+            if (supabase) {
+                try {
+                    await supabase.from('notices').update({ visible: newVisible === 'Y' }).eq('id', id);
+                    showToast('공지 상태가 수정되었습니다.', 'success');
+                    await fetchAppData();
+                    renderManageNoticeLists();
+                    return;
+                } catch (e) { console.error("Notice Toggle error:", e); }
+            }
+
             try {
                 const res = await fetch(`${GAS_URL}?action=toggleNoticeVisibility&initData=${encodeURIComponent(tg ? tg.initData : '')}&noticeId=${id}&visible=${newVisible}`);
                 const data = await res.json();
@@ -1770,29 +2102,31 @@
                     showToast(data.message || '공지 상태가 수정되었습니다.', 'success');
                     await fetchAppData();
                     renderManageNoticeLists();
-                } else {
-                    showToast(data.message || '수정 실패', 'error');
                 }
-            } catch (err) {
-                showToast('API 오류: ' + err.message, 'error');
-            }
+            } catch (err) { showToast('API 오류: ' + err.message, 'error'); }
         }
 
         async function deleteNotice(id) {
             if (!confirm('정말 이 공지사항을 삭제하시겠습니까?')) return;
+            if (supabase) {
+                try {
+                    await supabase.from('notices').delete().eq('id', id);
+                    showToast('공지사항이 삭제되었습니다.', 'success');
+                    await fetchAppData();
+                    renderManageNoticeLists();
+                    return;
+                } catch (e) { console.error("Notice Delete error:", e); }
+            }
+
             try {
                 const res = await fetch(`${GAS_URL}?action=deleteNotice&initData=${encodeURIComponent(tg ? tg.initData : '')}&noticeId=${id}`);
                 const data = await res.json();
                 if (data.result === 'success') {
-                    showToast(data.message || '공지사항이 삭제되었습니다.', 'success');
+                    showToast('공지사항이 삭제되었습니다.', 'success');
                     await fetchAppData();
                     renderManageNoticeLists();
-                } else {
-                    showToast(data.message || '삭제 실패', 'error');
                 }
-            } catch (err) {
-                showToast('API 오류: ' + err.message, 'error');
-            }
+            } catch (err) { showToast('API 오류: ' + err.message, 'error'); }
         }
 
         function initNoticeSheetTabs() {
@@ -1804,16 +2138,14 @@
             tabManage.addEventListener('click', () => {
                 tabManage.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm";
                 tabWrite.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted";
-                viewManage.classList.remove('hidden');
-                viewWrite.classList.add('hidden');
+                viewManage.classList.remove('hidden'); viewWrite.classList.add('hidden');
                 renderManageNoticeLists();
             });
 
             tabWrite.addEventListener('click', () => {
                 tabWrite.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm";
                 tabManage.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted";
-                viewWrite.classList.remove('hidden');
-                viewManage.classList.add('hidden');
+                viewWrite.classList.remove('hidden'); viewManage.classList.add('hidden');
             });
         }
 
@@ -1822,10 +2154,7 @@
             const overlay = $('notice-overlay');
             const sheet = $('notice-sheet');
 
-            // Reset tab to Manage
             $('tab-notice-manage').click();
-
-            // Reset inputs
             $('n-title').value = '';
             $('n-content').value = '';
             $('n-visible').value = 'Y';
@@ -1834,7 +2163,6 @@
             const role = profile.role || "";
             const isSuper = role.includes("관리자") || role.includes("전체관리자");
 
-            // 대상 지역 체크박스 채우기
             const container = $('n-region-items');
             if (container) {
                 container.innerHTML = FIXED_REGIONS.map(r => `
@@ -1851,9 +2179,7 @@
                     const checks = document.querySelectorAll('input[name="n-region-check"]');
                     checks.forEach(c => {
                         c.disabled = e.target.checked;
-                        if (e.target.checked) {
-                            c.checked = false;
-                        }
+                        if (e.target.checked) c.checked = false;
                     });
                 };
             }
@@ -1861,119 +2187,101 @@
             if (isSuper) {
                 $('section-admin-notices').classList.remove('hidden');
                 $('group-notices-title').textContent = "👥 지역별 공지사항 관리";
-                if (allCheck) {
-                    allCheck.disabled = false;
-                    allCheck.checked = true;
-                }
+                if (allCheck) { allCheck.disabled = false; allCheck.checked = true; }
                 const checks = document.querySelectorAll('input[name="n-region-check"]');
-                checks.forEach(c => {
-                    c.disabled = true;
-                    c.checked = false;
-                });
+                checks.forEach(c => { c.disabled = true; c.checked = false; });
             } else {
                 $('section-admin-notices').classList.add('hidden');
                 $('group-notices-title').textContent = "👥 우리 지역 공지사항 관리";
-                if (allCheck) {
-                    allCheck.checked = false;
-                    allCheck.disabled = true;
-                }
+                if (allCheck) { allCheck.checked = false; allCheck.disabled = true; }
                 const checks = document.querySelectorAll('input[name="n-region-check"]');
                 checks.forEach(c => {
-                    if (c.value === profile.region) {
-                        c.checked = true;
-                        c.disabled = true;
-                    } else {
-                        c.checked = false;
-                        c.disabled = true;
-                    }
+                    if (c.value === profile.region) { c.checked = true; c.disabled = true; }
+                    else { c.checked = false; c.disabled = true; }
                 });
             }
 
             renderManageNoticeLists();
-
-            sheet.style.display = 'flex';
-            sheet.offsetHeight;
-            overlay.classList.add('open');
-            sheet.classList.add('open');
+            sheet.style.display = 'flex'; sheet.offsetHeight;
+            overlay.classList.add('open'); sheet.classList.add('open');
         }
 
         function closeNoticeSheet() {
             const overlay = $('notice-overlay');
             const sheet = $('notice-sheet');
-            overlay.classList.remove('open');
-            sheet.classList.remove('open');
+            overlay.classList.remove('open'); sheet.classList.remove('open');
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
         }
 
         async function saveNotice() {
             const title = $('n-title').value.trim();
             const content = $('n-content').value.trim();
-            
             const role = profile.role || "";
             const isSuper = role.includes("관리자") || role.includes("전체관리자");
             const type = isSuper ? 'admin' : 'group';
 
             let region = "ALL";
             const allCheck = $('n-region-all');
-            if (allCheck && allCheck.checked) {
-                region = "ALL";
-            } else {
+            if (!allCheck || !allCheck.checked) {
                 const checks = document.querySelectorAll('input[name="n-region-check"]:checked');
                 const regs = Array.from(checks).map(c => c.value);
-                if (regs.length === 0) {
-                    showToast('대상 지역을 최소 하나 이상 선택해 주세요.', 'error');
-                    return;
-                }
+                if (regs.length === 0) { showToast('대상 지역을 선택해 주세요.', 'error'); return; }
                 region = regs.join(',');
             }
 
-            const visible = $('n-visible').value;
-            const isImportant = $('n-important').checked ? 'Y' : 'N';
+            const visible = $('n-visible').value === 'Y';
+            const isImportant = $('n-important').checked;
 
-            if (!title || !content) {
-                showToast('제목과 내용을 모두 입력해 주세요.', 'error');
-                return;
-            }
+            if (!title || !content) { showToast('제목과 내용을 입력해 주세요.', 'error'); return; }
 
-            const btn = $('btn-save-notice');
-            btn.disabled = true;
-            btn.textContent = '저장 중...';
+            const btn = $('btn-save-notice'); btn.disabled = true; btn.textContent = '저장 중...';
 
-            try {
-                const res = await fetch(`${GAS_URL}?action=saveNotice&initData=${encodeURIComponent(tg ? tg.initData : '')}&title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}&type=${type}&region=${encodeURIComponent(region)}&visible=${visible}&isImportant=${isImportant}`);
-                const data = await res.json();
-                if (data.result === 'success') {
-                    showToast(data.message || '공지사항이 등록되었습니다.', 'success');
+            if (supabase) {
+                try {
+                    const payload = {
+                        type: type,
+                        author_id: profile.id,
+                        author_name: profile.name,
+                        author_role: profile.role,
+                        group_name: profile.group,
+                        title: title,
+                        content: content,
+                        region: region,
+                        visible: visible,
+                        is_important: isImportant
+                    };
+                    const { error } = await supabase.from('notices').insert([payload]);
+                    if (error) throw error;
+
+                    showToast('공지사항이 등록되었습니다.', 'success');
                     closeNoticeSheet();
                     await fetchAppData();
-                } else {
-                    showToast(data.message || '공지사항 등록 실패', 'error');
-                }
-            } catch (err) {
-                showToast('공지사항 등록 오류: ' + err.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '공지사항 저장';
+                    return;
+                } catch (e) { showToast('저장 실패: ' + e.message, 'error'); }
+                finally { btn.disabled = false; btn.textContent = '공지사항 저장'; }
             }
+
+            try {
+                const res = await fetch(`${GAS_URL}?action=saveNotice&initData=${encodeURIComponent(tg ? tg.initData : '')}&title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}&type=${type}&region=${encodeURIComponent(region)}&visible=${visible ? 'Y' : 'N'}&isImportant=${isImportant ? 'Y' : 'N'}`);
+                const data = await res.json();
+                if (data.result === 'success') {
+                    showToast('공지사항이 등록되었습니다.', 'success');
+                    closeNoticeSheet();
+                    await fetchAppData();
+                }
+            } catch (err) { showToast('등록 오류: ' + err.message, 'error'); }
+            finally { btn.disabled = false; btn.textContent = '공지사항 저장'; }
         }
 
-        /* 💡 듀얼 미취합 탭 렌더링 (Calendar 비계수 스킵 연동) */
         function renderRiskTab() {
             if (!rawRiskData) return;
             const data = rawRiskData;
             const selectedRegion = $('risk-region-select') ? $('risk-region-select').value : 'ALL';
+            const filterFn = list => (selectedRegion === 'ALL' || !selectedRegion) ? list : list.filter(u => u.region === selectedRegion);
 
-            // 선택된 지역으로 유저 필터링
-            const filterFn = list => (selectedRegion === 'ALL' || !selectedRegion) 
-                ? list 
-                : list.filter(u => u.region === selectedRegion);
-
-            // 1. 내일 계획 미취합
             const tmTitle = $('risk-tomorrow-title');
-            const tmSub = $('risk-tomorrow-sub');
             const tmCount = $('risk-tomorrow-count');
             const tmContainer = $('risk-tomorrow-list');
-
             tmTitle.textContent = `🌙 내일(${data.tomorrowStr}) 계획 미취합자`;
 
             if (data.tomorrowDateOff) {
@@ -1982,27 +2290,19 @@
             } else {
                 const tmList = filterFn(data.tomorrowUncollected || []);
                 tmCount.textContent = tmList.length + '명';
-                if (tmList.length === 0) {
-                    tmContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 조건에 해당하는 내일 계획 미취합자가 없습니다!</p>';
-                } else {
-                    tmContainer.innerHTML = tmList.map(u => `
+                tmContainer.innerHTML = tmList.length === 0
+                    ? '<p class="text-xs text-tg-muted text-center py-2">🎉 조건에 해당하는 내일 계획 미취합자가 없습니다!</p>'
+                    : tmList.map(u => `
                         <div class="bg-white p-2.5 rounded-xl border border-blue-100 flex items-center justify-between">
-                            <div>
-                                <!-- 지역만 표기 [사당] -->
-                                <span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.region || '미정')}]</span>
-                                <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
-                            </div>
+                            <div><span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span></div>
                             <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">내일 일정 없음</span>
                         </div>
                     `).join('');
-                }
             }
 
-            // 2. 선택 날짜 당일 결과 미취합
             const tdTitle = $('risk-today-title');
             const tdCount = $('risk-today-count');
             const tdContainer = $('risk-today-list');
-
             tdTitle.textContent = `⚠️ 당일(${data.targetDateStr}) 결과 미취합자`;
 
             if (data.targetDateOff) {
@@ -2011,73 +2311,34 @@
             } else {
                 const tdList = filterFn(data.todayUncollected || []);
                 tdCount.textContent = tdList.length + '명';
-                if (tdList.length === 0) {
-                    tdContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 당일 결과 미취합자가 없습니다!</p>';
-                } else {
-                    tdContainer.innerHTML = tdList.map(u => `
+                tdContainer.innerHTML = tdList.length === 0
+                    ? '<p class="text-xs text-tg-muted text-center py-2">🎉 당일 결과 미취합자가 없습니다!</p>'
+                    : tdList.map(u => `
                         <div class="bg-white p-2.5 rounded-xl border border-red-100 flex items-center justify-between">
-                            <div>
-                                <!-- 지역만 표기 [사당] -->
-                                <span class="font-bold text-red-700 mr-1.5">[${escHtml(u.region || '미정')}]</span>
-                                <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
-                            </div>
-                            <span class="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">
-                                ${!u.hasTodayActivity ? '오늘 일정 없음' : '계획중 (결과 미입력)'}
-                            </span>
+                            <div><span class="font-bold text-red-700 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span></div>
+                            <span class="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">${!u.hasTodayActivity ? '오늘 일정 없음' : '계획중 (결과 미입력)'}</span>
                         </div>
                     `).join('');
-                }
             }
 
-            // 3. 주간 찾기 미달성
             const unachieved = filterFn(data.unachievedUsers || []);
             $('risk-unachieved-count').textContent = unachieved.length + '명';
             const unachContainer = $('risk-unachieved-list');
-            if (unachieved.length === 0) {
-                unachContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-2">🎉 주간 찾기 미달성자가 없습니다!</p>';
-            } else {
-                unachContainer.innerHTML = unachieved.map(u => `
+            unachContainer.innerHTML = unachieved.length === 0
+                ? '<p class="text-xs text-tg-muted text-center py-2">🎉 주간 찾기 미달성자가 없습니다!</p>'
+                : unachieved.map(u => `
                     <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-center justify-between">
-                        <div>
-                            <!-- 지역만 표기 [사당] -->
-                            <span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.region || '미정')}]</span>
-                            <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
-                        </div>
+                        <div><span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span></div>
                         <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">이번 주 ${u.weeklyFindCount}/6건</span>
                     </div>
                 `).join('');
-            }
-
-            // Apply collapse state for Tomorrow
-            const tmArrow = $('risk-tomorrow-arrow');
-            if (isTomorrowCollapsed) {
-                tmContainer.classList.add('hidden');
-                if (tmArrow) tmArrow.textContent = '▲';
-            } else {
-                tmContainer.classList.remove('hidden');
-                if (tmArrow) tmArrow.textContent = '▼';
-            }
-
-            // Apply collapse state for Today
-            const tdArrow = $('risk-today-arrow');
-            if (isTodayCollapsed) {
-                tdContainer.classList.add('hidden');
-                if (tdArrow) tdArrow.textContent = '▲';
-            } else {
-                tdContainer.classList.remove('hidden');
-                if (tdArrow) tdArrow.textContent = '▼';
-            }
         }
 
-        /* 멤버 관리 탭 렌더링 */
         function renderMemberTab() {
             if (!rawRiskData) return;
             const selectedRegion = $('member-region-select') ? $('member-region-select').value : 'ALL';
             const allUsers = rawRiskData.allUsers || [];
-
-            const filteredUsers = (selectedRegion === 'ALL' || !selectedRegion) 
-                ? allUsers 
-                : allUsers.filter(u => u.region === selectedRegion);
+            const filteredUsers = (selectedRegion === 'ALL' || !selectedRegion) ? allUsers : allUsers.filter(u => u.region === selectedRegion);
 
             $('member-total-count').textContent = filteredUsers.length + '명';
             const container = $('member-management-list');
@@ -2091,7 +2352,6 @@
                 <div class="bg-tg-surface p-3 rounded-xl border border-tg-border flex items-center justify-between text-xs">
                     <div>
                         <div class="flex items-center gap-1.5">
-                            <!-- 지역만 표기 [사당] -->
                             <span class="font-bold text-tg-blue">[${escHtml(u.region || '미정')}]</span>
                             <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
                         </div>
@@ -2114,29 +2374,15 @@
             `).join('');
         }
 
-        function filterRiskDataByRegion() {
-            renderRiskTab();
-        }
-
-        function filterMemberDataByRegion() {
-            renderMemberTab();
-        }
-
-        const FIXED_REGIONS = [
-          "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
-          "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
-        ];
+        function filterRiskDataByRegion() { renderRiskTab(); }
+        function filterMemberDataByRegion() { renderMemberTab(); }
 
         function initAllRegionDropdowns() {
             const fillSelect = (selectId) => {
-                const el = $(selectId);
-                if (!el) return;
+                const el = $(selectId); if (!el) return;
                 const curVal = el.value || "ALL";
-
                 let html = '<option value="ALL">전체 지역</option>';
-                FIXED_REGIONS.forEach(r => {
-                    html += `<option value="${r}" ${r === curVal ? 'selected' : ''}>${r}</option>`;
-                });
+                FIXED_REGIONS.forEach(r => { html += `<option value="${r}" ${r === curVal ? 'selected' : ''}>${r}</option>`; });
                 el.innerHTML = html;
             };
 
@@ -2144,34 +2390,12 @@
             fillSelect('risk-region-select');
             fillSelect('member-region-select');
 
-            // 홈 화면 지역 드롭다운 선택 시 리스트 즉시 다시 그리기
             const homeSelect = $('home-region-select');
             if (homeSelect) {
                 homeSelect.onchange = (e) => {
                     activeHomeRegionFilter = e.target.value;
                     renderList();
                 };
-            }
-        }
-
-        async function updateUserBookCount(targetName, newCount) {
-            if (newCount < 0) return;
-            try {
-                await fetch(`${GAS_URL}?action=updateUserStatus&targetName=${encodeURIComponent(targetName)}&bookCount=${newCount}`);
-                showToast(`${targetName}님 복방 수량 변경 완료 (${newCount}개)`, 'success');
-                fetchRiskAndMemberData();
-            } catch (err) {
-                showToast('수정 실패: ' + err.message, 'error');
-            }
-        }
-
-        async function toggleUserExempt(targetName, newExemptState) {
-            try {
-                await fetch(`${GAS_URL}?action=updateUserStatus&targetName=${encodeURIComponent(targetName)}&isExempt=${newExemptState}`);
-                showToast(`${targetName}님 예외 상태 변경 완료`, 'success');
-                fetchRiskAndMemberData();
-            } catch (err) {
-                showToast('수정 실패: ' + err.message, 'error');
             }
         }
 
@@ -2182,12 +2406,20 @@
 
             if (!name || !startDate || !endDate) return showToast('⚠️ 모든 항목을 입력해 주세요.', 'error');
 
+            if (supabase) {
+                try {
+                    await supabase.from('semesters').update({ is_active: false }).neq('id', 0);
+                    await supabase.from('semesters').insert([{ name: name, start_date: startDate, end_date: endDate, is_active: true }]);
+                    showToast('개강 사이클 설정 완료!', 'success');
+                    await fetchAppData();
+                    return;
+                } catch (e) { showToast('저장 실패: ' + e.message, 'error'); }
+            }
+
             try {
                 await fetch(`${GAS_URL}?action=updateSemester&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}`);
                 showToast('개강 사이클 설정 완료!', 'success');
-            } catch (err) {
-                showToast('저장 실패: ' + err.message, 'error');
-            }
+            } catch (err) { showToast('저장 실패: ' + err.message, 'error'); }
         }
 
         function copyRiskToClipboard(type) {
@@ -2211,7 +2443,6 @@
             const endTime = $('f-endtime').value;
             const location = $('f-location').value.trim();
             const content = $('f-content-category').value;
-
             const resultData = getResultDataJson();
             const resultText = $('f-result-text').value.trim();
 
@@ -2221,15 +2452,50 @@
 
             if (formStatus === 'completed') {
                 const hasRows = document.querySelectorAll('.result-row').length > 0;
-                if (!hasRows && !resultText) {
-                    return showToast('완료 상태에는 활동 결과 또는 피드백을 입력해주세요.', 'error');
-                }
+                if (!hasRows && !resultText) return showToast('완료 상태에는 결과 또는 피드백을 입력해주세요.', 'error');
             }
 
-            $('save-spinner').classList.remove('hidden');
-            $('btn-save').disabled = true;
-
+            $('save-spinner').classList.remove('hidden'); $('btn-save').disabled = true;
             const actId = modalMode === 'add' ? ("ACT_" + Date.now()) : editId;
+
+            if (supabase) {
+                try {
+                    const parsedResultData = resultData ? JSON.parse(resultData) : null;
+                    const payload = {
+                        id: actId,
+                        user_id: profile.id,
+                        name: profile.name,
+                        group_name: profile.group,
+                        region: profile.region,
+                        role: profile.role,
+                        activity_date: targetDate,
+                        start_time: startTime,
+                        end_time: endTime,
+                        location: location,
+                        content: content,
+                        status: formStatus,
+                        result_data: parsedResultData,
+                        result_text: resultText
+                    };
+
+                    if (modalMode === 'add') {
+                        const { error } = await supabase.from('activities').insert([payload]);
+                        if (error) throw error;
+                    } else {
+                        const { error } = await supabase.from('activities').update(payload).eq('id', actId);
+                        if (error) throw error;
+                    }
+
+                    closeModal();
+                    showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
+                    await fetchAppData();
+                    return;
+                } catch (err) {
+                    showToast('저장 실패: ' + err.message, 'error');
+                } finally {
+                    $('save-spinner').classList.add('hidden'); $('btn-save').disabled = false;
+                }
+            }
 
             const payload = {
                 action: 'saveActivity',
@@ -2249,81 +2515,87 @@
             try {
                 const queryParams = new URLSearchParams(payload).toString();
                 await fetch(`${GAS_URL}?${queryParams}`);
-
                 closeModal();
                 showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
-
-                $('loading-overlay').classList.remove('hidden');
                 await fetchAppData();
-
             } catch (err) {
                 showToast('저장 실패: ' + err.message, 'error');
             } finally {
-                $('save-spinner').classList.add('hidden');
-                $('btn-save').disabled = false;
+                $('save-spinner').classList.add('hidden'); $('btn-save').disabled = false;
             }
         }
 
         async function cancelActivity() {
             const idx = activities.findIndex(a => a.id == editId);
-            if (idx !== -1) {
-                const payload = {
-                    action: 'saveActivity',
-                    initData: tg ? tg.initData : "",
-                    mode: 'edit',
-                    actId: editId,
-                    date: activities[idx].date || dateKey(currentDate),
-                    startTime: activities[idx].startTime,
-                    endTime: activities[idx].endTime,
-                    location: activities[idx].location,
-                    content: activities[idx].content,
-                    status: 'canceled',
-                    resultData: activities[idx].resultData || '',
-                    resultText: activities[idx].resultText || ''
-                };
+            if (idx === -1) return;
 
+            if (supabase) {
                 try {
-                    const queryParams = new URLSearchParams(payload).toString();
-                    await fetch(`${GAS_URL}?${queryParams}`);
-
+                    const { error } = await supabase.from('activities').update({ status: 'canceled' }).eq('id', editId);
+                    if (error) throw error;
                     closeModal();
                     showToast('활동이 취소 처리되었습니다.', 'success');
-
-                    $('loading-overlay').classList.remove('hidden');
                     await fetchAppData();
-                } catch (err) {
-                    showToast('취소 실패: ' + err.message, 'error');
-                }
+                    return;
+                } catch (err) { showToast('취소 실패: ' + err.message, 'error'); }
             }
+
+            const payload = {
+                action: 'saveActivity',
+                initData: tg ? tg.initData : "",
+                mode: 'edit',
+                actId: editId,
+                date: activities[idx].date || dateKey(currentDate),
+                startTime: activities[idx].startTime,
+                endTime: activities[idx].endTime,
+                location: activities[idx].location,
+                content: activities[idx].content,
+                status: 'canceled',
+                resultData: activities[idx].resultData || '',
+                resultText: activities[idx].resultText || ''
+            };
+
+            try {
+                const queryParams = new URLSearchParams(payload).toString();
+                await fetch(`${GAS_URL}?${queryParams}`);
+                closeModal();
+                showToast('활동이 취소 처리되었습니다.', 'success');
+                await fetchAppData();
+            } catch (err) { showToast('취소 실패: ' + err.message, 'error'); }
         }
 
         async function submitRegistration() {
             const selectEl = $('reg-user-select');
-            const selectedRow = selectEl.value;
+            const selectedUserId = selectEl.value;
 
-            if (!selectedRow) return showToast("본인의 이름을 선택해주세요.", "error");
+            if (!selectedUserId) return showToast("본인의 이름을 선택해주세요.", "error");
 
-            $('reg-spinner').classList.remove('hidden');
-            $('btn-reg-submit').disabled = true;
+            $('reg-spinner').classList.remove('hidden'); $('btn-reg-submit').disabled = true;
+
+            const tgUserId = parseTelegramUserId(tg ? tg.initData : '');
+
+            if (supabase) {
+                try {
+                    const { error } = await supabase.from('users').update({ id: tgUserId }).eq('id', selectedUserId);
+                    if (error) throw error;
+                    closeRegSheet();
+                    showToast("사용자 등록 완료!", "success");
+                    await fetchAppData();
+                    return;
+                } catch (e) { showToast("등록 실패: " + e.message, "error"); }
+                finally { $('reg-spinner').classList.add('hidden'); $('btn-reg-submit').disabled = false; }
+            }
 
             try {
-                const response = await fetch(`${GAS_URL}?action=registerUser&initData=${encodeURIComponent(tg ? tg.initData : '')}&selectedRow=${selectedRow}`);
+                const response = await fetch(`${GAS_URL}?action=registerUser&initData=${encodeURIComponent(tg ? tg.initData : '')}&selectedRow=${selectedUserId}`);
                 const resData = await response.json();
-
                 if (resData.result === "success") {
                     closeRegSheet();
                     showToast("사용자 등록 완료!", "success");
-                    $('loading-overlay').classList.remove('hidden');
                     await fetchAppData();
-                } else {
-                    showToast("등록 실패: " + resData.message, "error");
-                }
-            } catch (err) {
-                showToast("오류 발생: " + err.message, "error");
-            } finally {
-                $('reg-spinner').classList.add('hidden');
-                $('btn-reg-submit').disabled = false;
-            }
+                } else { showToast("등록 실패: " + resData.message, "error"); }
+            } catch (err) { showToast("오류 발생: " + err.message, "error"); }
+            finally { $('reg-spinner').classList.add('hidden'); $('btn-reg-submit').disabled = false; }
         }
 
         function renderDashboard(list) {
@@ -2346,9 +2618,7 @@
                 const cat = item.content || '찾기(오프라인)';
                 const region = item.region || '미정';
 
-                if (catCounts[cat] !== undefined) catCounts[cat]++;
-                else catCounts[cat] = 1;
-
+                if (catCounts[cat] !== undefined) catCounts[cat]++; else catCounts[cat] = 1;
                 regionTotalCounts[region] = (regionTotalCounts[region] || 0) + 1;
 
                 if (!catTopRegionMap[cat]) catTopRegionMap[cat] = {};
@@ -2356,7 +2626,7 @@
 
                 if (item.status === 'completed' && item.resultData) {
                     try {
-                        const parsed = JSON.parse(item.resultData);
+                        const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
                         if (Array.isArray(parsed)) {
                             parsed.forEach(r => {
                                 const key = `${r.category}:${r.type}`;
@@ -2371,7 +2641,6 @@
                                     else if (r.type === '오프번찾' || r.type === '구두만픽') subKey = '번호찾';
 
                                     if (findSubTypes[subKey] !== undefined) findSubTypes[subKey] += countVal;
-
                                     if (findSubTopRegionMap[subKey]) {
                                         findSubTopRegionMap[subKey][region] = (findSubTopRegionMap[subKey][region] || 0) + countVal;
                                     }
@@ -2394,14 +2663,8 @@
             $('pop-find-etc').textContent = findSubTypes['기타'] + '건';
 
             const getTopRegionStr = (map) => {
-                let topRegion = '-';
-                let max = 0;
-                for (let r in map) {
-                    if (map[r] > max) {
-                        max = map[r];
-                        topRegion = `${r} (${max}건)`;
-                    }
-                }
+                let topRegion = '-'; let max = 0;
+                for (let r in map) { if (map[r] > max) { max = map[r]; topRegion = `${r} (${max}건)`; } }
                 return topRegion;
             };
 
@@ -2415,15 +2678,12 @@
 
             const resultsContainer = $('db-results-summary');
             const resultKeys = Object.keys(detailedResultsMap);
-            if (resultKeys.length === 0) {
-                resultsContainer.innerHTML = '<span class="text-tg-muted">집계된 성과가 없습니다.</span>';
-            } else {
-                resultsContainer.innerHTML = resultKeys.map(k => {
+            resultsContainer.innerHTML = resultKeys.length === 0
+                ? '<span class="text-tg-muted">집계된 성과가 없습니다.</span>'
+                : resultKeys.map(k => {
                     const [c, t] = k.split(':');
-                    const val = detailedResultsMap[k];
-                    return `<span class="bg-blue-50 text-tg-blue border border-blue-100 font-bold px-2 py-0.5 rounded-md">${c} [${t}]: ${val}</span>`;
+                    return `<span class="bg-blue-50 text-tg-blue border border-blue-100 font-bold px-2 py-0.5 rounded-md">${c} [${t}]: ${detailedResultsMap[k]}</span>`;
                 }).join('');
-            }
 
             renderCharts(catCounts, regionTotalCounts);
             renderDashboardTimeline(list);
@@ -2448,62 +2708,34 @@
                         backgroundColor: ['#2563eb', '#60a5fa', '#16a34a', '#d97706', '#9333ea']
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
             });
 
             const ctxGroup = $('chart-group').getContext('2d');
             if (groupChartInstance) groupChartInstance.destroy();
 
             const allRegions = Array.from(new Set([...FIXED_REGIONS, ...Object.keys(regionCounts)]));
-
-            allRegions.sort((a, b) => {
-                const countA = regionCounts[a] || 0;
-                const countB = regionCounts[b] || 0;
-                return countB - countA;
-            });
-
-            const regionData = allRegions.map(r => regionCounts[r] || 0);
+            allRegions.sort((a, b) => (regionCounts[b] || 0) - (regionCounts[a] || 0));
 
             groupChartInstance = new Chart(ctxGroup, {
                 type: 'bar',
                 data: {
                     labels: allRegions,
-                    datasets: [{
-                        label: '지역별 등록 건수',
-                        data: regionData,
-                        backgroundColor: '#60a5fa',
-                        borderRadius: 6
-                    }]
+                    datasets: [{ label: '지역별 등록 건수', data: allRegions.map(r => regionCounts[r] || 0), backgroundColor: '#60a5fa', borderRadius: 6 }]
                 },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { beginAtZero: true, ticks: { precision: 0 } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false } } }
             });
         }
 
         function renderDashboardTimeline(list) {
             $('db-list-count').textContent = list.length + '건';
             const container = $('db-timeline-container');
-
             if (list.length === 0) {
                 container.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">해당 기간에 등록된 활동이 없습니다.</p>';
                 return;
             }
 
             list.sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime));
-
             container.innerHTML = list.map(item => `
     <div class="bg-tg-surface p-3 rounded-xl border border-tg-border text-xs space-y-1.5">
       <div class="flex items-center justify-between">
@@ -2530,17 +2762,14 @@
         function renderHeader() {
             $('hdr-region').textContent = `${profile.group} | ${profile.region}`;
             $('hdr-team').textContent = `${profile.name}님의 활동`;
-
             $('profile-avatar').textContent = profile.name ? profile.name.charAt(0) : '?';
             $('profile-name-chip').textContent = profile.name;
             $('profile-role-chip').textContent = profile.role;
-
             $('pd-group').textContent = profile.group;
             $('pd-region').textContent = profile.region;
             $('pd-role').textContent = profile.role;
             $('pd-name').textContent = profile.name;
             $('pd-id').textContent = profile.id;
-
             $('fp-group').textContent = profile.group;
             $('fp-region').textContent = profile.region;
             $('fp-role').textContent = profile.role;
@@ -2548,37 +2777,21 @@
         }
 
         function renderDateNav() {
-            // 년도를 지우고 "7월 26일 (일)" 형태로 포맷
-            const dateStr = currentDate.toLocaleDateString('ko-KR', {
-                month: 'long', day: 'numeric', weekday: 'short',
-            });
+            const dateStr = currentDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
             $('display-date').textContent = dateStr;
-            const today = new Date();
-            const isToday = today.toDateString() === currentDate.toDateString();
+            const isToday = new Date().toDateString() === currentDate.toDateString();
             $('display-today').textContent = isToday ? '오늘' : '';
         }
 
         function setFilter(type) {
-            if (activeFilter === type) {
-                activeFilter = 'all';
-            } else {
-                activeFilter = type;
-            }
-            activeTimeFilter = 'all';
-            updateTimeFilterUI();
-            renderList();
+            activeFilter = activeFilter === type ? 'all' : type;
+            activeTimeFilter = 'all'; updateTimeFilterUI(); renderList();
         }
 
         function setTimeFilter(timeType) {
             activeFilter = 'planned';
-            if (activeTimeFilter === timeType) {
-                activeTimeFilter = 'all';
-            } else {
-                activeTimeFilter = timeType;
-            }
-            updateFilterUI();
-            updateTimeFilterUI();
-            renderList();
+            activeTimeFilter = activeTimeFilter === timeType ? 'all' : timeType;
+            updateFilterUI(); updateTimeFilterUI(); renderList();
         }
 
         function updateFilterUI() {
@@ -2590,22 +2803,16 @@
             btnCompleted.className = "stat-btn bg-green-50/60 rounded-xl p-2.5 text-center border border-green-100";
             btnCanceled.className = "stat-btn bg-red-50/60 rounded-xl p-2.5 text-center border border-red-100";
 
-            if (activeFilter === 'planned') {
-                btnPlanned.className += " stat-btn-active-planned";
-            } else if (activeFilter === 'completed') {
-                btnCompleted.className += " stat-btn-active-completed";
-            } else if (activeFilter === 'canceled') {
-                btnCanceled.className += " stat-btn-active-canceled";
-            }
+            if (activeFilter === 'planned') btnPlanned.className += " stat-btn-active-planned";
+            else if (activeFilter === 'completed') btnCompleted.className += " stat-btn-active-completed";
+            else if (activeFilter === 'canceled') btnCanceled.className += " stat-btn-active-canceled";
         }
 
         function updateTimeFilterUI() {
             document.querySelectorAll('.time-filter-btn').forEach(btn => {
-                if (activeTimeFilter !== 'all' && btn.dataset.time === activeTimeFilter) {
-                    btn.className = "time-filter-btn active flex-1 py-1.5 text-xs rounded-lg border text-white font-bold bg-tg-blue border-tg-blue shadow-sm";
-                } else {
-                    btn.className = "time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted hover:bg-zinc-200";
-                }
+                btn.className = (activeTimeFilter !== 'all' && btn.dataset.time === activeTimeFilter)
+                    ? "time-filter-btn active flex-1 py-1.5 text-xs rounded-lg border text-white font-bold bg-tg-blue border-tg-blue shadow-sm"
+                    : "time-filter-btn flex-1 py-1.5 text-xs font-medium rounded-lg border border-tg-border bg-tg-surface text-tg-muted hover:bg-zinc-200";
             });
         }
 
@@ -2615,57 +2822,40 @@
                 listForStats = activities.filter(a => a.region === activeHomeRegionFilter);
             }
 
-            const countPlanned = listForStats.filter(a => a.status === 'planned').length;
-            const countCompleted = listForStats.filter(a => a.status === 'completed').length;
-            const countCanceled = listForStats.filter(a => a.status === 'canceled').length;
-
-            $('stat-planned').textContent = countPlanned;
-            $('stat-completed').textContent = countCompleted;
-            $('stat-canceled').textContent = countCanceled;
+            $('stat-planned').textContent = listForStats.filter(a => a.status === 'planned').length;
+            $('stat-completed').textContent = listForStats.filter(a => a.status === 'completed').length;
+            $('stat-canceled').textContent = listForStats.filter(a => a.status === 'canceled').length;
 
             updateFilterUI();
 
             let filtered = listForStats;
-            if (activeFilter !== 'all') {
-                filtered = listForStats.filter(a => a.status === activeFilter);
-            }
+            if (activeFilter !== 'all') filtered = listForStats.filter(a => a.status === activeFilter);
 
             if (activeFilter === 'planned' && activeTimeFilter !== 'all') {
                 const now = new Date();
-                const curHH = String(now.getHours()).padStart(2, '0');
-                const curMM = String(now.getMinutes()).padStart(2, '0');
-                const currentTimeStr = `${curHH}:${curMM}`;
+                const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
                 filtered = filtered.filter(item => {
                     const start = item.startTime || "00:00";
                     const end = item.endTime || "23:59";
-
-                    if (activeTimeFilter === 'before') {
-                        return start > currentTimeStr;
-                    } else if (activeTimeFilter === 'ongoing') {
-                        return start <= currentTimeStr && currentTimeStr <= end;
-                    } else if (activeTimeFilter === 'ended') {
-                        return end < currentTimeStr;
-                    }
+                    if (activeTimeFilter === 'before') return start > currentTimeStr;
+                    if (activeTimeFilter === 'ongoing') return start <= currentTimeStr && currentTimeStr <= end;
+                    if (activeTimeFilter === 'ended') return end < currentTimeStr;
                     return true;
                 });
             }
 
             const currentUserIdStr = profile.id ? profile.id.toString().trim() : "";
-
             filtered.sort((a, b) => {
                 const isMineA = (a.userId && a.userId.toString().trim() === currentUserIdStr);
                 const isMineB = (b.userId && b.userId.toString().trim() === currentUserIdStr);
-
                 if (isMineA && !isMineB) return -1;
                 if (!isMineA && isMineB) return 1;
-
                 return (a.startTime || "").localeCompare(b.startTime || "");
             });
 
             const filterTitleMap = { all: '오늘의 활동 계획', planned: '계획중인 활동 목록', completed: '완료된 활동 목록', canceled: '취소된 활동 목록' };
             let titleStr = filterTitleMap[activeFilter] || '활동 목록';
-
             if (activeFilter === 'planned' && activeTimeFilter !== 'all') {
                 const timeTitleMap = { before: '시작 전 계획', ongoing: '진행 중 활동', ended: '종료 예정 시간 경과 활동' };
                 titleStr = `계획중 - ${timeTitleMap[activeTimeFilter]}`;
@@ -2678,10 +2868,8 @@
             const empty = $('empty-state');
 
             if (filtered.length === 0) {
-                empty.classList.remove('hidden');
-                empty.classList.add('flex');
+                empty.classList.remove('hidden'); empty.classList.add('flex');
                 container.innerHTML = '';
-
                 if (activeTimeFilter !== 'all') {
                     const timeNameMap = { before: '시작 전인', ongoing: '현재 진행 중인', ended: '종료 시간이 경과된' };
                     $('empty-msg-title').textContent = `'${timeNameMap[activeTimeFilter]}' 계획중인 활동이 없습니다`;
@@ -2696,16 +2884,13 @@
                 return;
             }
 
-            empty.classList.add('hidden');
-            empty.classList.remove('flex');
-
+            empty.classList.add('hidden'); empty.classList.remove('flex');
             container.innerHTML = filtered.map(item => {
                 const isMine = (item.userId && item.userId.toString().trim() === currentUserIdStr);
-
                 let resultChipsHtml = '';
                 if (item.status === 'completed' && item.resultData) {
                     try {
-                        const parsed = JSON.parse(item.resultData);
+                        const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
                         if (Array.isArray(parsed) && parsed.length > 0) {
                             resultChipsHtml = `
             <div class="flex flex-wrap gap-1 mt-2 mb-1">
@@ -2774,47 +2959,32 @@
         }
 
         function openModal() {
-            const overlay = $('modal-overlay');
-            const sheet = $('modal-sheet');
-
-            sheet.style.display = 'flex';
-            sheet.offsetHeight;
-            overlay.classList.add('open');
-            sheet.classList.add('open');
+            const overlay = $('modal-overlay'); const sheet = $('modal-sheet');
+            sheet.style.display = 'flex'; sheet.offsetHeight;
+            overlay.classList.add('open'); sheet.classList.add('open');
         }
 
         function closeModal() {
-            const overlay = $('modal-overlay');
-            const sheet = $('modal-sheet');
-            overlay.classList.remove('open');
-            sheet.classList.remove('open');
+            const overlay = $('modal-overlay'); const sheet = $('modal-sheet');
+            overlay.classList.remove('open'); sheet.classList.remove('open');
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
         }
 
         function openDashModal() {
-            const overlay = $('dash-overlay');
-            const sheet = $('dash-sheet');
-
-            sheet.style.display = 'flex';
-            sheet.offsetHeight;
-            overlay.classList.add('open');
-            sheet.classList.add('open');
-
+            const overlay = $('dash-overlay'); const sheet = $('dash-sheet');
+            sheet.style.display = 'flex'; sheet.offsetHeight;
+            overlay.classList.add('open'); sheet.classList.add('open');
             fetchDashboardData('today');
         }
 
         function closeDashModal() {
-            const overlay = $('dash-overlay');
-            const sheet = $('dash-sheet');
-            overlay.classList.remove('open');
-            sheet.classList.remove('open');
+            const overlay = $('dash-overlay'); const sheet = $('dash-sheet');
+            overlay.classList.remove('open'); sheet.classList.remove('open');
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
         }
 
         function openAdd(defaultStatus = 'planned') {
-            modalMode = 'add';
-            editId = null;
-
+            modalMode = 'add'; editId = null;
             $('target-date-display').textContent = dateKey(currentDate);
 
             const now = new Date();
@@ -2822,34 +2992,24 @@
             let startM = now.getMinutes() < 30 ? "30" : "00";
             if (now.getMinutes() >= 30) startH = (startH + 1) % 24;
 
-            const defaultStartTime = `${String(startH).padStart(2, '0')}:${startM}`;
-
-            $('f-starttime').value = defaultStartTime;
+            $('f-starttime').value = `${String(startH).padStart(2, '0')}:${startM}`;
             updateEndTimeOptions();
-
             $('f-content-category').value = '찾기(오프라인)';
             $('f-location').value = '';
             $('f-result-text').value = '';
             $('result-rows-container').innerHTML = '';
 
             setStatus(defaultStatus);
-
             $('modal-title').textContent = defaultStatus === 'completed' ? '즉시 결과 기록' : '새 활동 추가';
             $('save-label').textContent = defaultStatus === 'completed' ? '결과 저장' : '계획 저장';
             $('btn-cancel-activity').classList.add('hidden');
-
             openModal();
         }
 
         function openEdit(item) {
-            modalMode = 'edit';
-            editId = item.id;
-
+            modalMode = 'edit'; editId = item.id;
             $('target-date-display').textContent = item.date || dateKey(currentDate);
-
-            if (item.startTime) {
-                $('f-starttime').value = item.startTime;
-            }
+            if (item.startTime) $('f-starttime').value = item.startTime;
             updateEndTimeOptions(item.endTime);
 
             $('f-content-category').value = item.content || '찾기(오프라인)';
@@ -2857,18 +3017,14 @@
             $('f-result-text').value = item.resultText || '';
 
             loadResultDataJson(item.resultData);
-
             setStatus(item.status || 'planned');
 
             $('modal-title').textContent = '활동 수정 / 완료';
             $('save-label').textContent = '수정 완료';
 
             const cancelBtn = $('btn-cancel-activity');
-            if (item.status !== 'canceled') {
-                cancelBtn.classList.remove('hidden');
-            } else {
-                cancelBtn.classList.add('hidden');
-            }
+            if (item.status !== 'canceled') cancelBtn.classList.remove('hidden');
+            else cancelBtn.classList.add('hidden');
 
             openModal();
         }
@@ -2877,20 +3033,15 @@
             formStatus = value;
             document.querySelectorAll('.seg-btn').forEach(btn => {
                 if (btn.dataset.value === value) {
-                    btn.classList.add('seg-active');
-                    btn.classList.remove('seg-inactive');
+                    btn.classList.add('seg-active'); btn.classList.remove('seg-inactive');
                 } else {
-                    btn.classList.remove('seg-active');
-                    btn.classList.add('seg-inactive');
+                    btn.classList.remove('seg-active'); btn.classList.add('seg-inactive');
                 }
             });
 
             const resultBox = $('result-box');
-            if (value === 'completed') {
-                resultBox.classList.add('visible');
-            } else {
-                resultBox.classList.remove('visible');
-            }
+            if (value === 'completed') resultBox.classList.add('visible');
+            else resultBox.classList.remove('visible');
         }
 
         function openRegSheet(list) {
@@ -2900,76 +3051,50 @@
             if (list && list.length > 0) {
                 list.forEach(item => {
                     const opt = document.createElement('option');
-                    opt.value = item.row;
-                    opt.innerText = `${item.name} ${item.info || ''}`;
+                    opt.value = item.id || item.row;
+                    opt.innerText = `${item.name} (${item.group_name || item.info || ''} ${item.region || ''} ${item.role || ''})`.trim();
                     selectEl.appendChild(opt);
                 });
             } else {
                 selectEl.innerHTML = '<option value="">선택 가능한 미등록 명단이 없습니다.</option>';
             }
 
-            const overlay = $('reg-overlay');
-            const sheet = $('reg-sheet');
-            sheet.style.display = 'flex';
-            sheet.offsetHeight;
-            overlay.classList.add('open');
-            sheet.classList.add('open');
+            const overlay = $('reg-overlay'); const sheet = $('reg-sheet');
+            sheet.style.display = 'flex'; sheet.offsetHeight;
+            overlay.classList.add('open'); sheet.classList.add('open');
         }
 
         function closeRegSheet() {
-            const overlay = $('reg-overlay');
-            const sheet = $('reg-sheet');
-            overlay.classList.remove('open');
-            sheet.classList.remove('open');
+            const overlay = $('reg-overlay'); const sheet = $('reg-sheet');
+            overlay.classList.remove('open'); sheet.classList.remove('open');
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
         }
 
-        // 💡 대시보드 진입 버튼 클릭 처리 (관리자급은 선택 메뉴 토글, 일반 조원은 바로 나의 활동 추적 모달 열기)
         function handleDashButtonClick() {
             const role = profile.role || "";
             const isAdminOrLeader = (role.includes("조장") || role.includes("부조장") || role.includes("관리자"));
-
-            if (isAdminOrLeader) {
-                toggleDashMenu();
-            } else {
-                openTrackerModal();
-            }
+            if (isAdminOrLeader) toggleDashMenu();
+            else openTrackerModal();
         }
 
         function toggleDashMenu() {
-            const menu = $('dash-menu');
-            const overlay = $('dash-popover-overlay');
+            const menu = $('dash-menu'); const overlay = $('dash-popover-overlay');
             const isOpening = menu.classList.contains('hidden');
-
-            if (isOpening) {
-                menu.classList.remove('hidden');
-                menu.classList.add('flex');
-                overlay.classList.remove('hidden');
-            } else {
-                menu.classList.add('hidden');
-                menu.classList.remove('flex');
-                overlay.classList.add('hidden');
-            }
+            if (isOpening) { menu.classList.remove('hidden'); menu.classList.add('flex'); overlay.classList.remove('hidden'); }
+            else { menu.classList.add('hidden'); menu.classList.remove('flex'); overlay.classList.add('hidden'); }
         }
 
         function closeDashMenu() {
-            $('dash-menu').classList.add('hidden');
-            $('dash-menu').classList.remove('flex');
+            $('dash-menu').classList.add('hidden'); $('dash-menu').classList.remove('flex');
             $('dash-popover-overlay').classList.add('hidden');
         }
 
         function openTrackerModal() {
-            const overlay = $('tracker-overlay');
-            const sheet = $('tracker-sheet');
+            const overlay = $('tracker-overlay'); const sheet = $('tracker-sheet');
+            sheet.style.display = 'flex'; sheet.offsetHeight;
+            overlay.classList.add('open'); sheet.classList.add('open');
 
-            sheet.style.display = 'flex';
-            sheet.offsetHeight;
-            overlay.classList.add('open');
-            sheet.classList.add('open');
-
-            // semestersList 정보를 셀렉트 박스에 바인딩
-            const selectEl = $('tracker-week-select');
-            selectEl.innerHTML = '';
+            const selectEl = $('tracker-week-select'); selectEl.innerHTML = '';
             if (semestersList && semestersList.length > 0) {
                 selectEl.innerHTML = semestersList.map(sem => `
                     <option value="${sem.startDate}:${sem.endDate}" ${sem.isCurrent ? 'selected' : ''}>
@@ -2979,79 +3104,85 @@
             } else {
                 selectEl.innerHTML = `<option value="${dateKey(new Date())}:${dateKey(new Date())}">현재 주차 정보 없음</option>`;
             }
-
             fetchTrackerData();
         }
 
         function closeTrackerModal() {
-            const overlay = $('tracker-overlay');
-            const sheet = $('tracker-sheet');
-            overlay.classList.remove('open');
-            sheet.classList.remove('open');
+            const overlay = $('tracker-overlay'); const sheet = $('tracker-sheet');
+            overlay.classList.remove('open'); sheet.classList.remove('open');
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
         }
 
         async function fetchTrackerData() {
-            const selectEl = $('tracker-week-select');
-            if (!selectEl.value) return;
-
+            const selectEl = $('tracker-week-select'); if (!selectEl.value) return;
             const [startDate, endDate] = selectEl.value.split(':');
             $('tracker-dates-text').textContent = `${startDate} ~ ${endDate}`;
 
             const dailyList = $('tracker-daily-list');
             dailyList.innerHTML = '<p class="text-xs text-tg-muted text-center py-4">데이터 로딩 중...</p>';
 
+            if (supabase) {
+                try {
+                    const { data } = await supabase.from('activities').select('*')
+                        .eq('user_id', profile.id)
+                        .gte('activity_date', startDate)
+                        .lte('activity_date', endDate);
+
+                    const list = (data || []).map(a => ({
+                        id: a.id,
+                        userId: a.user_id,
+                        name: a.name,
+                        group: a.group_name,
+                        region: a.region,
+                        role: a.role,
+                        date: a.activity_date,
+                        startTime: a.start_time,
+                        endTime: a.end_time,
+                        location: a.location,
+                        content: a.content,
+                        status: a.status,
+                        resultData: typeof a.result_data === 'object' ? JSON.stringify(a.result_data) : a.result_data,
+                        resultText: a.result_text
+                    }));
+
+                    renderTrackerData(list, startDate, endDate);
+                    return;
+                } catch (e) { console.error("Tracker Supabase error:", e); }
+            }
+
             try {
                 const res = await fetch(`${GAS_URL}?action=getUserTrackerData&initData=${encodeURIComponent(tg ? tg.initData : '')}&startDate=${startDate}&endDate=${endDate}`);
                 const data = await res.json();
-                if (data.result === 'success') {
-                    renderTrackerData(data.list || [], startDate, endDate);
-                } else {
-                    dailyList.innerHTML = `<p class="text-xs text-red-600 text-center py-4">${escHtml(data.message || '조회 실패')}</p>`;
-                }
+                if (data.result === 'success') renderTrackerData(data.list || [], startDate, endDate);
+                else dailyList.innerHTML = `<p class="text-xs text-red-600 text-center py-4">${escHtml(data.message || '조회 실패')}</p>`;
             } catch (e) {
                 dailyList.innerHTML = `<p class="text-xs text-red-600 text-center py-4">오류 발생: ${escHtml(e.message)}</p>`;
             }
         }
 
         function getDatesInRange(start, end) {
-            const dates = [];
-            let curr = new Date(start);
-            const last = new Date(end);
-            while (curr <= last) {
-                dates.push(dateKey(curr));
-                curr.setDate(curr.getDate() + 1);
-            }
+            const dates = []; let curr = new Date(start); const last = new Date(end);
+            while (curr <= last) { dates.push(dateKey(curr)); curr.setDate(curr.getDate() + 1); }
             return dates;
         }
 
         function renderTrackerData(list, startDate, endDate) {
-            let countFind = 0;
-            let countMatch = 0;
-            let countLeaf = 0;
-            let countBook = 0;
+            let countFind = 0; let countMatch = 0; let countLeaf = 0; let countBook = 0;
 
             list.forEach(item => {
-                if (item.status === 'completed') {
-                    if (item.resultData) {
-                        try {
-                            const parsed = JSON.parse(item.resultData);
-                            if (Array.isArray(parsed)) {
-                                parsed.forEach(r => {
-                                    const cVal = r.count !== undefined ? parseInt(r.count, 10) : 1;
-                                    if (r.category === '찾기(오프라인)' || r.category === '찾기(온라인)' || r.category === '찾기') {
-                                        countFind += cVal;
-                                    } else if (r.category === '매칭') {
-                                        countMatch += cVal;
-                                    } else if (r.category === '잎사귀') {
-                                        countLeaf += cVal;
-                                    } else if (r.category === '복방') {
-                                        countBook += cVal;
-                                    }
-                                });
-                            }
-                        } catch (e) {}
-                    }
+                if (item.status === 'completed' && item.resultData) {
+                    try {
+                        const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
+                        if (Array.isArray(parsed)) {
+                            parsed.forEach(r => {
+                                const cVal = r.count !== undefined ? parseInt(r.count, 10) : 1;
+                                if (r.category === '찾기(오프라인)' || r.category === '찾기(온라인)' || r.category === '찾기') countFind += cVal;
+                                else if (r.category === '매칭') countMatch += cVal;
+                                else if (r.category === '잎사귀') countLeaf += cVal;
+                                else if (r.category === '복방') countBook += cVal;
+                            });
+                        }
+                    } catch (e) { }
                 }
             });
 
@@ -3060,9 +3191,7 @@
             $('track-sum-leaf').textContent = countLeaf + '건';
             $('track-sum-book').textContent = countBook + '건';
 
-            const dailyContainer = $('tracker-daily-list');
-            dailyContainer.innerHTML = '';
-
+            const dailyContainer = $('tracker-daily-list'); dailyContainer.innerHTML = '';
             const rangeDates = getDatesInRange(startDate, endDate);
 
             rangeDates.forEach(dateStr => {
@@ -3073,24 +3202,22 @@
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'border-b border-tg-border/50 pb-2.5 last:border-b-0 last:pb-0';
 
-                let actsHtml = '';
-                if (dayActs.length === 0) {
-                    actsHtml = `<p class="text-[11px] text-tg-muted py-1 italic">활동 기록이 없습니다.</p>`;
-                } else {
-                    actsHtml = dayActs.map(item => {
+                let actsHtml = dayActs.length === 0
+                    ? `<p class="text-[11px] text-tg-muted py-1 italic">활동 기록이 없습니다.</p>`
+                    : dayActs.map(item => {
                         const badgeClass = { planned: 'bg-blue-50 text-blue-700 border-blue-200', completed: 'bg-green-50 text-green-700 border-green-200', canceled: 'bg-red-50 text-red-700 border-red-200' }[item.status] || 'bg-gray-50 text-gray-700';
                         const statusLabel = { planned: '계획중', completed: '완료', canceled: '취소' }[item.status] || item.status;
 
                         let resultDetail = '';
                         if (item.status === 'completed' && item.resultData) {
                             try {
-                                const parsed = JSON.parse(item.resultData);
+                                const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
                                 if (Array.isArray(parsed) && parsed.length > 0) {
                                     resultDetail = `<div class="mt-1 flex flex-wrap gap-1 text-[10px]">
                                         ${parsed.map(r => `<span class="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 font-semibold">${r.category} [${r.type}]${r.count !== undefined ? ` ${r.count}개` : ''}</span>`).join('')}
                                     </div>`;
                                 }
-                            } catch (e) {}
+                            } catch (e) { }
                         }
 
                         return `
@@ -3104,38 +3231,29 @@
                             </div>
                         `;
                     }).join('');
-                }
 
                 dayDiv.innerHTML = `
                     <p class="text-xs font-bold text-tg-blue flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 bg-tg-blue rounded-full"></span>
                         ${dayLabel}
                     </p>
-                    <div class="pl-3 space-y-1.5">
-                        ${actsHtml}
-                    </div>
+                    <div class="pl-3 space-y-1.5">${actsHtml}</div>
                 `;
                 dailyContainer.appendChild(dayDiv);
             });
         }
 
         function showToast(message, type) {
-            const el = $('toast');
-            el.textContent = message;
-
+            const el = $('toast'); el.textContent = message;
             el.className = 'fixed bottom-24 left-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white text-center w-max max-w-[90vw] whitespace-normal leading-snug';
             if (type === 'success') el.classList.add('bg-green-600');
             else if (type === 'error') el.classList.add('bg-red-600');
             else el.classList.add('bg-zinc-800');
-
             el.classList.add('show');
-
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2800);
+            clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2800);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-
             initTimeSelects();
             initAllRegionDropdowns();
 
@@ -3145,51 +3263,33 @@
             if (dateTrigger && hiddenPicker) {
                 dateTrigger.addEventListener('click', (e) => {
                     e.preventDefault();
-                    // 모바일/PC 네이티브 달력 팝업 호출
-                    if (typeof hiddenPicker.showPicker === 'function') {
-                        hiddenPicker.showPicker();
-                    } else {
-                        hiddenPicker.focus();
-                        hiddenPicker.click();
-                    }
+                    if (typeof hiddenPicker.showPicker === 'function') hiddenPicker.showPicker();
+                    else { hiddenPicker.focus(); hiddenPicker.click(); }
                 });
 
                 hiddenPicker.addEventListener('change', (e) => {
                     if (e.target.value) {
                         const parts = e.target.value.split('-');
                         currentDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-                        activeFilter = 'all';
-                        activeTimeFilter = 'all';
-                        updateTimeFilterUI();
-                        $('loading-overlay').classList.remove('hidden');
-                        fetchAppData();
+                        activeFilter = 'all'; activeTimeFilter = 'all'; updateTimeFilterUI();
+                        $('loading-overlay').classList.remove('hidden'); fetchAppData();
                     }
                 });
             }
 
-            $('f-starttime').addEventListener('change', () => {
-                updateEndTimeOptions();
-            });
-
-            $('btn-add-result-row').addEventListener('click', () => {
-                addResultRow();
-            });
-
+            $('f-starttime').addEventListener('change', () => { updateEndTimeOptions(); });
+            $('btn-add-result-row').addEventListener('click', () => { addResultRow(); });
             $('btn-filter-planned').addEventListener('click', () => setFilter('planned'));
             $('btn-filter-completed').addEventListener('click', () => setFilter('completed'));
             $('btn-filter-canceled').addEventListener('click', () => setFilter('canceled'));
 
             document.querySelectorAll('.time-filter-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    setTimeFilter(btn.dataset.time);
-                });
+                btn.addEventListener('click', () => { setTimeFilter(btn.dataset.time); });
             });
 
-            // 대시보드 탭 클릭 이벤트
             document.querySelectorAll('.dash-main-tab').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const targetTab = btn.dataset.tab;
-
                     document.querySelectorAll('.dash-main-tab').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
 
@@ -3198,86 +3298,42 @@
                     $('tab-sec-members').classList.add('hidden');
                     $('tab-sec-semester').classList.add('hidden');
 
-                    if (targetTab === 'summary') {
-                        $('tab-sec-summary').classList.remove('hidden');
-                    } else if (targetTab === 'risk') {
-                        $('tab-sec-risk').classList.remove('hidden');
-                        fetchRiskAndMemberData();
-                    } else if (targetTab === 'members') {
-                        $('tab-sec-members').classList.remove('hidden');
-                        fetchRiskAndMemberData();
-                    } else if (targetTab === 'semester') {
-                        $('tab-sec-semester').classList.remove('hidden');
-                    }
+                    if (targetTab === 'summary') { $('tab-sec-summary').classList.remove('hidden'); }
+                    else if (targetTab === 'risk') { $('tab-sec-risk').classList.remove('hidden'); fetchRiskAndMemberData(); }
+                    else if (targetTab === 'members') { $('tab-sec-members').classList.remove('hidden'); fetchRiskAndMemberData(); }
+                    else if (targetTab === 'semester') { $('tab-sec-semester').classList.remove('hidden'); }
                 });
             });
 
-            const findChip = $('btn-find-chip');
-            const findPopover = $('find-popover');
-
-            findChip.addEventListener('click', (e) => {
-                e.stopPropagation();
-                findPopover.classList.toggle('show');
-            });
-
-            findPopover.addEventListener('click', (e) => {
-                e.stopPropagation();
-                findPopover.classList.remove('show');
-            });
-
-            document.addEventListener('click', () => {
-                findPopover.classList.remove('show');
-            });
+            const findChip = $('btn-find-chip'); const findPopover = $('find-popover');
+            findChip.addEventListener('click', (e) => { e.stopPropagation(); findPopover.classList.toggle('show'); });
+            findPopover.addEventListener('click', (e) => { e.stopPropagation(); findPopover.classList.remove('show'); });
+            document.addEventListener('click', () => { findPopover.classList.remove('show'); });
 
             fetchAppData();
 
             $('btn-prev-day').addEventListener('click', () => {
-                currentDate.setDate(currentDate.getDate() - 1);
-                currentDate = new Date(currentDate);
-                activeFilter = 'all';
-                activeTimeFilter = 'all';
-                updateTimeFilterUI();
-                $('loading-overlay').classList.remove('hidden');
-                fetchAppData();
+                currentDate.setDate(currentDate.getDate() - 1); currentDate = new Date(currentDate);
+                activeFilter = 'all'; activeTimeFilter = 'all'; updateTimeFilterUI();
+                $('loading-overlay').classList.remove('hidden'); fetchAppData();
             });
 
             $('btn-next-day').addEventListener('click', () => {
-                currentDate.setDate(currentDate.getDate() + 1);
-                currentDate = new Date(currentDate);
-                activeFilter = 'all';
-                activeTimeFilter = 'all';
-                updateTimeFilterUI();
-                $('loading-overlay').classList.remove('hidden');
-                fetchAppData();
+                currentDate.setDate(currentDate.getDate() + 1); currentDate = new Date(currentDate);
+                activeFilter = 'all'; activeTimeFilter = 'all'; updateTimeFilterUI();
+                $('loading-overlay').classList.remove('hidden'); fetchAppData();
             });
 
             $('fab').addEventListener('click', toggleFabMenu);
             $('fab-popover-overlay').addEventListener('click', toggleFabMenu);
-
-            $('btn-fab-add-plan').addEventListener('click', () => {
-                toggleFabMenu();
-                openAdd('planned');
-            });
-
-            $('btn-fab-direct-result').addEventListener('click', () => {
-                toggleFabMenu();
-                openAdd('completed');
-            });
+            $('btn-fab-add-plan').addEventListener('click', () => { toggleFabMenu(); openAdd('planned'); });
+            $('btn-fab-direct-result').addEventListener('click', () => { toggleFabMenu(); openAdd('completed'); });
 
             $('dash-btn').addEventListener('click', handleDashButtonClick);
             $('dash-popover-overlay').addEventListener('click', closeDashMenu);
-            $('btn-dash-admin').addEventListener('click', () => {
-                closeDashMenu();
-                openDashModal();
-            });
-            $('btn-dash-tracker').addEventListener('click', () => {
-                closeDashMenu();
-                openTrackerModal();
-            });
-            $('btn-dash-notice').addEventListener('click', () => {
-                closeDashMenu();
-                openNoticeSheet();
-            });
+            $('btn-dash-admin').addEventListener('click', () => { closeDashMenu(); openDashModal(); });
+            $('btn-dash-tracker').addEventListener('click', () => { closeDashMenu(); openTrackerModal(); });
+            $('btn-dash-notice').addEventListener('click', () => { closeDashMenu(); openNoticeSheet(); });
 
             $('btn-close-tracker').addEventListener('click', closeTrackerModal);
             $('tracker-overlay').addEventListener('click', closeTrackerModal);
@@ -3300,9 +3356,7 @@
             $('dash-overlay').addEventListener('click', closeDashModal);
 
             document.querySelectorAll('.dash-range-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    fetchDashboardData(btn.dataset.range);
-                });
+                btn.addEventListener('click', () => { fetchDashboardData(btn.dataset.range); });
             });
 
             document.querySelectorAll('.seg-btn').forEach(btn => {
@@ -3313,17 +3367,12 @@
             $('btn-cancel-activity').addEventListener('click', cancelActivity);
 
             $('profile-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                $('profile-dropdown').classList.toggle('open');
+                e.stopPropagation(); $('profile-dropdown').classList.toggle('open');
             });
 
-            document.addEventListener('click', () => {
-                $('profile-dropdown').classList.remove('open');
-            });
+            document.addEventListener('click', () => { $('profile-dropdown').classList.remove('open'); });
 
-            if (window.Telegram && window.Telegram.WebApp) {
-                tg.setHeaderColor('#ffffff');
-            }
+            if (window.Telegram && window.Telegram.WebApp) { tg.setHeaderColor('#ffffff'); }
         });
     </script>
 
