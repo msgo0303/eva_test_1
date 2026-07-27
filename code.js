@@ -719,8 +719,10 @@ function doGet(e) {
                 const parsed = JSON.parse(resultData);
                 if (Array.isArray(parsed)) {
                   parsed.forEach(r => {
-                    if ((r.category === '찾기' || r.category === '찾기(오프라인)' || r.category === '찾기(온라인)') && (r.type === '온만찾' || r.type === '오프만찾')) {
-                      userMap[name].weeklyFindCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
+                    // code.js & index.html 공통 검증 코드
+                    if ((r.category === '찾기' || r.category === '찾기(오프라인)' || r.category === '찾기(온라인)') &&
+                      (r.type === '온만찾' || r.type === '오프만찾')) {
+                      weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                     }
                   });
                 }
