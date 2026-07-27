@@ -899,87 +899,87 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-5 gap-1 pt-1 relative">
-                        <div id="btn-find-chip"
-                            class="bg-blue-50 border border-blue-200 hover:border-blue-400 rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
-                            <p class="text-[9px] text-blue-600 font-bold flex items-center justify-center gap-0.5">
-                                찾기(오프)</p>
-                            <p id="db-cat-find-off" class="text-sm font-bold text-blue-800">0건</p>
-                        </div>
-
-                        <div id="find-popover"
-                            class="absolute top-14 left-0 z-30 bg-zinc-900 text-white rounded-2xl p-3 shadow-2xl border border-zinc-700 w-64">
-                            <div class="flex items-center justify-between border-b border-zinc-700 pb-1.5 mb-2">
-                                <span class="text-xs font-bold text-blue-300">🔍 찾기 세부 유형별 합계</span>
-                                <span class="text-[10px] text-zinc-400">탭하여 닫기</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-1.5 text-xs">
-                                <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
-                                        class="text-zinc-400">매만찾</span><span id="pop-find-match"
-                                        class="font-bold text-blue-400">0건</span></div>
-                                <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
-                                        class="text-zinc-400">오프찾</span><span id="pop-find-off"
-                                        class="font-bold text-blue-400">0건</span></div>
-                                <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
-                                        class="text-zinc-400">번호찾</span><span id="pop-find-num"
-                                        class="font-bold text-blue-400">0건</span></div>
-                                <div class="bg-zinc-800 p-1.5 rounded-lg flex justify-between"><span
-                                        class="text-zinc-400">기타</span><span id="pop-find-etc"
-                                        class="font-bold text-zinc-300">0건</span></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-sky-50 border border-sky-100 rounded-xl p-2 text-center shadow-sm">
-                            <p class="text-[9px] text-sky-600 font-bold">찾기(온)</p>
-                            <p id="db-cat-find-on" class="text-sm font-bold text-sky-800">0건</p>
-                        </div>
-                        <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-2 text-center shadow-sm">
-                            <p class="text-[9px] text-emerald-600 font-bold">매칭</p>
-                            <p id="db-cat-match" class="text-sm font-bold text-emerald-800">0건</p>
-                        </div>
-                        <div class="bg-amber-50/70 border border-amber-100 rounded-xl p-2 text-center shadow-sm">
-                            <p class="text-[9px] text-amber-600 font-bold">잎사귀</p>
-                            <p id="db-cat-leaf" class="text-sm font-bold text-amber-800">0건</p>
-                        </div>
-                        <div class="bg-purple-50/70 border border-purple-100 rounded-xl p-2 text-center shadow-sm">
-                            <p class="text-[9px] text-purple-600 font-bold">복방</p>
-                            <p id="db-cat-book" class="text-sm font-bold text-purple-800">0건</p>
-                        </div>
-                    </div>
-
-                    <div class="pt-2 border-t border-tg-border">
-                        <p class="text-xs font-bold text-tg-text mb-2">🏆 카테고리별 최다 활동 지역</p>
-                        <div class="space-y-2 text-xs">
-                            <div class="bg-blue-50/40 p-2 rounded-xl border border-blue-100 space-y-1">
-                                <p class="text-[11px] font-bold text-tg-blue mb-1">🔍 찾기 세부 1위</p>
-                                <div class="grid grid-cols-3 gap-1 text-[11px]">
-                                    <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
-                                        <p class="text-tg-muted text-[10px]">매만찾</p>
-                                        <p id="db-top-find-meman" class="font-bold text-tg-blue truncate">-</p>
-                                    </div>
-                                    <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
-                                        <p class="text-tg-muted text-[10px]">오프찾</p>
-                                        <p id="db-top-find-off" class="font-bold text-tg-blue truncate">-</p>
-                                    </div>
-                                    <div class="bg-white p-1.5 rounded border border-blue-100 text-center">
-                                        <p class="text-tg-muted text-[10px]">번호찾</p>
-                                        <p id="db-top-find-num" class="font-bold text-tg-blue truncate">-</p>
-                                    </div>
+                    <!-- 카테고리별 건수 칩 2열 배치 (계획 vs 완료) -->
+                    <div class="pt-1 relative space-y-2.5">
+                        <!-- 1) 계획 등록 기준 5개 칩 -->
+                        <div>
+                            <p class="text-[10px] font-bold text-tg-muted mb-1">📋 계획 등록 기준</p>
+                            <div class="grid grid-cols-5 gap-1">
+                                <div class="bg-blue-50 border border-blue-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-blue-600 font-bold">찾기(오프)</p>
+                                    <p id="db-plan-find-off" class="text-xs font-bold text-blue-800">0건</p>
+                                </div>
+                                <div class="bg-sky-50 border border-sky-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-sky-600 font-bold">찾기(온)</p>
+                                    <p id="db-plan-find-on" class="text-xs font-bold text-sky-800">0건</p>
+                                </div>
+                                <div
+                                    class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-emerald-600 font-bold">매칭</p>
+                                    <p id="db-plan-match" class="text-xs font-bold text-emerald-800">0건</p>
+                                </div>
+                                <div
+                                    class="bg-amber-50/70 border border-amber-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-amber-600 font-bold">잎사귀</p>
+                                    <p id="db-plan-leaf" class="text-xs font-bold text-amber-800">0건</p>
+                                </div>
+                                <div
+                                    class="bg-purple-50/70 border border-purple-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-purple-600 font-bold">복방</p>
+                                    <p id="db-plan-book" class="text-xs font-bold text-purple-800">0건</p>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="grid grid-cols-3 gap-1.5 text-[11px]">
-                                <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
-                                    <p class="text-tg-muted text-[10px]">🤝 매칭 1위</p>
-                                    <p id="db-top-match" class="font-bold text-tg-text truncate mt-0.5">-</p>
+                        <!-- 2) 완료 기준 5개 칩 (하단 칩에 팝업 연동) -->
+                        <div class="relative">
+                            <p class="text-[10px] font-bold text-green-700 mb-1">✅ 활동 완료 기준 (완료 칩 클릭 시 세부보기)</p>
+                            <div class="grid grid-cols-5 gap-1">
+                                <!-- 완료 [찾기(오프)] 칩에만 Popover 클릭 이벤트 연동 -->
+                                <div id="btn-find-completed-chip"
+                                    class="bg-green-50 border border-green-200 hover:border-green-400 rounded-xl p-1.5 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
+                                    <p class="text-[9px] text-green-700 font-bold">찾기(오프)</p>
+                                    <p id="db-done-find-off" class="text-xs font-bold text-green-800">0건</p>
                                 </div>
-                                <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
-                                    <p class="text-tg-muted text-[10px]">🍃 잎사귀 1위</p>
-                                    <p id="db-top-leaf" class="font-bold text-tg-text truncate mt-0.5">-</p>
+
+                                <!-- 완료 세부 팝업 (오프만찾/오프번찾 2개 항목 출력) -->
+                                <div id="find-popover"
+                                    class="absolute top-12 left-0 z-30 bg-zinc-900 text-white rounded-2xl p-3 shadow-2xl border border-zinc-700 w-56 hidden">
+                                    <div class="flex items-center justify-between border-b border-zinc-700 pb-1.5 mb-2">
+                                        <span class="text-xs font-bold text-green-400">🔍 오프라인 찾기 세부 결과</span>
+                                        <span class="text-[10px] text-zinc-400">닫기</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-1.5 text-xs">
+                                        <div class="bg-zinc-800 p-2 rounded-lg flex justify-between">
+                                            <span class="text-zinc-400">오프만찾</span>
+                                            <span id="pop-find-off-only" class="font-bold text-green-400">0건</span>
+                                        </div>
+                                        <div class="bg-zinc-800 p-2 rounded-lg flex justify-between">
+                                            <span class="text-zinc-400">오프번찾</span>
+                                            <span id="pop-find-num" class="font-bold text-green-400">0건</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="bg-tg-surface p-2 rounded-xl border border-tg-border text-center">
-                                    <p class="text-tg-muted text-[10px]">📖 복방 1위</p>
-                                    <p id="db-top-book" class="font-bold text-tg-text truncate mt-0.5">-</p>
+
+                                <div
+                                    class="bg-green-50/60 border border-green-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-green-700 font-bold">찾기(온)</p>
+                                    <p id="db-done-find-on" class="text-xs font-bold text-green-800">0건</p>
+                                </div>
+                                <div
+                                    class="bg-green-50/60 border border-green-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-green-700 font-bold">매칭</p>
+                                    <p id="db-done-match" class="text-xs font-bold text-green-800">0건</p>
+                                </div>
+                                <div
+                                    class="bg-green-50/60 border border-green-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-green-700 font-bold">잎사귀</p>
+                                    <p id="db-done-leaf" class="text-xs font-bold text-green-800">0건</p>
+                                </div>
+                                <div
+                                    class="bg-green-50/60 border border-green-100 rounded-xl p-1.5 text-center shadow-sm">
+                                    <p class="text-[9px] text-green-700 font-bold">복방</p>
+                                    <p id="db-done-book" class="text-xs font-bold text-green-800">0건</p>
                                 </div>
                             </div>
                         </div>
@@ -992,13 +992,23 @@
                     </div>
                 </div>
 
+                <!-- 차트 2종 (도넛 옆 텍스트 설명 + 고정 14개 지역 정렬 막대 차트) -->
                 <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
-                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📈 활동 카테고리 비중</h3>
-                    <div class="w-full h-48 relative flex items-center justify-center"><canvas
-                            id="chart-category"></canvas></div>
+                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📈 활동 카테고리 비중 (계획 등록 기준)</h3>
+                    <div class="flex items-center gap-3">
+                        <div class="w-1/2 h-44 relative">
+                            <canvas id="chart-category"></canvas>
+                        </div>
+                        <div id="chart-category-legend" class="w-1/2 space-y-1.5 text-[11px]">
+                            <!-- JS에서 계획 등록 기준 카테고리별 건수 및 비중(%) 텍스트가 채워집니다 -->
+                        </div>
+                    </div>
+
                     <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊
-                        지역별 활동 건수 비교</h3>
-                    <div class="w-full h-96 relative"><canvas id="chart-group"></canvas></div>
+                        지역별 활동 건수 비교 (고정 14개 지역)</h3>
+                    <div class="w-full h-80 relative">
+                        <canvas id="chart-group"></canvas>
+                    </div>
                 </div>
 
                 <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
@@ -1123,7 +1133,8 @@
                                 class="w-full min-w-0 max-w-full block appearance-none box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
                         </div>
                         <button onclick="saveSemesterSetting()"
-                            class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">+ 새 사이클 저장</button>
+                            class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">+
+                            새 사이클 저장</button>
                     </div>
                 </div>
             </div>
@@ -1162,7 +1173,8 @@
     </div>
 
     <!-- CUSTOM DATE PICKER CALENDAR -->
-    <div id="custom-cal-overlay" style="display:none" class="fixed inset-0 z-[70] bg-black/50 flex items-end justify-center">
+    <div id="custom-cal-overlay" style="display:none"
+        class="fixed inset-0 z-[70] bg-black/50 flex items-end justify-center">
         <div class="bg-white w-full max-w-md rounded-t-3xl shadow-2xl">
             <div class="flex justify-center pt-3 pb-1">
                 <div class="w-10 h-1 bg-zinc-200 rounded-full"></div>
@@ -1171,15 +1183,17 @@
                 <div class="flex items-center justify-between mb-4">
                     <button id="cal-prev-month"
                         class="w-10 h-10 flex items-center justify-center rounded-full bg-tg-surface active:scale-95 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-tg-muted">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                            stroke="currentColor" class="w-4 h-4 text-tg-muted">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                         </svg>
                     </button>
                     <span id="cal-month-label" class="text-base font-extrabold text-tg-text"></span>
                     <button id="cal-next-month"
                         class="w-10 h-10 flex items-center justify-center rounded-full bg-tg-surface active:scale-95 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-tg-muted">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                            stroke="currentColor" class="w-4 h-4 text-tg-muted">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                         </svg>
                     </button>
                 </div>
@@ -2836,11 +2850,13 @@
             $('db-kpi-total').textContent = total;
             $('db-kpi-rate').textContent = rate + '%';
 
-            const catCounts = { '찾기(오프라인)': 0, '찾기(온라인)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
-            const findSubTypes = { '매만찾': 0, '오프찾': 0, '번호찾': 0, '기타': 0 };
-            const findSubTopRegionMap = { '매만찾': {}, '오프찾': {}, '번호찾': {} };
+            // 1) 계획 기준 카테고리 집계
+            const planCounts = { '찾기(오프라인)': 0, '찾기(온라인)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            // 2) 완료 기준 카테고리 집계
+            const doneCounts = { '찾기(오프라인)': 0, '찾기(온라인)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            // 3) 완료 오프라인 찾기 세부 수량 ('오프만찾', '오프번찾')
+            const findSubDone = { '오프만찾': 0, '오프번찾': 0 };
 
-            const catTopRegionMap = { '매칭': {}, '잎사귀': {}, '복방': {}, '찾기(오프라인)': {}, '찾기(온라인)': {} };
             const regionTotalCounts = {};
             const detailedResultsMap = {};
 
@@ -2848,64 +2864,58 @@
                 const cat = item.content || '찾기(오프라인)';
                 const region = item.region || '미정';
 
-                if (catCounts[cat] !== undefined) catCounts[cat]++; else catCounts[cat] = 1;
+                // 계획 수량 합산
+                if (planCounts[cat] !== undefined) planCounts[cat]++;
+
+                // 지역별 전체 수량
                 regionTotalCounts[region] = (regionTotalCounts[region] || 0) + 1;
 
-                if (!catTopRegionMap[cat]) catTopRegionMap[cat] = {};
-                catTopRegionMap[cat][region] = (catTopRegionMap[cat][region] || 0) + 1;
+                // 완료 수량 및 세부 성과 합산
+                if (item.status === 'completed') {
+                    if (doneCounts[cat] !== undefined) doneCounts[cat]++;
 
-                if (item.status === 'completed' && item.resultData) {
-                    try {
-                        const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
-                        if (Array.isArray(parsed)) {
-                            parsed.forEach(r => {
-                                const key = `${r.category}:${r.type}`;
-                                if (!detailedResultsMap[key]) detailedResultsMap[key] = 0;
-                                const countVal = (r.count ? parseInt(r.count, 10) : 1);
-                                detailedResultsMap[key] += countVal;
+                    if (item.resultData) {
+                        try {
+                            const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
+                            if (Array.isArray(parsed)) {
+                                parsed.forEach(r => {
+                                    const key = `${r.category}:${r.type}`;
+                                    if (!detailedResultsMap[key]) detailedResultsMap[key] = 0;
+                                    const countVal = (r.count !== undefined ? parseInt(r.count, 10) : 1);
+                                    detailedResultsMap[key] += countVal;
 
-                                if (r.category === '찾기' || r.category === '찾기(오프라인)' || r.category === '찾기(온라인)') {
-                                    let subKey = '기타';
-                                    if (r.type === '온만찾') subKey = '매만찾';
-                                    else if (r.type === '오프만찾') subKey = '오프찾';
-                                    else if (r.type === '오프번찾' || r.type === '구두만픽') subKey = '번호찾';
-
-                                    if (findSubTypes[subKey] !== undefined) findSubTypes[subKey] += countVal;
-                                    if (findSubTopRegionMap[subKey]) {
-                                        findSubTopRegionMap[subKey][region] = (findSubTopRegionMap[subKey][region] || 0) + countVal;
+                                    // 찾기(오프라인) 세부 유형 집계 ('오프만찾', '오프번찾')
+                                    if (r.type === '오프만찾') {
+                                        findSubDone['오프만찾'] += countVal;
+                                    } else if (r.type === '오프번찾' || r.type === '구두만픽') { // 구두만픽은 오프번찾으로 흡수
+                                        findSubDone['오프번찾'] += countVal;
                                     }
-                                }
-                            });
-                        }
-                    } catch (e) { }
+                                });
+                            }
+                        } catch (e) { }
+                    }
                 }
             });
 
-            $('db-cat-find-off').textContent = (catCounts['찾기(오프라인)'] || 0) + '건';
-            $('db-cat-find-on').textContent = (catCounts['찾기(온라인)'] || 0) + '건';
-            $('db-cat-match').textContent = catCounts['매칭'] + '건';
-            $('db-cat-leaf').textContent = catCounts['잎사귀'] + '건';
-            $('db-cat-book').textContent = catCounts['복방'] + '건';
+            // 1) 계획 기준 칩 출력
+            $('db-plan-find-off').textContent = (planCounts['찾기(오프라인)'] || 0) + '건';
+            $('db-plan-find-on').textContent = (planCounts['찾기(온라인)'] || 0) + '건';
+            $('db-plan-match').textContent = (planCounts['매칭'] || 0) + '건';
+            $('db-plan-leaf').textContent = (planCounts['잎사귀'] || 0) + '건';
+            $('db-plan-book').textContent = (planCounts['복방'] || 0) + '건';
 
-            $('pop-find-match').textContent = findSubTypes['매만찾'] + '건';
-            $('pop-find-off').textContent = findSubTypes['오프찾'] + '건';
-            $('pop-find-num').textContent = findSubTypes['번호찾'] + '건';
-            $('pop-find-etc').textContent = findSubTypes['기타'] + '건';
+            // 2) 완료 기준 칩 출력
+            $('db-done-find-off').textContent = (doneCounts['찾기(오프라인)'] || 0) + '건';
+            $('db-done-find-on').textContent = (doneCounts['찾기(온라인)'] || 0) + '건';
+            $('db-done-match').textContent = (doneCounts['매칭'] || 0) + '건';
+            $('db-done-leaf').textContent = (doneCounts['잎사귀'] || 0) + '건';
+            $('db-done-book').textContent = (doneCounts['복방'] || 0) + '건';
 
-            const getTopRegionStr = (map) => {
-                let topRegion = '-'; let max = 0;
-                for (let r in map) { if (map[r] > max) { max = map[r]; topRegion = `${r} (${max}건)`; } }
-                return topRegion;
-            };
+            // 3) 완료 오프라인 찾기 세부 팝업 출력
+            $('pop-find-off-only').textContent = findSubDone['오프만찾'] + '건';
+            $('pop-find-num').textContent = findSubDone['오프번찾'] + '건';
 
-            $('db-top-find-meman').textContent = getTopRegionStr(findSubTopRegionMap['매만찾']);
-            $('db-top-find-off').textContent = getTopRegionStr(findSubTopRegionMap['오프찾']);
-            $('db-top-find-num').textContent = getTopRegionStr(findSubTopRegionMap['번호찾']);
-
-            $('db-top-match').textContent = getTopRegionStr(catTopRegionMap['매칭']);
-            $('db-top-leaf').textContent = getTopRegionStr(catTopRegionMap['잎사귀']);
-            $('db-top-book').textContent = getTopRegionStr(catTopRegionMap['복방']);
-
+            // 세부 성과 집계 칩 및 차트 렌더링
             const resultsContainer = $('db-results-summary');
             const resultKeys = Object.keys(detailedResultsMap);
             resultsContainer.innerHTML = resultKeys.length === 0
@@ -2915,45 +2925,87 @@
                     return `<span class="bg-blue-50 text-tg-blue border border-blue-100 font-bold px-2 py-0.5 rounded-md">${c} [${t}]: ${detailedResultsMap[k]}</span>`;
                 }).join('');
 
-            renderCharts(catCounts, regionTotalCounts);
+            renderCharts(planCounts, regionTotalCounts, total);
             renderDashboardTimeline(list);
         }
 
-        function renderCharts(catCounts, regionCounts) {
+        function renderCharts(planCounts, regionCounts, totalCount) {
+            // 1. 도넛 차트 (계획 등록 기준)
             const ctxCat = $('chart-category').getContext('2d');
             if (catChartInstance) catChartInstance.destroy();
+
+            const catLabels = ['찾기(오프)', '찾기(온)', '매칭', '잎사귀', '복방'];
+            const catData = [
+                planCounts['찾기(오프라인)'] || 0,
+                planCounts['찾기(온라인)'] || 0,
+                planCounts['매칭'] || 0,
+                planCounts['잎사귀'] || 0,
+                planCounts['복방'] || 0
+            ];
+            const catColors = ['#2563eb', '#60a5fa', '#16a34a', '#d97706', '#9333ea'];
 
             catChartInstance = new Chart(ctxCat, {
                 type: 'doughnut',
                 data: {
-                    labels: ['찾기(오프라인)', '찾기(온라인)', '매칭', '잎사귀', '복방'],
-                    datasets: [{
-                        data: [
-                            catCounts['찾기(오프라인)'] || 0,
-                            catCounts['찾기(온라인)'] || 0,
-                            catCounts['매칭'] || 0,
-                            catCounts['잎사귀'] || 0,
-                            catCounts['복방'] || 0
-                        ],
-                        backgroundColor: ['#2563eb', '#60a5fa', '#16a34a', '#d97706', '#9333ea']
-                    }]
+                    labels: catLabels,
+                    datasets: [{ data: catData, backgroundColor: catColors }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } } // 기본 범례 숨김 (오른쪽 텍스트 설명으로 대체)
+                }
             });
 
+            // 텍스트 설명 구역 동적 채우기
+            const legendEl = $('chart-category-legend');
+            if (legendEl) {
+                legendEl.innerHTML = catLabels.map((label, idx) => {
+                    const cnt = catData[idx];
+                    const pct = totalCount > 0 ? Math.round((cnt / totalCount) * 100) : 0;
+                    return `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${catColors[idx]}"></span>
+                                <span class="font-bold text-tg-text">${label}</span>
+                            </div>
+                            <span class="font-extrabold text-tg-blue">${cnt}건 <span class="text-[10px] text-tg-muted font-normal">(${pct}%)</span></span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // 2. 가로 막대 차트 (고정 14개 지역 순서)
             const ctxGroup = $('chart-group').getContext('2d');
             if (groupChartInstance) groupChartInstance.destroy();
 
-            const allRegions = Array.from(new Set([...FIXED_REGIONS, ...Object.keys(regionCounts)]));
-            allRegions.sort((a, b) => (regionCounts[b] || 0) - (regionCounts[a] || 0));
+            // 14개 고정 지역 순서 유지
+            const fixedRegionsOrder = [
+                "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
+                "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
+            ];
 
             groupChartInstance = new Chart(ctxGroup, {
                 type: 'bar',
                 data: {
-                    labels: allRegions,
-                    datasets: [{ label: '지역별 등록 건수', data: allRegions.map(r => regionCounts[r] || 0), backgroundColor: '#60a5fa', borderRadius: 6 }]
+                    labels: fixedRegionsOrder,
+                    datasets: [{
+                        label: '지역별 활동 건수',
+                        data: fixedRegionsOrder.map(r => regionCounts[r] || 0),
+                        backgroundColor: '#60a5fa',
+                        borderRadius: 4
+                    }]
                 },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false } } }
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true, ticks: { precision: 0 } },
+                        y: { ticks: { font: { size: 10, weight: 'bold' } } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
             });
         }
 
@@ -3490,7 +3542,7 @@
         function renderCalendar() {
             const todayKey = dateKey(new Date());
             const selectedKey = dateKey(currentDate);
-            const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+            const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
             $('cal-month-label').textContent = `${calViewYear}년 ${monthNames[calViewMonth]}`;
 
             const firstDay = new Date(calViewYear, calViewMonth, 1).getDay();
@@ -3606,10 +3658,22 @@
                 });
             });
 
-            const findChip = $('btn-find-chip'); const findPopover = $('find-popover');
-            findChip.addEventListener('click', (e) => { e.stopPropagation(); findPopover.classList.toggle('show'); });
-            findPopover.addEventListener('click', (e) => { e.stopPropagation(); findPopover.classList.remove('show'); });
-            document.addEventListener('click', () => { findPopover.classList.remove('show'); });
+            const findCompletedChip = $('btn-find-completed-chip');
+            const findPopover = $('find-popover');
+
+            if (findCompletedChip && findPopover) {
+                findCompletedChip.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    findPopover.classList.toggle('show');
+                });
+                findPopover.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    findPopover.classList.remove('show');
+                });
+                document.addEventListener('click', () => {
+                    findPopover.classList.remove('show');
+                });
+            }
 
             fetchAppData();
 
