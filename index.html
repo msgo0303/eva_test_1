@@ -524,7 +524,7 @@
                     <div id="section-group-notices" class="space-y-2">
                         <h3 id="group-notices-title" class="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                            조별 공지사항 관리
+                            지역별 공지사항 관리
                         </h3>
                         <div id="manage-group-list" class="space-y-2 pl-1 text-xs"></div>
                     </div>
@@ -552,24 +552,16 @@
                     </div>
 
                     <div>
-                        <label id="notice-type-info-text" class="block text-xs font-semibold text-tg-muted mb-1.5">공지 종류</label>
-                        <div id="notice-type-container" class="grid grid-cols-2 gap-2">
-                            <label class="flex items-center gap-2 p-3 bg-tg-surface rounded-xl border border-tg-border cursor-pointer select-none">
-                                <input type="radio" name="n-type" value="admin" checked />
-                                <span class="text-xs font-bold text-tg-text">전체(관리자) 공지</span>
-                            </label>
-                            <label class="flex items-center gap-2 p-3 bg-tg-surface rounded-xl border border-tg-border cursor-pointer select-none">
-                                <input type="radio" name="n-type" value="group" />
-                                <span class="text-xs font-bold text-tg-text">조 공지</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div>
                         <label class="block text-xs font-semibold text-tg-muted mb-1.5">대상 지역</label>
-                        <select id="n-region" class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
-                            <option value="ALL">전체 지역</option>
-                        </select>
+                        <div id="n-region-checkboxes" class="p-3 bg-tg-surface rounded-xl border border-tg-border space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" id="n-region-all" value="ALL" class="w-4 h-4 rounded text-tg-blue focus:ring-tg-blue" checked />
+                                <span class="text-xs font-bold text-tg-text">전체 지역</span>
+                            </label>
+                            <div id="n-region-items" class="grid grid-cols-3 gap-2 pt-2 border-t border-tg-border">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
                     </div>
 
                     <div>
@@ -991,7 +983,7 @@
                             id="chart-category"></canvas></div>
                     <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊
                         지역별 활동 건수 비교</h3>
-                    <div class="w-full h-52 relative"><canvas id="chart-group"></canvas></div>
+                    <div class="w-full h-96 relative"><canvas id="chart-group"></canvas></div>
                 </div>
 
                 <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
@@ -1638,8 +1630,9 @@
 
             container.innerHTML = visibleNotices.map(n => {
                 const isRead = readNoticeIds.includes(n.id.toString());
-                const typeLabel = n.type === 'admin' ? '전체' : `${n.group}`;
-                const badgeClass = n.type === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+                const isAll = (n.region === 'ALL' || !n.region);
+                const typeLabel = isAll ? '전체' : `${n.region}`;
+                const badgeClass = isAll ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
                 
                 const isImp = n.isImportant === 'Y';
                 const impBadge = isImp ? '<span class="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded flex-shrink-0 mr-1.5">📌 중요</span>' : '';
@@ -1684,8 +1677,9 @@
             const meta = $('nd-meta');
             const content = $('nd-content');
 
-            badge.textContent = notice.type === 'admin' ? '전체 공지' : `${notice.group} 공지`;
-            badge.className = `text-[10px] font-extrabold px-2 py-0.5 rounded-full ${notice.type === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`;
+            const isAll = (notice.region === 'ALL' || !notice.region);
+            badge.textContent = isAll ? '전체 공지' : `${notice.region} 공지`;
+            badge.className = `text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isAll ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`;
             title.textContent = notice.title;
             meta.textContent = `작성자: ${notice.authorName}(${notice.authorRole}) | 작성일: ${notice.createdAt} | 대상: ${notice.region === 'ALL' ? '전체 지역' : notice.region}`;
             content.textContent = notice.content;
@@ -1762,7 +1756,7 @@
             }
 
             if (groupNotices.length === 0) {
-                groupListEl.innerHTML = '<p class="text-[11px] text-tg-muted py-2 italic text-center">등록된 조별 공지가 없습니다.</p>';
+                groupListEl.innerHTML = '<p class="text-[11px] text-tg-muted py-2 italic text-center">등록된 지역별 공지가 없습니다.</p>';
             } else {
                 groupListEl.innerHTML = groupNotices.map(buildItemHtml).join('');
             }
@@ -1835,36 +1829,63 @@
             $('n-title').value = '';
             $('n-content').value = '';
             $('n-visible').value = 'Y';
-            $('n-region').value = 'ALL';
             $('n-important').checked = false;
 
             const role = profile.role || "";
             const isSuper = role.includes("관리자") || role.includes("전체관리자");
-            
-            const typeAdminRadio = document.querySelector('input[name="n-type"][value="admin"]');
-            const typeGroupRadio = document.querySelector('input[name="n-type"][value="group"]');
-            const typeLabel = $('notice-type-info-text');
+
+            // 대상 지역 체크박스 채우기
+            const container = $('n-region-items');
+            if (container) {
+                container.innerHTML = FIXED_REGIONS.map(r => `
+                    <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                        <input type="checkbox" name="n-region-check" value="${r}" class="w-3.5 h-3.5 rounded text-tg-blue focus:ring-tg-blue" />
+                        <span class="text-[11px] font-semibold text-tg-text">${r}</span>
+                    </label>
+                `).join('');
+            }
+
+            const allCheck = $('n-region-all');
+            if (allCheck) {
+                allCheck.onchange = (e) => {
+                    const checks = document.querySelectorAll('input[name="n-region-check"]');
+                    checks.forEach(c => {
+                        c.disabled = e.target.checked;
+                        if (e.target.checked) {
+                            c.checked = false;
+                        }
+                    });
+                };
+            }
 
             if (isSuper) {
                 $('section-admin-notices').classList.remove('hidden');
-                $('group-notices-title').textContent = "👥 조별 공지사항 관리";
-                typeAdminRadio.disabled = false;
-                typeGroupRadio.disabled = false;
-                typeAdminRadio.checked = true;
-                if (typeLabel) typeLabel.textContent = "공지 대상을 선택해 주세요.";
+                $('group-notices-title').textContent = "👥 지역별 공지사항 관리";
+                if (allCheck) {
+                    allCheck.disabled = false;
+                    allCheck.checked = true;
+                }
+                const checks = document.querySelectorAll('input[name="n-region-check"]');
+                checks.forEach(c => {
+                    c.disabled = true;
+                    c.checked = false;
+                });
             } else {
                 $('section-admin-notices').classList.add('hidden');
-                $('group-notices-title').textContent = "👥 우리 조 공지사항 관리";
-                typeAdminRadio.disabled = true;
-                typeGroupRadio.checked = true;
-                if (typeLabel) typeLabel.textContent = `조 공지 (소속 조인 ${profile.group} 조원들에게만 공개됩니다)`;
-            }
-
-            const regionSelect = $('n-region');
-            regionSelect.innerHTML = '<option value="ALL">전체 지역</option>';
-            if (allRegionsList && allRegionsList.length > 0) {
-                allRegionsList.forEach(r => {
-                    regionSelect.innerHTML += `<option value="${r}">${r}</option>`;
+                $('group-notices-title').textContent = "👥 우리 지역 공지사항 관리";
+                if (allCheck) {
+                    allCheck.checked = false;
+                    allCheck.disabled = true;
+                }
+                const checks = document.querySelectorAll('input[name="n-region-check"]');
+                checks.forEach(c => {
+                    if (c.value === profile.region) {
+                        c.checked = true;
+                        c.disabled = true;
+                    } else {
+                        c.checked = false;
+                        c.disabled = true;
+                    }
                 });
             }
 
@@ -1887,9 +1908,25 @@
         async function saveNotice() {
             const title = $('n-title').value.trim();
             const content = $('n-content').value.trim();
-            const typeRadio = document.querySelector('input[name="n-type"]:checked');
-            const type = typeRadio ? typeRadio.value : 'admin';
-            const region = $('n-region').value;
+            
+            const role = profile.role || "";
+            const isSuper = role.includes("관리자") || role.includes("전체관리자");
+            const type = isSuper ? 'admin' : 'group';
+
+            let region = "ALL";
+            const allCheck = $('n-region-all');
+            if (allCheck && allCheck.checked) {
+                region = "ALL";
+            } else {
+                const checks = document.querySelectorAll('input[name="n-region-check"]:checked');
+                const regs = Array.from(checks).map(c => c.value);
+                if (regs.length === 0) {
+                    showToast('대상 지역을 최소 하나 이상 선택해 주세요.', 'error');
+                    return;
+                }
+                region = regs.join(',');
+            }
+
             const visible = $('n-visible').value;
             const isImportant = $('n-important').checked ? 'Y' : 'N';
 
@@ -1951,8 +1988,8 @@
                     tmContainer.innerHTML = tmList.map(u => `
                         <div class="bg-white p-2.5 rounded-xl border border-blue-100 flex items-center justify-between">
                             <div>
-                                <!-- 조와 지역을 함께 표기 [1조|사당] -->
-                                <span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.group)}|${escHtml(u.region || '미정')}]</span>
+                                <!-- 지역만 표기 [사당] -->
+                                <span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.region || '미정')}]</span>
                                 <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
                             </div>
                             <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">내일 일정 없음</span>
@@ -1980,8 +2017,8 @@
                     tdContainer.innerHTML = tdList.map(u => `
                         <div class="bg-white p-2.5 rounded-xl border border-red-100 flex items-center justify-between">
                             <div>
-                                <!-- 조와 지역을 함께 표기 [1조|사당] -->
-                                <span class="font-bold text-red-700 mr-1.5">[${escHtml(u.group)}|${escHtml(u.region || '미정')}]</span>
+                                <!-- 지역만 표기 [사당] -->
+                                <span class="font-bold text-red-700 mr-1.5">[${escHtml(u.region || '미정')}]</span>
                                 <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
                             </div>
                             <span class="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">
@@ -2002,8 +2039,8 @@
                 unachContainer.innerHTML = unachieved.map(u => `
                     <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-center justify-between">
                         <div>
-                            <!-- 조와 지역을 함께 표기 [1조|사당] -->
-                            <span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.group)}|${escHtml(u.region || '미정')}]</span>
+                            <!-- 지역만 표기 [사당] -->
+                            <span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.region || '미정')}]</span>
                             <span class="font-bold text-tg-text">${escHtml(u.name)}</span>
                         </div>
                         <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">이번 주 ${u.weeklyFindCount}/6건</span>
@@ -2054,8 +2091,8 @@
                 <div class="bg-tg-surface p-3 rounded-xl border border-tg-border flex items-center justify-between text-xs">
                     <div>
                         <div class="flex items-center gap-1.5">
-                            <!-- 조와 지역을 함께 표기 [1조|사당] -->
-                            <span class="font-bold text-tg-blue">[${escHtml(u.group)}|${escHtml(u.region || '미정')}]</span>
+                            <!-- 지역만 표기 [사당] -->
+                            <span class="font-bold text-tg-blue">[${escHtml(u.region || '미정')}]</span>
                             <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
                         </div>
                         <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span></p>
@@ -2063,7 +2100,7 @@
 
                     <div class="flex items-center gap-3">
                         <div class="flex items-center gap-1 bg-white border border-tg-border rounded-lg p-1">
-                            <span class="text-[10px] font-bold text-purple-700 px-1">📖 복방</span>
+                            <span class="text-[10px] font-bold text-purple-700 px-1">복방</span>
                             <button onclick="updateUserBookCount('${escHtml(u.name)}', ${u.bookCount - 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">-</button>
                             <span class="font-extrabold text-tg-text w-4 text-center">${u.bookCount}</span>
                             <button onclick="updateUserBookCount('${escHtml(u.name)}', ${u.bookCount + 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">+</button>
@@ -2445,10 +2482,11 @@
                     }]
                 },
                 options: {
+                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                        x: { beginAtZero: true, ticks: { precision: 0 } }
                     },
                     plugins: { legend: { display: false } }
                 }
@@ -2470,7 +2508,7 @@
     <div class="bg-tg-surface p-3 rounded-xl border border-tg-border text-xs space-y-1.5">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-1.5">
-          <span class="font-bold text-tg-blue">${escHtml(item.group)}</span>
+          <span class="font-bold text-tg-blue">${escHtml(item.region)}</span>
           <span class="font-bold text-tg-text">${escHtml(item.name)}</span>
           <span class="text-[10px] text-tg-muted">(${escHtml(item.role)})</span>
         </div>

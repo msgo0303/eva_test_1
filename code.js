@@ -165,30 +165,20 @@ function doGet(e) {
 
           if (nTitle && nContent) {
             let show = false;
-            if (isSuperAdmin || isGroupAdmin) {
-              // 관리자/조장은 비공개(Visible === N)를 포함한 공지 조회 가능
-              if (nType === "admin") {
-                if (nRegion === "ALL" || !nRegion || nRegion === userObj.region) {
-                  show = true;
-                }
-              } else if (nType === "group") {
-                // 전체관리자는 모든 조 공지사항 관리 가능, 조장은 본인 조 공지만
-                if (isSuperAdmin || (nGroup && nGroup === userObj.group)) {
-                  show = true;
-                }
+            const targetRegions = nRegion ? nRegion.split(",").map(r => r.trim()) : [];
+            const isTargetRegion = (nRegion === "ALL" || !nRegion || targetRegions.includes(userObj.region));
+
+            if (isSuperAdmin) {
+              show = true;
+            } else if (isGroupAdmin) {
+              // 조장/부조장은 본인 지역 대상 공지사항(비공개 포함) 조회 가능
+              if (isTargetRegion) {
+                show = true;
               }
             } else {
-              // 일반 조원은 오직 공개된(Visible === Y) 공지만 조회 가능
-              if (nVisible === "Y") {
-                if (nType === "admin") {
-                  if (nRegion === "ALL" || !nRegion || nRegion === userObj.region) {
-                    show = true;
-                  }
-                } else if (nType === "group") {
-                  if (nGroup && nGroup === userObj.group) {
-                    show = true;
-                  }
-                }
+              // 일반 조원은 오직 공개된(Visible === Y) 본인 지역 공지만 조회 가능
+              if (nVisible === "Y" && isTargetRegion) {
+                show = true;
               }
             }
 
