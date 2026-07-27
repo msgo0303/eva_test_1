@@ -162,15 +162,32 @@ function doGet(e) {
           const nVisible = row[8] ? row[8].toString().trim().toUpperCase() : "";
           let nCreatedAt = row[9];
 
-          if (nVisible === "Y" && nTitle && nContent) {
+          if (nTitle && nContent) {
             let show = false;
-            if (nType === "admin") {
-              if (nRegion === "ALL" || !nRegion || nRegion === userObj.region) {
-                show = true;
+            if (isSuperAdmin || isGroupAdmin) {
+              // 관리자/조장은 비공개(Visible === N)를 포함한 공지 조회 가능
+              if (nType === "admin") {
+                if (nRegion === "ALL" || !nRegion || nRegion === userObj.region) {
+                  show = true;
+                }
+              } else if (nType === "group") {
+                // 전체관리자는 모든 조 공지사항 관리 가능, 조장은 본인 조 공지만
+                if (isSuperAdmin || (nGroup && nGroup === userObj.group)) {
+                  show = true;
+                }
               }
-            } else if (nType === "group") {
-              if (nGroup && nGroup === userObj.group) {
-                show = true;
+            } else {
+              // 일반 조원은 오직 공개된(Visible === Y) 공지만 조회 가능
+              if (nVisible === "Y") {
+                if (nType === "admin") {
+                  if (nRegion === "ALL" || !nRegion || nRegion === userObj.region) {
+                    show = true;
+                  }
+                } else if (nType === "group") {
+                  if (nGroup && nGroup === userObj.group) {
+                    show = true;
+                  }
+                }
               }
             }
 
@@ -181,20 +198,33 @@ function doGet(e) {
               } else {
                 dateStr = nCreatedAt ? nCreatedAt.toString().trim() : "";
               }
+              const isImp = row[10] ? row[10].toString().trim().toUpperCase() : "N"; // K열
+              const authRole = row[11] ? row[11].toString().trim() : "관리자"; // L열
+
               notices.push({
                 id: nId,
                 type: nType,
                 authorName: nAuthorName,
+                authorRole: authRole,
                 group: nGroup,
                 title: nTitle,
                 content: nContent,
                 region: nRegion,
+                visible: nVisible,
+                isImportant: isImp,
                 createdAt: dateStr
               });
             }
           }
         }
       }
+
+      // 중요 공지 우선 정렬 및 최신 등록순 정렬
+      notices.sort((a, b) => {
+        if (a.isImportant === "Y" && b.isImportant !== "Y") return -1;
+        if (a.isImportant !== "Y" && b.isImportant === "Y") return 1;
+        return parseInt(b.id) - parseInt(a.id);
+      });
 
       return makeJsonResponse({
         isRegistered: isRegistered,
@@ -346,6 +376,7 @@ function doGet(e) {
       const type = e.parameter.type ? e.parameter.type.toString().trim() : "admin";
       const region = e.parameter.region ? e.parameter.region.toString().trim() : "ALL";
       const visible = e.parameter.visible ? e.parameter.visible.toString().trim().toUpperCase() : "Y";
+      const isImportant = e.parameter.isImportant ? e.parameter.isImportant.toString().trim().toUpperCase() : "N";
 
       if (!title || !content) {
         return makeJsonResponse({ result: "fail", message: "제목과 내용을 입력해주세요." });
@@ -399,7 +430,7 @@ function doGet(e) {
       let noticeSheet = ss.getSheetByName("Notices");
       if (!noticeSheet) {
         noticeSheet = ss.insertSheet("Notices");
-        noticeSheet.appendRow(["ID", "Type", "Author ID", "Author Name", "Group", "Title", "Content", "Region", "Visible", "Created At"]);
+        noticeSheet.appendRow(["ID", "Type", "Author ID", "Author Name", "Group", "Title", "Content", "Region", "Visible", "Created At", "Is Important", "Author Role"]);
       }
 
       const nextId = noticeSheet.getLastRow() > 0 ? noticeSheet.getLastRow() : 1;
@@ -415,10 +446,137 @@ function doGet(e) {
         content,
         region,
         visible,
-        createdAt
+        createdAt,
+        isImportant,
+        userObj.role
       ]);
 
       return makeJsonResponse({ result: "success", message: "공지사항이 성공적으로 등록되었습니다." });
+    }
+
+    // 💡 2.7. 공지사항 공개/비공개 토글 API
+    if (action === "toggleNoticeVisibility") {
+      const noticeId = e.parameter.noticeId ? e.parameter.noticeId.toString().trim() : "";
+      const newVisible = e.parameter.visible ? e.parameter.visible.toString().trim().toUpperCase() : "Y";
+
+      let isRegistered = false;
+      let userObj = { id: userId, group: '', role: '' };
+      if (userSheet) {
+        const uData = userSheet.getDataRange().getValues();
+        for (let i = 1; i < uData.length; i++) {
+          if (uData[i][0] && uData[i][0].toString().trim() === userId.toString().trim()) {
+            isRegistered = true;
+            userObj = {
+              id: userId,
+              group: formatGroupString(uData[i][2]),
+              role: uData[i][4] ? uData[i][4].toString().trim() : ""
+            };
+            break;
+          }
+        }
+      }
+
+      if (!isRegistered) {
+        return makeJsonResponse({ result: "fail", message: "미등록 사용자입니다." });
+      }
+
+      const roleStr = userObj.role || "";
+      const isSuperAdmin = roleStr.includes("전체관리자") || roleStr.includes("관리자");
+      const isGroupAdmin = roleStr.includes("조장") || roleStr.includes("부조장");
+
+      if (!isSuperAdmin && !isGroupAdmin) {
+        return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      }
+
+      let noticeSheet = ss.getSheetByName("Notices");
+      if (noticeSheet && noticeId) {
+        const nData = noticeSheet.getDataRange().getValues();
+        for (let i = 1; i < nData.length; i++) {
+          const rowId = nData[i][0] ? nData[i][0].toString().trim() : "";
+          if (rowId === noticeId) {
+            const noticeType = nData[i][1] ? nData[i][1].toString().trim() : "";
+            const noticeGroup = nData[i][4] ? formatGroupString(nData[i][4]) : "";
+
+            let hasAuth = false;
+            if (isSuperAdmin) {
+              hasAuth = true;
+            } else if (isGroupAdmin && noticeType === "group" && noticeGroup === userObj.group) {
+              hasAuth = true;
+            }
+
+            if (!hasAuth) {
+              return makeJsonResponse({ result: "fail", message: "해당 공지사항을 수정할 권한이 없습니다." });
+            }
+
+            noticeSheet.getRange(i + 1, 9).setValue(newVisible); // Column I (9열)
+            return makeJsonResponse({ result: "success", message: "공지 공개 여부가 수정되었습니다." });
+          }
+        }
+      }
+
+      return makeJsonResponse({ result: "fail", message: "공지사항을 찾을 수 없습니다." });
+    }
+
+    // 💡 2.8. 공지사항 삭제 API
+    if (action === "deleteNotice") {
+      const noticeId = e.parameter.noticeId ? e.parameter.noticeId.toString().trim() : "";
+
+      let isRegistered = false;
+      let userObj = { id: userId, group: '', role: '' };
+      if (userSheet) {
+        const uData = userSheet.getDataRange().getValues();
+        for (let i = 1; i < uData.length; i++) {
+          if (uData[i][0] && uData[i][0].toString().trim() === userId.toString().trim()) {
+            isRegistered = true;
+            userObj = {
+              id: userId,
+              group: formatGroupString(uData[i][2]),
+              role: uData[i][4] ? uData[i][4].toString().trim() : ""
+            };
+            break;
+          }
+        }
+      }
+
+      if (!isRegistered) {
+        return makeJsonResponse({ result: "fail", message: "미등록 사용자입니다." });
+      }
+
+      const roleStr = userObj.role || "";
+      const isSuperAdmin = roleStr.includes("전체관리자") || roleStr.includes("관리자");
+      const isGroupAdmin = roleStr.includes("조장") || roleStr.includes("부조장");
+
+      if (!isSuperAdmin && !isGroupAdmin) {
+        return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      }
+
+      let noticeSheet = ss.getSheetByName("Notices");
+      if (noticeSheet && noticeId) {
+        const nData = noticeSheet.getDataRange().getValues();
+        for (let i = 1; i < nData.length; i++) {
+          const rowId = nData[i][0] ? nData[i][0].toString().trim() : "";
+          if (rowId === noticeId) {
+            const noticeType = nData[i][1] ? nData[i][1].toString().trim() : "";
+            const noticeGroup = nData[i][4] ? formatGroupString(nData[i][4]) : "";
+
+            let hasAuth = false;
+            if (isSuperAdmin) {
+              hasAuth = true;
+            } else if (isGroupAdmin && noticeType === "group" && noticeGroup === userObj.group) {
+              hasAuth = true;
+            }
+
+            if (!hasAuth) {
+              return makeJsonResponse({ result: "fail", message: "해당 공지사항을 삭제할 권한이 없습니다." });
+            }
+
+            noticeSheet.deleteRow(i + 1);
+            return makeJsonResponse({ result: "success", message: "공지사항이 삭제되었습니다." });
+          }
+        }
+      }
+
+      return makeJsonResponse({ result: "fail", message: "공지사항을 찾을 수 없습니다." });
     }
 
     // 💡 3. 미취합자(선택 날짜 당일 결과 + 내일 계획) 및 미달성자, 휴무일 스킵 API
