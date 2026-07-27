@@ -129,7 +129,8 @@
         #modal-overlay.open,
         #reg-overlay.open,
         #dash-overlay.open,
-        #tracker-overlay.open {
+        #tracker-overlay.open,
+        #notice-overlay.open {
             display: block;
             opacity: 1;
         }
@@ -137,7 +138,8 @@
         #modal-sheet,
         #reg-sheet,
         #dash-sheet,
-        #tracker-sheet {
+        #tracker-sheet,
+        #notice-sheet {
             display: none;
             transform: translateY(100%);
             transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
@@ -146,7 +148,8 @@
         #modal-sheet.open,
         #reg-sheet.open,
         #dash-sheet.open,
-        #tracker-sheet.open {
+        #tracker-sheet.open,
+        #notice-sheet.open {
             display: flex;
             transform: translateY(0);
         }
@@ -363,6 +366,22 @@
 
         <!-- ACTIVITY LIST -->
         <main class="flex-1 overflow-y-auto px-4 pb-24 pt-3 bg-tg-surface">
+            <!-- 📢 NOTICE ACCORDION SECTION -->
+            <div class="bg-tg-bg rounded-2xl border border-tg-border mb-3 shadow-sm overflow-hidden">
+                <div id="notice-header-trigger" class="flex items-center justify-between px-4 py-3 bg-emerald-50 border-b border-emerald-100 cursor-pointer select-none active:bg-emerald-100/50 transition-colors">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm">📢</span>
+                        <span class="text-xs font-extrabold text-emerald-800">공지사항</span>
+                        <span id="notice-unread-count" class="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full hidden">New</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span id="notice-toggle-arrow" class="text-emerald-800 text-[10px]">▼</span>
+                    </div>
+                </div>
+                <div id="notice-vertical-list" class="hidden divide-y divide-tg-border/50 max-h-60 overflow-y-auto transition-all bg-white">
+                    <!-- 공지사항 목록이 세로로 렌더링됨 -->
+                </div>
+            </div>
             
             <div class="bg-tg-bg rounded-2xl p-3 border border-tg-border space-y-2.5 mb-3 shadow-sm">
                 <!-- 💡 리더 전용 메인 홈 지역 필터 -->
@@ -450,6 +469,99 @@
                 class="flex items-center gap-2 bg-tg-blue text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform">
                 🏃 나의 활동 추적
             </button>
+            <button id="btn-dash-notice"
+                class="flex items-center gap-2 bg-emerald-600 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform hidden">
+                📢 공지사항 작성
+            </button>
+        </div>
+
+        <!-- 📢 NOTICE WRITE FULL MODAL SHEET -->
+        <div id="notice-overlay" class="fixed inset-0 z-40 bg-black/40 hidden"></div>
+        <div id="notice-sheet" class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex flex-col h-[90vh] hidden transition-transform duration-300 translate-y-full">
+            <div class="flex justify-center pt-3 pb-1 flex-shrink-0 bg-tg-bg rounded-t-3xl">
+                <div class="w-10 h-1 bg-tg-border rounded-full"></div>
+            </div>
+
+            <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
+                <div>
+                    <h2 class="text-base font-bold text-tg-text">📢 공지사항 작성</h2>
+                    <p class="text-[11px] text-tg-blue font-semibold mt-0.5">새로운 공지를 작성합니다.</p>
+                </div>
+                <button id="btn-close-notice"
+                    class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                        stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 p-5 space-y-4 bg-white">
+                <div>
+                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">공지 제목</label>
+                    <input id="n-title" type="text" placeholder="공지 제목을 입력하세요."
+                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">공지 내용</label>
+                    <textarea id="n-content" rows="6" placeholder="공지 내용을 입력하세요."
+                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue"></textarea>
+                </div>
+
+                <div>
+                    <label id="notice-type-info-text" class="block text-xs font-semibold text-tg-muted mb-1.5">공지 종류</label>
+                    <div id="notice-type-container" class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 p-3 bg-tg-surface rounded-xl border border-tg-border cursor-pointer select-none">
+                            <input type="radio" name="n-type" value="admin" checked />
+                            <span class="text-xs font-bold text-tg-text">전체(관리자) 공지</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-3 bg-tg-surface rounded-xl border border-tg-border cursor-pointer select-none">
+                            <input type="radio" name="n-type" value="group" />
+                            <span class="text-xs font-bold text-tg-text">조 공지</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">대상 지역</label>
+                    <select id="n-region" class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                        <option value="ALL">전체 지역</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">공개 여부</label>
+                    <select id="n-visible" class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                        <option value="Y">공개</option>
+                        <option value="N">비공개</option>
+                    </select>
+                </div>
+
+                <button id="btn-save-notice"
+                    class="w-full py-3 bg-tg-blue text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform mt-4">
+                    공지사항 저장
+                </button>
+            </div>
+        </div>
+
+        <!-- 📢 NOTICE DETAIL POPUP -->
+        <div id="notice-detail-overlay" class="fixed inset-0 z-50 bg-black/40 hidden flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col max-h-[80vh]">
+                <div class="flex items-center justify-between border-b border-tg-border pb-3 mb-3">
+                    <span id="nd-badge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full">-</span>
+                    <button id="btn-close-nd" class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <h3 id="nd-title" class="text-sm font-extrabold text-tg-text mb-1.5">공지 제목</h3>
+                <p id="nd-meta" class="text-[10px] text-tg-muted mb-4">작성자: - | 작성일: - | 대상: -</p>
+                <div id="nd-content" class="text-xs text-tg-text leading-relaxed overflow-y-auto whitespace-pre-wrap flex-1 bg-tg-surface p-3 rounded-xl border border-tg-border font-medium">
+                    공지 내용
+                </div>
+            </div>
         </div>
 
         <!-- 🏃 MY TRACKER FULL MODAL SHEET -->
@@ -727,13 +839,13 @@
                 <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4 relative">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-xs text-tg-muted font-medium">전체 등록 활동</p>
+                            <p class="text-xs text-tg-muted font-medium">전체 등록 활동(계획)</p>
                             <div class="flex items-baseline gap-1 mt-0.5"><span id="db-kpi-total"
                                     class="text-2xl font-extrabold text-tg-text">0</span><span
                                     class="text-xs font-semibold text-tg-muted">건</span></div>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs text-tg-muted font-medium">달성률 (완료)</p>
+                            <p class="text-xs text-tg-muted font-medium">계획 대비 달성률</p>
                             <p id="db-kpi-rate" class="text-lg font-bold text-tg-blue mt-0.5">0%</p>
                         </div>
                     </div>
@@ -741,7 +853,7 @@
                     <div class="grid grid-cols-5 gap-1 pt-1 relative">
                         <div id="btn-find-chip"
                             class="bg-blue-50 border border-blue-200 hover:border-blue-400 rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
-                            <p class="text-[9px] text-blue-600 font-bold flex items-center justify-center gap-0.5">찾기(오프) 💡</p>
+                            <p class="text-[9px] text-blue-600 font-bold flex items-center justify-center gap-0.5">찾기(오프)</p>
                             <p id="db-cat-find-off" class="text-sm font-bold text-blue-800">0건</p>
                         </div>
 
@@ -858,27 +970,32 @@
                 </div>
                 <!-- 1. 내일 계획 미취합 섹션 -->
                 <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleTomorrowList()">
                         <div>
                             <h3 id="risk-tomorrow-title" class="text-xs font-bold text-blue-800">🌙 내일 계획 미취합자 명단</h3>
                             <p id="risk-tomorrow-sub" class="text-[10px] text-blue-600 mt-0.5">내일 일정 미등록 인원 (밤 독촉용)</p>
                         </div>
-                        <span id="risk-tomorrow-count"
-                            class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
+                        <div class="flex items-center gap-1.5">
+                            <span id="risk-tomorrow-count"
+                                class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
+                            <span id="risk-tomorrow-arrow" class="text-blue-800 text-[10px]">▼</span>
+                        </div>
                     </div>
                     <div id="risk-tomorrow-list" class="space-y-1.5 text-xs"></div>
                 </div>
 
                 <!-- 2. 당일 결과 미취합 섹션 -->
                 <div class="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleTodayList()">
                         <div>
                             <h3 id="risk-today-title" class="text-xs font-bold text-red-700">⚠️ 당일 결과 미취합자 명단</h3>
-                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중(미완료) 상태 (저녁
-                                독촉용)</p>
+                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중(미완료) 상태 (저녁 독촉용)</p>
                         </div>
-                        <span id="risk-today-count"
-                            class="bg-red-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
+                        <div class="flex items-center gap-1.5">
+                            <span id="risk-today-count"
+                                class="bg-red-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
+                            <span id="risk-today-arrow" class="text-red-700 text-[10px]">▼</span>
+                        </div>
                     </div>
                     <div id="risk-today-list" class="space-y-1.5 text-xs"></div>
                 </div>
@@ -996,6 +1113,10 @@
         let rawRiskData = null; // 💡 대시보드 미취합/멤버 원본 데이터 캐시 추가
         let currentWeekName = ""; // 💡 현재 날짜의 주차명 캐시
         let semestersList = [];   // 💡 주차 선택용 전체 주차 리스트 캐시
+        let isTomorrowCollapsed = false;
+        let isTodayCollapsed = false;
+        let allRegionsList = [];  // 💡 전체 지역 목록 캐시 추가
+        let activeNotices = [];   // 💡 활성 공지사항 캐시 추가
 
         let modalMode = 'add';
         let editId = null;
@@ -1288,6 +1409,7 @@
 
                     currentWeekName = data.weekName || "";
                     semestersList = data.semestersList || [];
+                    allRegionsList = data.allRegions || [];
 
                     if (data.currentSemester && data.currentSemester.name) {
                         const badgeEl = $('hdr-semester-badge');
@@ -1309,10 +1431,15 @@
                     if (isAdminOrLeader) {
                         $('admin-time-filter-bar').classList.remove('hidden');
                         $('admin-home-region-bar').classList.remove('hidden');
+                        $('btn-dash-notice').classList.remove('hidden');
                     } else {
                         $('admin-time-filter-bar').classList.add('hidden');
                         $('admin-home-region-bar').classList.add('hidden');
+                        $('btn-dash-notice').classList.add('hidden');
                     }
+
+                    // 💡 공지사항 렌더링
+                    renderNoticeList(data.notices || []);
 
                     renderHeader();
                     renderWeeklyMissionUI();
@@ -1370,6 +1497,212 @@
                 }
             } catch (err) {
                 showToast('관리자 통신 오류: ' + err.message, 'error');
+            }
+        }
+
+        /* 💡 오늘/내일 계획 미취합 접기/펴기 로직 */
+        function toggleTomorrowList() {
+            const list = $('risk-tomorrow-list');
+            const arrow = $('risk-tomorrow-arrow');
+            isTomorrowCollapsed = !isTomorrowCollapsed;
+            if (isTomorrowCollapsed) {
+                list.classList.add('hidden');
+                arrow.textContent = '▲';
+            } else {
+                list.classList.remove('hidden');
+                arrow.textContent = '▼';
+            }
+        }
+
+        function toggleTodayList() {
+            const list = $('risk-today-list');
+            const arrow = $('risk-today-arrow');
+            isTodayCollapsed = !isTodayCollapsed;
+            if (isTodayCollapsed) {
+                list.classList.add('hidden');
+                arrow.textContent = '▲';
+            } else {
+                list.classList.remove('hidden');
+                arrow.textContent = '▼';
+            }
+        }
+
+        /* 💡 공지사항 관련 JS 핸들러 */
+        function renderNoticeList(notices) {
+            activeNotices = notices;
+            const container = $('notice-vertical-list');
+            const badge = $('notice-unread-count');
+            if (!container) return;
+
+            if (notices.length === 0) {
+                container.innerHTML = '<p class="text-xs text-tg-muted text-center py-4">등록된 공지사항이 없습니다.</p>';
+                badge.classList.add('hidden');
+                return;
+            }
+
+            const readNoticeIds = JSON.parse(localStorage.getItem('readNoticeIds') || '[]');
+            const unreadCount = notices.filter(n => !readNoticeIds.includes(n.id.toString())).length;
+
+            if (unreadCount > 0) {
+                badge.textContent = `${unreadCount}`;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            container.innerHTML = notices.map(n => {
+                const isRead = readNoticeIds.includes(n.id.toString());
+                const typeLabel = n.type === 'admin' ? '전체' : `${n.group}`;
+                const badgeClass = n.type === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+                const dotHtml = isRead ? '' : '<span class="w-1.5 h-1.5 bg-emerald-600 rounded-full flex-shrink-0 animate-pulse mt-1"></span>';
+
+                return `
+                    <div class="p-3 hover:bg-tg-surface cursor-pointer transition-colors flex items-start gap-2 border-b border-tg-border/40 last:border-b-0" onclick="openNoticeDetail('${n.id}')">
+                        ${dotHtml}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1 gap-1">
+                                <span class="text-xs font-bold text-tg-text truncate">${escHtml(n.title)}</span>
+                                <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full flex-shrink-0 ${badgeClass}">${typeLabel}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-[10px] text-tg-muted">
+                                <span>✍️ ${escHtml(n.authorName)}</span>
+                                <span>${n.createdAt}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openNoticeDetail(id) {
+            const notice = activeNotices.find(n => n.id.toString() === id.toString());
+            if (!notice) return;
+
+            const readNoticeIds = JSON.parse(localStorage.getItem('readNoticeIds') || '[]');
+            if (!readNoticeIds.includes(id.toString())) {
+                readNoticeIds.push(id.toString());
+                localStorage.setItem('readNoticeIds', JSON.stringify(readNoticeIds));
+                renderNoticeList(activeNotices);
+            }
+
+            const overlay = $('notice-detail-overlay');
+            const badge = $('nd-badge');
+            const title = $('nd-title');
+            const meta = $('nd-meta');
+            const content = $('nd-content');
+
+            badge.textContent = notice.type === 'admin' ? '전체 공지' : `${notice.group} 공지`;
+            badge.className = `text-[10px] font-extrabold px-2 py-0.5 rounded-full ${notice.type === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`;
+            title.textContent = notice.title;
+            meta.textContent = `작성자: ${notice.authorName} | 작성일: ${notice.createdAt} | 대상: ${notice.region === 'ALL' ? '전체 지역' : notice.region}`;
+            content.textContent = notice.content;
+
+            overlay.classList.remove('hidden');
+        }
+
+        function closeNoticeDetail() {
+            $('notice-detail-overlay').classList.add('hidden');
+        }
+
+        function toggleNoticeList() {
+            const list = $('notice-vertical-list');
+            const arrow = $('notice-toggle-arrow');
+            if (!list || !arrow) return;
+
+            isNoticeListExpanded = !isNoticeListExpanded;
+            if (isNoticeListExpanded) {
+                list.classList.remove('hidden');
+                arrow.textContent = '▲';
+            } else {
+                list.classList.add('hidden');
+                arrow.textContent = '▼';
+            }
+        }
+
+        let isNoticeListExpanded = false;
+
+        function openNoticeSheet() {
+            closeDashMenu();
+            const overlay = $('notice-overlay');
+            const sheet = $('notice-sheet');
+
+            $('n-title').value = '';
+            $('n-content').value = '';
+            $('n-visible').value = 'Y';
+            $('n-region').value = 'ALL';
+
+            const role = profile.role || "";
+            const isSuper = role.includes("관리자") || role.includes("전체관리자");
+            
+            const typeAdminRadio = document.querySelector('input[name="n-type"][value="admin"]');
+            const typeGroupRadio = document.querySelector('input[name="n-type"][value="group"]');
+            const typeLabel = $('notice-type-info-text');
+
+            if (isSuper) {
+                typeAdminRadio.disabled = false;
+                typeGroupRadio.disabled = false;
+                typeAdminRadio.checked = true;
+                if (typeLabel) typeLabel.textContent = "공지 대상을 선택해 주세요.";
+            } else {
+                typeAdminRadio.disabled = true;
+                typeGroupRadio.checked = true;
+                if (typeLabel) typeLabel.textContent = `조 공지 (소속 조인 ${profile.group} 조원들에게만 공개됩니다)`;
+            }
+
+            const regionSelect = $('n-region');
+            regionSelect.innerHTML = '<option value="ALL">전체 지역</option>';
+            if (allRegionsList && allRegionsList.length > 0) {
+                allRegionsList.forEach(r => {
+                    regionSelect.innerHTML += `<option value="${r}">${r}</option>`;
+                });
+            }
+
+            sheet.style.display = 'flex';
+            sheet.offsetHeight;
+            overlay.classList.add('open');
+            sheet.classList.add('open');
+        }
+
+        function closeNoticeSheet() {
+            const overlay = $('notice-overlay');
+            const sheet = $('notice-sheet');
+            overlay.classList.remove('open');
+            sheet.classList.remove('open');
+            setTimeout(() => { sheet.style.display = 'none'; }, 360);
+        }
+
+        async function saveNotice() {
+            const title = $('n-title').value.trim();
+            const content = $('n-content').value.trim();
+            const typeRadio = document.querySelector('input[name="n-type"]:checked');
+            const type = typeRadio ? typeRadio.value : 'admin';
+            const region = $('n-region').value;
+            const visible = $('n-visible').value;
+
+            if (!title || !content) {
+                showToast('제목과 내용을 모두 입력해 주세요.', 'error');
+                return;
+            }
+
+            const btn = $('btn-save-notice');
+            btn.disabled = true;
+            btn.textContent = '저장 중...';
+
+            try {
+                const res = await fetch(`${GAS_URL}?action=saveNotice&initData=${encodeURIComponent(tg ? tg.initData : '')}&title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}&type=${type}&region=${encodeURIComponent(region)}&visible=${visible}`);
+                const data = await res.json();
+                if (data.result === 'success') {
+                    showToast(data.message || '공지사항이 등록되었습니다.', 'success');
+                    closeNoticeSheet();
+                    await fetchAppData();
+                } else {
+                    showToast(data.message || '공지사항 등록 실패', 'error');
+                }
+            } catch (err) {
+                showToast('공지사항 등록 오류: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '공지사항 저장';
             }
         }
 
@@ -1462,6 +1795,26 @@
                         <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">이번 주 ${u.weeklyFindCount}/6건</span>
                     </div>
                 `).join('');
+            }
+
+            // Apply collapse state for Tomorrow
+            const tmArrow = $('risk-tomorrow-arrow');
+            if (isTomorrowCollapsed) {
+                tmContainer.classList.add('hidden');
+                if (tmArrow) tmArrow.textContent = '▲';
+            } else {
+                tmContainer.classList.remove('hidden');
+                if (tmArrow) tmArrow.textContent = '▼';
+            }
+
+            // Apply collapse state for Today
+            const tdArrow = $('risk-today-arrow');
+            if (isTodayCollapsed) {
+                tdContainer.classList.add('hidden');
+                if (tdArrow) tdArrow.textContent = '▲';
+            } else {
+                tdContainer.classList.remove('hidden');
+                if (tdArrow) tdArrow.textContent = '▼';
             }
         }
 
@@ -1948,7 +2301,7 @@
             const dateStr = currentDate.toLocaleDateString('ko-KR', {
                 month: 'long', day: 'numeric', weekday: 'short',
             });
-            $('display-date').textContent = currentWeekName ? `${dateStr} - ${currentWeekName}` : dateStr;
+            $('display-date').textContent = dateStr;
             const today = new Date();
             const isToday = today.toDateString() === currentDate.toDateString();
             $('display-today').textContent = isToday ? '오늘' : '';
@@ -2670,10 +3023,22 @@
                 closeDashMenu();
                 openTrackerModal();
             });
+            $('btn-dash-notice').addEventListener('click', () => {
+                closeDashMenu();
+                openNoticeSheet();
+            });
 
             $('btn-close-tracker').addEventListener('click', closeTrackerModal);
             $('tracker-overlay').addEventListener('click', closeTrackerModal);
             $('tracker-week-select').addEventListener('change', fetchTrackerData);
+
+            $('btn-close-notice').addEventListener('click', closeNoticeSheet);
+            $('notice-overlay').addEventListener('click', closeNoticeSheet);
+            $('btn-save-notice').addEventListener('click', saveNotice);
+
+            $('notice-header-trigger').addEventListener('click', toggleNoticeList);
+            $('btn-close-nd').addEventListener('click', closeNoticeDetail);
+            $('notice-detail-overlay').addEventListener('click', closeNoticeDetail);
 
             $('btn-close-modal').addEventListener('click', closeModal);
             $('modal-overlay').addEventListener('click', closeModal);

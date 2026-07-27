@@ -10,6 +10,7 @@ function doGet(e) {
     const userSheet = ss.getSheetByName("UserDB");
     const actSheet = ss.getSheetByName("ActivityLog");
     const calSheet = ss.getSheetByName("Calendar");
+    const noticeSheet = ss.getSheetByName("Notices");
 
     // 1. 유저 인증 + 기본 일정 데이터 및 주간 미션 수치 조회
     if (action === "checkUser" || action === "getInitialData") {
@@ -143,6 +144,58 @@ function doGet(e) {
         }
       }
 
+      // 💡 공지사항 조회 연동
+      const notices = [];
+      if (noticeSheet) {
+        const nData = noticeSheet.getDataRange().getValues();
+        for (let i = 1; i < nData.length; i++) {
+          const row = nData[i];
+          if (row.length < 9) continue;
+          const nId = row[0] ? row[0].toString().trim() : "";
+          const nType = row[1] ? row[1].toString().trim() : "";
+          const nAuthorId = row[2] ? row[2].toString().trim() : "";
+          const nAuthorName = row[3] ? row[3].toString().trim() : "";
+          const nGroup = row[4] ? formatGroupString(row[4]) : "";
+          const nTitle = row[5] ? row[5].toString().trim() : "";
+          const nContent = row[6] ? row[6].toString().trim() : "";
+          const nRegion = row[7] ? row[7].toString().trim() : "";
+          const nVisible = row[8] ? row[8].toString().trim().toUpperCase() : "";
+          let nCreatedAt = row[9];
+
+          if (nVisible === "Y" && nTitle && nContent) {
+            let show = false;
+            if (nType === "admin") {
+              if (nRegion === "ALL" || !nRegion || nRegion === userObj.region) {
+                show = true;
+              }
+            } else if (nType === "group") {
+              if (nGroup && nGroup === userObj.group) {
+                show = true;
+              }
+            }
+
+            if (show) {
+              let dateStr = "";
+              if (nCreatedAt instanceof Date) {
+                dateStr = Utilities.formatDate(nCreatedAt, Session.getScriptTimeZone(), "MM-dd HH:mm");
+              } else {
+                dateStr = nCreatedAt ? nCreatedAt.toString().trim() : "";
+              }
+              notices.push({
+                id: nId,
+                type: nType,
+                authorName: nAuthorName,
+                group: nGroup,
+                title: nTitle,
+                content: nContent,
+                region: nRegion,
+                createdAt: dateStr
+              });
+            }
+          }
+        }
+      }
+
       return makeJsonResponse({
         isRegistered: isRegistered,
         user: userObj,
@@ -153,7 +206,8 @@ function doGet(e) {
         currentSemester: getCurrentSemesterObj(),
         allRegions: allRegions,
         weekName: getWeekNameForDate(targetDate),
-        semestersList: getSemestersList()
+        semestersList: getSemestersList(),
+        notices: notices
       });
     }
 
@@ -283,6 +337,88 @@ function doGet(e) {
       }
 
       return makeJsonResponse({ result: "success", list: trackerList });
+    }
+
+    // 💡 2.6. 공지사항 저장 API
+    if (action === "saveNotice") {
+      const title = e.parameter.title ? e.parameter.title.toString().trim() : "";
+      const content = e.parameter.content ? e.parameter.content.toString().trim() : "";
+      const type = e.parameter.type ? e.parameter.type.toString().trim() : "admin";
+      const region = e.parameter.region ? e.parameter.region.toString().trim() : "ALL";
+      const visible = e.parameter.visible ? e.parameter.visible.toString().trim().toUpperCase() : "Y";
+
+      if (!title || !content) {
+        return makeJsonResponse({ result: "fail", message: "제목과 내용을 입력해주세요." });
+      }
+
+      let isRegistered = false;
+      let userObj = { id: userId, name: '', group: '', region: '', role: '' };
+      if (userSheet) {
+        const uData = userSheet.getDataRange().getValues();
+        for (let i = 1; i < uData.length; i++) {
+          const cellId = uData[i][0] ? uData[i][0].toString().trim() : "";
+          if (cellId && cellId === userId.toString().trim()) {
+            isRegistered = true;
+            userObj = {
+              id: cellId,
+              name: uData[i][1] ? uData[i][1].toString().trim() : "",
+              group: formatGroupString(uData[i][2]),
+              region: uData[i][3] ? uData[i][3].toString().trim() : "",
+              role: uData[i][4] ? uData[i][4].toString().trim() : ""
+            };
+            break;
+          }
+        }
+      }
+
+      if (!isRegistered) {
+        return makeJsonResponse({ result: "fail", message: "미등록 사용자입니다." });
+      }
+
+      const roleStr = userObj.role || "";
+      const isSuperAdmin = roleStr.includes("전체관리자") || roleStr.includes("관리자");
+      const isGroupAdmin = roleStr.includes("조장") || roleStr.includes("부조장");
+
+      if (!isSuperAdmin && !isGroupAdmin) {
+        return makeJsonResponse({ result: "fail", message: "공지사항 저장 권한이 없습니다." });
+      }
+
+      let finalType = type;
+      let finalGroup = "";
+
+      if (isSuperAdmin) {
+        finalType = type;
+        if (type === "group") {
+          finalGroup = userObj.group;
+        }
+      } else if (isGroupAdmin) {
+        finalType = "group";
+        finalGroup = userObj.group;
+      }
+
+      let noticeSheet = ss.getSheetByName("Notices");
+      if (!noticeSheet) {
+        noticeSheet = ss.insertSheet("Notices");
+        noticeSheet.appendRow(["ID", "Type", "Author ID", "Author Name", "Group", "Title", "Content", "Region", "Visible", "Created At"]);
+      }
+
+      const nextId = noticeSheet.getLastRow() > 0 ? noticeSheet.getLastRow() : 1;
+      const createdAt = new Date();
+
+      noticeSheet.appendRow([
+        nextId,
+        finalType,
+        userId.toString(),
+        userObj.name,
+        finalGroup,
+        title,
+        content,
+        region,
+        visible,
+        createdAt
+      ]);
+
+      return makeJsonResponse({ result: "success", message: "공지사항이 성공적으로 등록되었습니다." });
     }
 
     // 💡 3. 미취합자(선택 날짜 당일 결과 + 내일 계획) 및 미달성자, 휴무일 스킵 API
