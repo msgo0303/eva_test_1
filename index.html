@@ -1037,14 +1037,14 @@
                     <div class="flex items-center justify-between">
                         <div class="flex-1 cursor-pointer select-none" onclick="toggleTomorrowList()">
                             <h3 id="risk-tomorrow-title" class="text-xs font-bold text-blue-800">🌙 내일 계획 미취합자 명단</h3>
-                            <p id="risk-tomorrow-sub" class="text-[10px] text-blue-600 mt-0.5">내일 일정 미등록 인원 (밤 독촉용)</p>
+                            <p id="risk-tomorrow-sub" class="text-[10px] text-blue-600 mt-0.5">내일 일정 미등록 인원 (밤 안내용)</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <!-- 📣 내일 독촉 전송 버튼 -->
+                            <!-- 📣 내일 안내 전송 버튼 -->
                             <button onclick="openRiskSendModal('tomorrow')"
                                 class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
                                 <span>📣</span>
-                                <span>독촉 전송</span>
+                                <span>안내 전송</span>
                             </button>
                             <span id="risk-tomorrow-count"
                                 class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
@@ -1060,15 +1060,15 @@
                     <div class="flex items-center justify-between">
                         <div class="flex-1 cursor-pointer select-none" onclick="toggleTodayList()">
                             <h3 id="risk-today-title" class="text-xs font-bold text-red-700">⚠️ 당일 결과 미취합자 명단</h3>
-                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중 상태 (저녁 독촉용)
+                            <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중 상태 (저녁 안내용)
                             </p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <!-- 📣 당일 독촉 전송 버튼 -->
+                            <!-- 📣 당일 안내 전송 버튼 -->
                             <button onclick="openRiskSendModal('today')"
                                 class="bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
                                 <span>📣</span>
-                                <span>독촉 전송</span>
+                                <span>안내 전송</span>
                             </button>
                             <span id="risk-today-count"
                                 class="bg-red-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
@@ -2694,7 +2694,7 @@
             }
 
             navigator.clipboard.writeText(text).then(() => {
-                showToast('독촉 알림 문구가 클립보드에 복사되었습니다!', 'success');
+                showToast('안내 알림 문구가 클립보드에 복사되었습니다!', 'success');
             });
         }
 
@@ -2705,7 +2705,7 @@
         let currentSendCategory = 'today';
         let currentSendType = 'now';
 
-        // 1. 독촉 알림 전송 모달 열기
+        // 1. 안내 알림 전송 모달 열기
         function openRiskSendModal(category) {
             currentSendCategory = category;
             const overlay = $('risk-send-overlay');
@@ -2719,7 +2719,7 @@
                     return;
                 }
                 msgText = `[⚠️ 오늘 결과 미입력자 알림]\n\n오늘 활동 결과를 아직 입력하지 않은 멤버입니다. 확인 후 완료 작성 바랍니다!\n👉 명단: ${names.join(', ')}`;
-                $('risk-send-title').textContent = "⚠️ 당일 결과 미취합 독촉 알림";
+                $('risk-send-title').textContent = "⚠️ 당일 결과 미취합 안내 알림";
             } else {
                 const names = Array.from(document.querySelectorAll('#risk-tomorrow-list .font-bold.text-tg-text')).map(el => el.textContent);
                 if (names.length === 0) {
@@ -2727,7 +2727,7 @@
                     return;
                 }
                 msgText = `[📢 내일 일정 미입력자 알림]\n\n내일 일정을 아직 등록하지 않은 멤버입니다. 확인 후 작성 바랍니다!\n👉 명단: ${names.join(', ')}`;
-                $('risk-send-title').textContent = "🌙 내일 계획 미취합 독촉 알림";
+                $('risk-send-title').textContent = "🌙 내일 계획 미취합 안내 알림";
             }
 
             $('risk-send-preview').textContent = msgText;
@@ -2735,7 +2735,7 @@
             overlay.classList.remove('hidden');
         }
 
-        // 2. 독촉 알림 전송 모달 닫기
+        // 2. 안내 알림 전송 모달 닫기
         function closeRiskSendModal() {
             const overlay = $('risk-send-overlay');
             if (overlay) overlay.classList.add('hidden');
@@ -3917,12 +3917,12 @@
         });
     </script>
 
-    <!-- 독촉 알림 전송 설정 모달 SHEET -->
+    <!-- 안내 알림 전송 설정 모달 SHEET -->
     <div id="risk-send-overlay" class="fixed inset-0 z-[60] bg-black/50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4">
             <div class="flex items-center justify-between border-b border-tg-border pb-3">
                 <div>
-                    <h3 id="risk-send-title" class="text-sm font-extrabold text-tg-text">📣 텔레그램 독촉 알림 전송</h3>
+                    <h3 id="risk-send-title" class="text-sm font-extrabold text-tg-text">📣 텔레그램 안내 알림 전송</h3>
                     <p id="risk-send-sub" class="text-[10px] text-tg-blue font-semibold mt-0.5">지정된 단체방의 토픽으로 알림을 전송합니다.
                     </p>
                 </div>
