@@ -92,6 +92,7 @@ function doGet(e) {
 
           const rowUserId = actData[i][1] ? actData[i][1].toString().trim() : "";
           const rowGroup = formatGroupString(actData[i][3]);
+          const rowRegion = actData[i][4] ? actData[i][4].toString().trim() : "";
           const rowStatus = actData[i][11];
           const rowResultData = actData[i][12] ? actData[i][12].toString() : "";
 
@@ -117,7 +118,7 @@ function doGet(e) {
             if (isSuperAdmin) {
               canAccess = true;
             } else if (isGroupAdmin) {
-              canAccess = (rowGroup === userObj.group);
+              canAccess = (rowRegion === userObj.region);
             } else {
               canAccess = (rowUserId === userId.toString().trim());
             }
@@ -246,7 +247,7 @@ function doGet(e) {
       const rangeType = e.parameter.range || "today";
       const baseDateStr = e.parameter.date || getTodayString();
 
-      let userObj = { id: userId, group: '', role: '' };
+      let userObj = { id: userId, group: '', region: '', role: '' };
       if (userSheet) {
         const uData = userSheet.getDataRange().getValues();
         for (let i = 1; i < uData.length; i++) {
@@ -254,6 +255,7 @@ function doGet(e) {
             userObj = {
               id: userId,
               group: formatGroupString(uData[i][2]),
+              region: uData[i][3] ? uData[i][3].toString().trim() : "",
               role: uData[i][4] ? uData[i][4].toString().trim() : ""
             };
             break;
@@ -284,7 +286,8 @@ function doGet(e) {
 
           if (dates.includes(rowDate)) {
             const rowGroup = formatGroupString(actData[i][3]);
-            let canAccess = isSuperAdmin ? true : (rowGroup === userObj.group);
+            const rowRegion = actData[i][4] ? actData[i][4].toString().trim() : "";
+            let canAccess = isSuperAdmin ? true : (rowRegion === userObj.region);
 
             if (canAccess) {
               rawList.push({
@@ -416,15 +419,18 @@ function doGet(e) {
 
       let finalType = type;
       let finalGroup = "";
+      let finalRegion = region;
 
       if (isSuperAdmin) {
         finalType = type;
         if (type === "group") {
           finalGroup = userObj.group;
         }
+        finalRegion = region;
       } else if (isGroupAdmin) {
         finalType = "group";
         finalGroup = userObj.group;
+        finalRegion = userObj.region; // 조장은 본인의 지역으로만 공지 작성 강제
       }
 
       let noticeSheet = ss.getSheetByName("Notices");
@@ -444,7 +450,7 @@ function doGet(e) {
         finalGroup,
         title,
         content,
-        region,
+        finalRegion,
         visible,
         createdAt,
         isImportant,
@@ -460,7 +466,7 @@ function doGet(e) {
       const newVisible = e.parameter.visible ? e.parameter.visible.toString().trim().toUpperCase() : "Y";
 
       let isRegistered = false;
-      let userObj = { id: userId, group: '', role: '' };
+      let userObj = { id: userId, group: '', region: '', role: '' };
       if (userSheet) {
         const uData = userSheet.getDataRange().getValues();
         for (let i = 1; i < uData.length; i++) {
@@ -469,6 +475,7 @@ function doGet(e) {
             userObj = {
               id: userId,
               group: formatGroupString(uData[i][2]),
+              region: uData[i][3] ? uData[i][3].toString().trim() : "",
               role: uData[i][4] ? uData[i][4].toString().trim() : ""
             };
             break;
@@ -495,12 +502,12 @@ function doGet(e) {
           const rowId = nData[i][0] ? nData[i][0].toString().trim() : "";
           if (rowId === noticeId) {
             const noticeType = nData[i][1] ? nData[i][1].toString().trim() : "";
-            const noticeGroup = nData[i][4] ? formatGroupString(nData[i][4]) : "";
+            const noticeRegion = nData[i][7] ? nData[i][7].toString().trim() : "";
 
             let hasAuth = false;
             if (isSuperAdmin) {
               hasAuth = true;
-            } else if (isGroupAdmin && noticeType === "group" && noticeGroup === userObj.group) {
+            } else if (isGroupAdmin && noticeRegion === userObj.region) {
               hasAuth = true;
             }
 
@@ -522,7 +529,7 @@ function doGet(e) {
       const noticeId = e.parameter.noticeId ? e.parameter.noticeId.toString().trim() : "";
 
       let isRegistered = false;
-      let userObj = { id: userId, group: '', role: '' };
+      let userObj = { id: userId, group: '', region: '', role: '' };
       if (userSheet) {
         const uData = userSheet.getDataRange().getValues();
         for (let i = 1; i < uData.length; i++) {
@@ -531,6 +538,7 @@ function doGet(e) {
             userObj = {
               id: userId,
               group: formatGroupString(uData[i][2]),
+              region: uData[i][3] ? uData[i][3].toString().trim() : "",
               role: uData[i][4] ? uData[i][4].toString().trim() : ""
             };
             break;
@@ -557,12 +565,12 @@ function doGet(e) {
           const rowId = nData[i][0] ? nData[i][0].toString().trim() : "";
           if (rowId === noticeId) {
             const noticeType = nData[i][1] ? nData[i][1].toString().trim() : "";
-            const noticeGroup = nData[i][4] ? formatGroupString(nData[i][4]) : "";
+            const noticeRegion = nData[i][7] ? nData[i][7].toString().trim() : "";
 
             let hasAuth = false;
             if (isSuperAdmin) {
               hasAuth = true;
-            } else if (isGroupAdmin && noticeType === "group" && noticeGroup === userObj.group) {
+            } else if (isGroupAdmin && noticeRegion === userObj.region) {
               hasAuth = true;
             }
 
@@ -583,6 +591,30 @@ function doGet(e) {
     if (action === "getRiskData") {
       const targetDateStr = e.parameter.date || getTodayString();
       const targetDate = new Date(targetDateStr);
+
+      let userObj = { id: userId, group: '', region: '', role: '' };
+      if (userSheet) {
+        const uData = userSheet.getDataRange().getValues();
+        for (let i = 1; i < uData.length; i++) {
+          if (uData[i][0] && uData[i][0].toString().trim() === userId.toString().trim()) {
+            userObj = {
+              id: userId,
+              group: formatGroupString(uData[i][2]),
+              region: uData[i][3] ? uData[i][3].toString().trim() : "",
+              role: uData[i][4] ? uData[i][4].toString().trim() : ""
+            };
+            break;
+          }
+        }
+      }
+
+      const roleStr = userObj.role || "";
+      const isSuperAdmin = roleStr.includes("전체관리자") || roleStr.includes("관리자");
+      const isGroupAdmin = roleStr.includes("조장") || roleStr.includes("부조장");
+
+      if (!isSuperAdmin && !isGroupAdmin) {
+        return makeJsonResponse({ result: "fail", message: "관리자 권한이 없습니다." });
+      }
 
       // 내일 날짜 계산
       const tomorrow = new Date(targetDate);
@@ -642,6 +674,11 @@ function doGet(e) {
           const isExempt = uData[i][14] ? (uData[i][14].toString().trim().toUpperCase() === 'Y') : false;
 
           if (name) {
+            // 조장 권한인 경우 본인 지역 소속의 유저들만 통계 수집
+            if (!isSuperAdmin && region !== userObj.region) {
+              continue;
+            }
+
             const uObj = {
               id: uId,
               name: name,
