@@ -1156,12 +1156,9 @@
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwOnzceBFUvKYlqB0r-MBTYWC3jfv6ebqhuy2UV9alE5S83isURYGSbG4de0pFWsGMM/exec";
 
-        // 💡 Supabase 설정 정보 (본인의 Supabase 프로젝트 URL 및 Anon Key 입력)
-        // 💡 수정 반영된 Supabase 접속 정보
         const SUPABASE_URL = "https://qrrnvmskijxwtutgfrhf.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFycm52bXNraWp4d3R1dGdmcmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNDAyNTUsImV4cCI6MjEwMDcxNjI1NX0.-EcLv73jL7yw3vwGQqIQ330ajq6_HHy2UDVNxmpzGa4";
 
-        // 💡 SUPABASE_URL이 정상 지정되었을 때만 클라이언트를 생성하도록 수정
         const supabase = (window.supabase && SUPABASE_URL && SUPABASE_URL !== "YOUR_SUPABASE_URL")
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
             : null;
@@ -1435,9 +1432,18 @@
             return '';
         }
 
-        // 🚀 Supabase 고속 앱 초기화
+        // 🚀 Supabase 고속 앱 초기화 (보강된 예외 및 타임아웃 처리)
         async function fetchAppData() {
             if (tg) { tg.ready(); tg.expand(); }
+
+            // 💡 무한 로딩 방지용 3.5초 안전 타임아웃
+            const safetyTimer = setTimeout(() => {
+                const overlay = $('loading-overlay');
+                if (overlay && !overlay.classList.contains('hidden')) {
+                    console.warn("데이터 로딩 시간이 지연되어 화면을 강제로 표시합니다.");
+                    overlay.classList.add('hidden');
+                }
+            }, 3500);
 
             const initData = tg ? tg.initData : "";
             const userId = parseTelegramUserId(initData);
@@ -1458,7 +1464,7 @@
                         profile.role = userData.role || '-';
                         userHasActiveBook = (userData.book_count > 0);
 
-                        // 2. 당일 활동 및 전체 유저 정보 조회
+                        // 2. 당일 활동 조회
                         const role = profile.role || "";
                         const isSuper = role.includes("관리자") || role.includes("전체관리자");
                         const isGroup = role.includes("조장") || role.includes("부조장");
@@ -1471,8 +1477,7 @@
                             query = query.eq('user_id', profile.id);
                         }
 
-                        const { data: actData, error: actErr } = await query;
-                        if (actErr) throw actErr;
+                        const { data: actData } = await query;
 
                         activities = (actData || []).map(a => ({
                             id: a.id,
@@ -1491,7 +1496,7 @@
                             resultText: a.result_text
                         }));
 
-                        // 3. 이번 주 미션 수치 계산 (일요일~토요일)
+                        // 3. 이번 주 미션 수치 계산
                         const baseDate = new Date(targetDate);
                         const sunday = new Date(baseDate); sunday.setDate(baseDate.getDate() - baseDate.getDay());
                         const saturday = new Date(sunday); saturday.setDate(sunday.getDate() + 6);
@@ -1531,7 +1536,7 @@
                             region: n.region,
                             visible: n.visible ? 'Y' : 'N',
                             isImportant: n.is_important ? 'Y' : 'N',
-                            createdAt: n.created_at ? n.created_at.substring(5, 16).replace('T', ' ') : ''
+                            createdAt: n.created_at ? String(n.created_at).substring(5, 16).replace('T', ' ') : ''
                         }));
 
                         // 5. 개강 사이클 정보
@@ -1553,6 +1558,7 @@
                             $('sem-end').value = activeSem.endDate || '';
                         }
 
+                        clearTimeout(safetyTimer);
                         $('loading-overlay').classList.add('hidden');
                         applyUserPermissionsUI(isSuper || isGroup);
                         renderNoticeList(activeNotices);
@@ -1562,16 +1568,22 @@
                         renderList();
 
                     } else {
-                        // 미등록 사용자 -> 가입 레이어 팝업
-                        const { data: unregData } = await supabase.from('users').select('*').filter('id', 'is', null);
+                        // 미등록 사용자 명단 조회 (UNREG_ 패턴 대응)
+                        const { data: unregData } = await supabase.from('users').select('*').like('id', 'UNREG_%');
+                        clearTimeout(safetyTimer);
                         $('loading-overlay').classList.add('hidden');
                         openRegSheet(unregData || []);
                     }
                 } catch (err) {
-                    console.error("Supabase 초기화 실패, GAS Fallback 시작:", err);
-                    fetchAppDataGAS(initData, targetDate);
+                    console.error("Supabase 초기화 예외, 안전 모드로 전환:", err);
+                    clearTimeout(safetyTimer);
+                    $('loading-overlay').classList.add('hidden');
+                    renderHeader();
+                    renderDateNav();
+                    renderList();
                 }
             } else {
+                clearTimeout(safetyTimer);
                 fetchAppDataGAS(initData, targetDate);
             }
         }
@@ -1694,7 +1706,7 @@
                     renderDashboard(list);
                     return;
                 } catch (e) {
-                    console.error("Supabase 대시보드 조회 실패, Fallback:", e);
+                    console.error("Supabase 대시보드 조회 실패:", e);
                 }
             }
 
@@ -1831,7 +1843,7 @@
                     renderMemberTab();
                     return;
                 } catch (e) {
-                    console.error("Supabase 관리자 로직 처리 실패, Fallback:", e);
+                    console.error("Supabase 관리자 로직 처리 실패:", e);
                 }
             }
 
@@ -1848,11 +1860,9 @@
             }
         }
 
-        // 🚀 [Optimistic UI] 복방 수량 고속 변경 함수
         async function updateUserBookCount(targetName, newCount) {
             if (newCount < 0) return;
 
-            // 1. 낙관적 로컬 상태 즉시 변경
             if (rawRiskData && rawRiskData.allUsers) {
                 const target = rawRiskData.allUsers.find(u => u.name === targetName);
                 if (target) {
@@ -1863,7 +1873,6 @@
 
             showToast(`${targetName}님 복방 수량 변경 (${newCount}개)`, 'success');
 
-            // 2. 백그라운드 DB 동기화
             if (supabase) {
                 try {
                     const { error } = await supabase.from('users').update({ book_count: newCount }).eq('name', targetName);
@@ -1881,9 +1890,7 @@
             }
         }
 
-        // 🚀 [Optimistic UI] 미취합 예외 설정 고속 토글 함수
         async function toggleUserExempt(targetName, newExemptState) {
-            // 1. 낙관적 로컬 상태 즉시 변경
             if (rawRiskData && rawRiskData.allUsers) {
                 const target = rawRiskData.allUsers.find(u => u.name === targetName);
                 if (target) {
@@ -1894,7 +1901,6 @@
 
             showToast(`${targetName}님 예외 상태 변경 완료`, 'success');
 
-            // 2. 백그라운드 DB 동기화
             if (supabase) {
                 try {
                     const { error } = await supabase.from('users').update({ is_exempt: newExemptState }).eq('name', targetName);
