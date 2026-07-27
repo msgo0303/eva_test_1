@@ -2764,7 +2764,6 @@
 
         // 4. 전송 버튼 클릭 실행 함수 (Bot API 직접 통신 또는 Supabase 예약 등록)
         async function submitRiskNotification() {
-            const threadId = $('risk-send-topic').value;
             const messageText = $('risk-send-preview').textContent;
             const btn = $('btn-submit-risk-send');
 
@@ -2779,10 +2778,11 @@
                 btn.textContent = "발송 중...";
                 try {
                     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+                    // 💡 General 메인방 전송은 chat_id와 text만 전송하면 됩니다.
                     const payload = {
                         chat_id: TELEGRAM_CHAT_ID,
-                        text: messageText,
-                        message_thread_id: parseInt(threadId || "3", 10) // 기본값 3 (General)
+                        text: messageText
                     };
 
                     const response = await fetch(url, {
@@ -2792,10 +2792,9 @@
                     });
 
                     const resData = await response.json();
-                    console.log("Telegram Response:", resData);
 
                     if (resData.ok) {
-                        showToast("General 방으로 알림이 전송되었습니다!", "success");
+                        showToast("General 방으로 메시지가 성공적으로 발송되었습니다!", "success");
                         closeRiskSendModal();
                     } else {
                         showToast("전송 실패: " + resData.description, "error");
@@ -2807,7 +2806,7 @@
                     btn.textContent = "⚡ 즉시 발송하기";
                 }
             } else {
-                // 예약 발송
+                // 예약 발송 로직 (Supabase DB 저장)
                 const scheduledTime = $('risk-send-time').value;
                 btn.textContent = "예약 저장 중...";
 
@@ -2815,7 +2814,6 @@
                     if (supabaseClient) {
                         const payload = {
                             chat_id: TELEGRAM_CHAT_ID,
-                            thread_id: parseInt(threadId || "3", 10),
                             scheduled_time: scheduledTime,
                             message: messageText,
                             status: 'pending'
@@ -2826,6 +2824,8 @@
 
                         showToast(`오늘 ${scheduledTime}에 발송되도록 예약 저장되었습니다!`, "success");
                         closeRiskSendModal();
+                    } else {
+                        showToast("DB 연결 정보를 확인할 수 없습니다.", "error");
                     }
                 } catch (e) {
                     showToast("예약 저장 실패: " + e.message, "error");
