@@ -1161,6 +1161,44 @@
         </div>
     </div>
 
+    <!-- CUSTOM DATE PICKER CALENDAR -->
+    <div id="custom-cal-overlay" style="display:none" class="fixed inset-0 z-[70] bg-black/50 flex items-end justify-center">
+        <div class="bg-white w-full max-w-md rounded-t-3xl shadow-2xl">
+            <div class="flex justify-center pt-3 pb-1">
+                <div class="w-10 h-1 bg-zinc-200 rounded-full"></div>
+            </div>
+            <div class="px-4 pt-2 pb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <button id="cal-prev-month"
+                        class="w-10 h-10 flex items-center justify-center rounded-full bg-tg-surface active:scale-95 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-tg-muted">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
+                        </svg>
+                    </button>
+                    <span id="cal-month-label" class="text-base font-extrabold text-tg-text"></span>
+                    <button id="cal-next-month"
+                        class="w-10 h-10 flex items-center justify-center rounded-full bg-tg-surface active:scale-95 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-tg-muted">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 mb-2">
+                    <div class="text-center text-[11px] font-bold text-red-500 py-1">일</div>
+                    <div class="text-center text-[11px] font-bold text-tg-muted py-1">월</div>
+                    <div class="text-center text-[11px] font-bold text-tg-muted py-1">화</div>
+                    <div class="text-center text-[11px] font-bold text-tg-muted py-1">수</div>
+                    <div class="text-center text-[11px] font-bold text-tg-muted py-1">목</div>
+                    <div class="text-center text-[11px] font-bold text-tg-muted py-1">금</div>
+                    <div class="text-center text-[11px] font-bold text-blue-500 py-1">토</div>
+                </div>
+                <div id="cal-days-grid" class="grid grid-cols-7 gap-y-1"></div>
+                <button id="cal-close-btn"
+                    class="w-full mt-5 py-3 rounded-xl bg-tg-surface text-tg-muted text-sm font-bold active:scale-95 transition-transform">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <script>
@@ -3435,6 +3473,75 @@
             });
         }
 
+        let calViewYear = new Date().getFullYear();
+        let calViewMonth = new Date().getMonth();
+
+        function openCustomCalendar() {
+            calViewYear = currentDate.getFullYear();
+            calViewMonth = currentDate.getMonth();
+            renderCalendar();
+            $('custom-cal-overlay').style.display = 'flex';
+        }
+
+        function closeCustomCalendar() {
+            $('custom-cal-overlay').style.display = 'none';
+        }
+
+        function renderCalendar() {
+            const todayKey = dateKey(new Date());
+            const selectedKey = dateKey(currentDate);
+            const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+            $('cal-month-label').textContent = `${calViewYear}년 ${monthNames[calViewMonth]}`;
+
+            const firstDay = new Date(calViewYear, calViewMonth, 1).getDay();
+            const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+            const grid = $('cal-days-grid');
+            grid.innerHTML = '';
+
+            for (let i = 0; i < firstDay; i++) {
+                grid.appendChild(document.createElement('div'));
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayKey = `${calViewYear}-${String(calViewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const colIndex = (firstDay + d - 1) % 7;
+
+                const btn = document.createElement('button');
+                btn.textContent = d;
+                btn.type = 'button';
+
+                let cls = 'w-9 h-9 mx-auto flex items-center justify-center rounded-full text-sm font-semibold transition-all active:scale-90 select-none ';
+                if (dayKey === selectedKey) {
+                    cls += 'bg-tg-blue text-white shadow-md';
+                } else if (dayKey === todayKey) {
+                    cls += 'border-2 border-tg-blue text-tg-blue font-extrabold';
+                } else if (colIndex === 0) {
+                    cls += 'text-red-500';
+                } else if (colIndex === 6) {
+                    cls += 'text-blue-500';
+                } else {
+                    cls += 'text-tg-text';
+                }
+                btn.className = cls;
+
+                btn.addEventListener('click', () => {
+                    const parts = dayKey.split('-');
+                    currentDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                    closeCustomCalendar();
+                    activeFilter = 'all';
+                    activeTimeFilter = 'all';
+                    updateTimeFilterUI();
+                    $('loading-overlay').classList.remove('hidden');
+                    fetchAppData();
+                });
+
+                const cell = document.createElement('div');
+                cell.className = 'flex items-center justify-center';
+                cell.appendChild(btn);
+                grid.appendChild(cell);
+            }
+        }
+
         function showToast(message, type) {
             const el = $('toast'); el.textContent = message;
             el.className = 'fixed bottom-24 left-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-semibold text-white text-center w-max max-w-[90vw] whitespace-normal leading-snug';
@@ -3452,22 +3559,24 @@
             const dateTrigger = $('date-picker-trigger');
             const hiddenPicker = $('hidden-date-picker');
 
-            if (dateTrigger && hiddenPicker) {
-                dateTrigger.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (typeof hiddenPicker.showPicker === 'function') hiddenPicker.showPicker();
-                    else { hiddenPicker.focus(); hiddenPicker.click(); }
-                });
-
-                hiddenPicker.addEventListener('change', (e) => {
-                    if (e.target.value) {
-                        const parts = e.target.value.split('-');
-                        currentDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-                        activeFilter = 'all'; activeTimeFilter = 'all'; updateTimeFilterUI();
-                        $('loading-overlay').classList.remove('hidden'); fetchAppData();
-                    }
-                });
+            if (dateTrigger) {
+                dateTrigger.addEventListener('click', openCustomCalendar);
             }
+
+            $('cal-prev-month').addEventListener('click', () => {
+                calViewMonth--;
+                if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+                renderCalendar();
+            });
+            $('cal-next-month').addEventListener('click', () => {
+                calViewMonth++;
+                if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+                renderCalendar();
+            });
+            $('cal-close-btn').addEventListener('click', closeCustomCalendar);
+            $('custom-cal-overlay').addEventListener('click', (e) => {
+                if (e.target === $('custom-cal-overlay')) closeCustomCalendar();
+            });
 
             $('f-starttime').addEventListener('change', () => { updateEndTimeOptions(); });
             $('btn-add-result-row').addEventListener('click', () => { addResultRow(); });
