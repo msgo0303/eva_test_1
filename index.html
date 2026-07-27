@@ -1579,7 +1579,7 @@
                                 if (Array.isArray(parsed)) {
                                     parsed.forEach(r => {
                                         if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") &&
-                                            (r.type === "온만찾" || r.type === "오프만찾" || r.type === "오프번찾" || r.type === "구두만픽")) {
+                                            (r.type === "온만찾" || r.type === "오프만찾")) { // ✅ 온만찾, 오프만찾 2개만 허용
                                             weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                         }
                                     });
@@ -3372,20 +3372,31 @@
             $('dash-popover-overlay').classList.add('hidden');
         }
 
+        // 1) 나의 활동 추적 모달 열기 (오늘 날짜가 포함된 주차 기본 선택)
         function openTrackerModal() {
             const overlay = $('tracker-overlay'); const sheet = $('tracker-sheet');
             sheet.style.display = 'flex'; sheet.offsetHeight;
             overlay.classList.add('open'); sheet.classList.add('open');
 
             const selectEl = $('tracker-week-select'); selectEl.innerHTML = '';
+            const todayStr = dateKey(new Date()); // 오늘 날짜 (YYYY-MM-DD)
+
             if (semestersList && semestersList.length > 0) {
-                selectEl.innerHTML = semestersList.map(sem => `
-                    <option value="${sem.startDate}:${sem.endDate}" ${sem.isCurrent ? 'selected' : ''}>
-                        ${sem.name} (${sem.startDate} ~ ${sem.endDate})
-                    </option>
-                `).join('');
+                // 오늘 날짜가 포함된 사이클 찾기
+                let defaultSem = semestersList.find(sem => todayStr >= sem.startDate && todayStr <= sem.endDate);
+                // 없으면 활성화(isCurrent) 설정된 사이클 찾기
+                if (!defaultSem) defaultSem = semestersList.find(sem => sem.isCurrent) || semestersList[0];
+
+                selectEl.innerHTML = semestersList.map(sem => {
+                    const isSelected = (defaultSem && sem.id === defaultSem.id);
+                    return `
+                        <option value="${sem.startDate}:${sem.endDate}" ${isSelected ? 'selected' : ''}>
+                            ${sem.name} (${sem.startDate} ~ ${sem.endDate})
+                        </option>
+                    `;
+                }).join('');
             } else {
-                selectEl.innerHTML = `<option value="${dateKey(new Date())}:${dateKey(new Date())}">현재 주차 정보 없음</option>`;
+                selectEl.innerHTML = `<option value="${todayStr}:${todayStr}">현재 주차 정보 없음</option>`;
             }
             fetchTrackerData();
         }
@@ -3449,6 +3460,7 @@
             return dates;
         }
 
+        // 2) 나의 활동 추적 데이터 렌더링 (찾기는 오직 '오프만찾', '온만찾'만 계수)
         function renderTrackerData(list, startDate, endDate) {
             let countFind = 0; let countMatch = 0; let countLeaf = 0; let countBook = 0;
 
@@ -3459,8 +3471,12 @@
                         if (Array.isArray(parsed)) {
                             parsed.forEach(r => {
                                 const cVal = r.count !== undefined ? parseInt(r.count, 10) : 1;
-                                if (r.category === '찾기(오프라인)' || r.category === '찾기(온라인)' || r.category === '찾기') countFind += cVal;
-                                else if (r.category === '매칭') countMatch += cVal;
+
+                                // 💡 찾기 계수 조건: '오프만찾' 또는 '온만찾'만 수량 합산 ('오프번찾' 제외)
+                                if ((r.category === '찾기(오프라인)' || r.category === '찾기(온라인)' || r.category === '찾기') &&
+                                    (r.type === '오프만찾' || r.type === '온만찾')) {
+                                    countFind += cVal;
+                                } else if (r.category === '매칭') countMatch += cVal;
                                 else if (r.category === '잎사귀') countLeaf += cVal;
                                 else if (r.category === '복방') countBook += cVal;
                             });

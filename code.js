@@ -103,7 +103,9 @@ function doGet(e) {
                   const parsed = JSON.parse(rowResultData);
                   if (Array.isArray(parsed)) {
                     parsed.forEach(r => {
-                      if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") && (r.type === "온만찾" || r.type === "오프만찾")) {
+                      // 기존 code.js line 87 부근
+                      if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") &&
+                        (r.type === "온만찾" || r.type === "오프만찾")) { // ✅ 오프번찾 제거 확인
                         weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                       }
                     });
@@ -720,9 +722,10 @@ function doGet(e) {
                 if (Array.isArray(parsed)) {
                   parsed.forEach(r => {
                     // code.js & index.html 공통 검증 코드
+                    // 기존 code.js line 454 부근
                     if ((r.category === '찾기' || r.category === '찾기(오프라인)' || r.category === '찾기(온라인)') &&
-                      (r.type === '온만찾' || r.type === '오프만찾')) {
-                      weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
+                      (r.type === '온만찾' || r.type === '오프만찾')) { // ✅ 오프번찾 제거 확인
+                      userMap[name].weeklyFindCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                     }
                   });
                 }
