@@ -1000,7 +1000,8 @@
                         </div>
                     </div>
 
-                    <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊 미션 달성 현황(주간 찾기)</h3>
+                    <h3 id="chart-group-title" class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊 미션 달성 현황(주간 찾기)</h3>
+                    <p id="chart-group-summary" class="text-[11px] text-tg-muted"></p>
                     <div class="w-full h-80 relative">
                         <canvas id="chart-group"></canvas>
                     </div>
@@ -1798,15 +1799,17 @@
                     const role = profile.role || "";
                     const isSuper = role.includes("관리자") || role.includes("전체관리자");
 
-                    let query = supabaseClient.from('activities').select('*').in('activity_date', dates);
-                    if (!isSuper) {
-                        query = query.eq('region', profile.region);
-                    }
+                    let actQuery = supabaseClient.from('activities').select('*').in('activity_date', dates);
+                    if (!isSuper) actQuery = actQuery.eq('region', profile.region);
 
-                    const { data, error } = await query;
-                    if (error) throw error;
+                    // users도 병렬 조회 (찾기 목표 계산용)
+                    let usrQuery = supabaseClient.from('users').select('name,region,book_count,is_exempt');
+                    if (!isSuper) usrQuery = usrQuery.eq('region', profile.region);
 
-                    const list = (data || []).map(a => ({
+                    const [{ data: actData, error: actErr }, { data: usrData }] = await Promise.all([actQuery, usrQuery]);
+                    if (actErr) throw actErr;
+
+                    const list = (actData || []).map(a => ({
                         id: a.id,
                         userId: a.user_id,
                         name: a.name,
@@ -1823,7 +1826,14 @@
                         resultText: a.result_text
                     }));
 
-                    renderDashboard(list);
+                    cachedAllUsers = (usrData || []).map(u => ({
+                        name: u.name,
+                        region: u.region,
+                        bookCount: u.book_count || 0,
+                        isExempt: u.is_exempt || false
+                    }));
+
+                    renderDashboard(list, range, cachedAllUsers);
                     return;
                 } catch (e) {
                     console.error("Supabase 대시보드 조회 실패:", e);
@@ -3374,7 +3384,9 @@
             finally { $('reg-spinner').classList.add('hidden'); $('btn-reg-submit').disabled = false; }
         }
 
-        function renderDashboard(list) {
+        function renderDashboard(list, dashRange, usersData) {
+            dashRange = dashRange || currentDashRange || 'today';
+            usersData = usersData || cachedAllUsers || [];
             const total = list.length;
             const completedCount = list.filter(a => a.status === 'completed').length;
             const rate = total > 0 ? Math.round((completedCount / total) * 100) : 0;
@@ -3480,11 +3492,11 @@
                     return `<span class="bg-blue-50 text-tg-blue border border-blue-100 font-bold px-2 py-0.5 rounded-md">${c} [${t}]: ${detailedResultsMap[k]}</span>`;
                 }).join('');
 
-            renderCharts(planCounts, regionTotalCounts, total, resultCounts);
+            renderCharts(planCounts, regionTotalCounts, total, resultCounts, dashRange, usersData, list);
             renderDashboardTimeline(list);
         }
 
-        function renderCharts(planCounts, regionCounts, totalCount, resultCounts) {
+        function renderCharts(planCounts, regionCounts, totalCount, resultCounts, dashRange, usersData, activityList) {
             // 1. 도넛 차트 (실제 입력 결과 기준)
             const ctxCat = $('chart-category').getContext('2d');
             if (catChartInstance) catChartInstance.destroy();
@@ -3509,11 +3521,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } } // 기본 범례 숨김 (오른쪽 텍스트 설명으로 대체)
+                    plugins: { legend: { display: false } }
                 }
             });
 
-            // 텍스트 설명 구역 동적 채우기
             const legendEl = $('chart-category-legend');
             if (legendEl) {
                 legendEl.innerHTML = catLabels.map((label, idx) => {
@@ -3531,38 +3542,187 @@
                 }).join('');
             }
 
-            // 2. 가로 막대 차트 (고정 14개 지역 순서)
+            // ─────────────────────────────────────────────
+            // 2. 가로 막대 차트 — 범위별 찾기 결과/목표 현황
+            // ─────────────────────────────────────────────
             const ctxGroup = $('chart-group').getContext('2d');
             if (groupChartInstance) groupChartInstance.destroy();
 
-            // 14개 고정 지역 순서 유지
             const fixedRegionsOrder = [
                 "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
                 "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
             ];
 
-            groupChartInstance = new Chart(ctxGroup, {
-                type: 'bar',
-                data: {
-                    labels: fixedRegionsOrder,
-                    datasets: [{
-                        label: '지역별 활동 건수',
-                        data: fixedRegionsOrder.map(r => regionCounts[r] || 0),
-                        backgroundColor: '#60a5fa',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { beginAtZero: true, ticks: { precision: 0 } },
-                        y: { ticks: { font: { size: 10, weight: 'bold' } } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
+            // 지역별 찾기 결과(오프만찾+온만찾) 집계
+            const regionFindResult = {};
+            (activityList || []).forEach(item => {
+                if (!item.resultData) return;
+                try {
+                    const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
+                    if (!Array.isArray(parsed)) return;
+                    parsed.forEach(r => {
+                        if (r.type === '오프만찾' || r.type === '온만찾') {
+                            const cnt = parseInt(r.count || 1, 10);
+                            regionFindResult[item.region] = (regionFindResult[item.region] || 0) + cnt;
+                        }
+                    });
+                } catch (e) {}
             });
+
+            const titleEl = $('chart-group-title');
+            const summaryEl = $('chart-group-summary');
+
+            if (dashRange === 'today') {
+                // ── 일일: 결과 건수만 표시 ──
+                if (titleEl) titleEl.textContent = '📊 일일 찾기 갯수(오프만찾+온만찾)';
+                if (summaryEl) summaryEl.textContent = '';
+
+                groupChartInstance = new Chart(ctxGroup, {
+                    type: 'bar',
+                    data: {
+                        labels: fixedRegionsOrder,
+                        datasets: [{
+                            label: '찾기 결과(오프+온)',
+                            data: fixedRegionsOrder.map(r => regionFindResult[r] || 0),
+                            backgroundColor: '#60a5fa',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { ticks: { font: { size: 10, weight: 'bold' } } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+
+            } else if (dashRange === 'week') {
+                // ── 주간: 목표 대비 퍼센테이지 ──
+                if (titleEl) titleEl.textContent = '📊 주간 미션 달성 현황';
+
+                // 지역별 목표 계산: 복방=0 & 예외OFF 인원 × 6
+                const regionTargets = {};
+                (usersData || []).forEach(u => {
+                    if ((u.bookCount || 0) === 0 && !u.isExempt) {
+                        regionTargets[u.region] = (regionTargets[u.region] || 0) + 6;
+                    }
+                });
+
+                const totalTarget = Object.values(regionTargets).reduce((a, b) => a + b, 0);
+                const totalAchieved = Object.values(regionFindResult).reduce((a, b) => a + b, 0);
+                const totalPct = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                if (summaryEl) summaryEl.textContent = `미션 ${totalTarget}개 중 ${totalAchieved}개 달성 (${totalPct}% 달성)`;
+
+                const pctData = fixedRegionsOrder.map(r => {
+                    const t = regionTargets[r] || 0;
+                    const a = regionFindResult[r] || 0;
+                    return t > 0 ? Math.min(Math.round((a / t) * 100), 100) : 0;
+                });
+
+                groupChartInstance = new Chart(ctxGroup, {
+                    type: 'bar',
+                    data: {
+                        labels: fixedRegionsOrder,
+                        datasets: [
+                            {
+                                label: '달성률(%)',
+                                data: pctData,
+                                backgroundColor: pctData.map(v => v >= 100 ? '#16a34a' : v >= 60 ? '#60a5fa' : '#f87171'),
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+                            y: { ticks: { font: { size: 10, weight: 'bold' } } }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => {
+                                        const r = fixedRegionsOrder[ctx.dataIndex];
+                                        const t = regionTargets[r] || 0;
+                                        const a = regionFindResult[r] || 0;
+                                        return `${a}/${t}개 (${ctx.parsed.x}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } else if (dashRange === 'month') {
+                // ── 월간: 주차수 × 목표 대비 퍼센테이지 ──
+                // 현재 날짜가 속한 개강 사이클의 주차 수 계산
+                const baseDate = dateKey(currentDate);
+                const matchedSem = (semestersList || []).find(s => baseDate >= s.startDate && baseDate <= s.endDate);
+                let cyclePrefix = '';
+                let weekCount = 1;
+                let monthLabel = '';
+
+                if (matchedSem) {
+                    const nameParts = matchedSem.name.trim().split(/\s+/);
+                    cyclePrefix = nameParts[0] || '';
+                    monthLabel = cyclePrefix.replace('개강', '').trim();
+                    const cycleWeeks = semestersList.filter(s => s.name.includes(cyclePrefix));
+                    weekCount = Math.max(cycleWeeks.length, 1);
+                }
+
+                if (titleEl) titleEl.textContent = `📊 ${monthLabel} 개강 미션 달성 현황`;
+
+                const regionTargets = {};
+                (usersData || []).forEach(u => {
+                    if ((u.bookCount || 0) === 0 && !u.isExempt) {
+                        regionTargets[u.region] = (regionTargets[u.region] || 0) + (6 * weekCount);
+                    }
+                });
+
+                const totalTarget = Object.values(regionTargets).reduce((a, b) => a + b, 0);
+                const totalAchieved = Object.values(regionFindResult).reduce((a, b) => a + b, 0);
+                const totalPct = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : 0;
+                if (summaryEl) summaryEl.textContent = `미션 ${totalTarget}개 중 ${totalAchieved}개 달성 (${totalPct}% 달성)`;
+
+                const pctData = fixedRegionsOrder.map(r => {
+                    const t = regionTargets[r] || 0;
+                    const a = regionFindResult[r] || 0;
+                    return t > 0 ? Math.min(Math.round((a / t) * 100), 100) : 0;
+                });
+
+                groupChartInstance = new Chart(ctxGroup, {
+                    type: 'bar',
+                    data: {
+                        labels: fixedRegionsOrder,
+                        datasets: [{
+                            label: '달성률(%)',
+                            data: pctData,
+                            backgroundColor: pctData.map(v => v >= 100 ? '#16a34a' : v >= 60 ? '#60a5fa' : '#f87171'),
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+                            y: { ticks: { font: { size: 10, weight: 'bold' } } }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => {
+                                        const r = fixedRegionsOrder[ctx.dataIndex];
+                                        const t = regionTargets[r] || 0;
+                                        const a = regionFindResult[r] || 0;
+                                        return `${a}/${t}개 (${ctx.parsed.x}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         }
 
         function renderDashboardTimeline(list) {
