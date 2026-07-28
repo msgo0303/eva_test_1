@@ -2633,10 +2633,10 @@
                                 <span class="font-extrabold text-tg-text w-4 text-center">${u.bookCount}</span>
                                 <button onclick="event.stopPropagation(); updateUserBookCount('${escHtml(u.name)}', ${u.bookCount + 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">+</button>
                             </div>
+                            ${!(profile.role||'').includes('조장') && !(profile.role||'').includes('부조장') ? `
                             <button onclick="event.stopPropagation(); toggleUserExempt('${escHtml(u.name)}', ${!u.isExempt})" class="px-2 py-1 rounded-lg font-bold text-[10px] ${u.isExempt ? 'bg-green-600 text-white' : 'bg-zinc-200 text-zinc-700'}">
                                 ${u.isExempt ? '예외 ON' : '예외 OFF'}
-                            </button>
-
+                            </button>` : ''}
                         </div>
                     </div>
                 </div>
