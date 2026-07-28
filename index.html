@@ -3312,6 +3312,27 @@
             $('display-date').textContent = dateStr;
             const isToday = new Date().toDateString() === currentDate.toDateString();
             $('display-today').textContent = isToday ? '오늘' : '';
+
+            // 💡 선택된 currentDate (YYYY-MM-DD)에 해당하는 사이클 태그 매칭 로직
+            const targetDateStr = dateKey(currentDate);
+            const badgeEl = $('hdr-semester-badge');
+
+            if (badgeEl) {
+                // 등록된 semestersList 중 targetDateStr가 시작일~종료일 사이에 속하는 사이클 검색
+                const matchedSem = (semestersList || []).find(s =>
+                    s.startDate && s.endDate && targetDateStr >= s.startDate && targetDateStr <= s.endDate
+                );
+
+                if (matchedSem) {
+                    badgeEl.textContent = `🎓 ${matchedSem.name}`;
+                    badgeEl.className = "bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm";
+                } else {
+                    // 등록되지 않은 날짜/기간일 경우 '🎓 미등록'으로 처리
+                    badgeEl.textContent = `🎓 미등록`;
+                    badgeEl.className = "bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm";
+                }
+                badgeEl.classList.remove('hidden');
+            }
         }
 
         function setFilter(type) {
