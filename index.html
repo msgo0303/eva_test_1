@@ -1042,10 +1042,10 @@
                             <span id="risk-tomorrow-count"
                                 class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
                             <span id="risk-tomorrow-arrow" onclick="toggleTomorrowList()"
-                                class="text-blue-800 text-[10px] cursor-pointer">▼</span>
+                                class="text-blue-800 text-[10px] cursor-pointer">▲</span>
                         </div>
                     </div>
-                    <div id="risk-tomorrow-list" class="space-y-1.5 text-xs"></div>
+                    <div id="risk-tomorrow-list" class="space-y-1.5 text-xs hidden"></div>
                 </div>
 
                 <!-- 2. 당일 결과 미취합자 -->
@@ -1065,10 +1065,10 @@
                             <span id="risk-today-count"
                                 class="bg-red-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
                             <span id="risk-today-arrow" onclick="toggleTodayList()"
-                                class="text-red-700 text-[10px] cursor-pointer">▼</span>
+                                class="text-red-700 text-[10px] cursor-pointer">▲</span>
                         </div>
                     </div>
-                    <div id="risk-today-list" class="space-y-1.5 text-xs"></div>
+                    <div id="risk-today-list" class="space-y-1.5 text-xs hidden"></div>
                 </div>
 
                 <!-- 3. 주간 찾기 미달성자 -->
@@ -1087,7 +1087,7 @@
                             <span id="risk-unachieved-count"
                                 class="bg-amber-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
                             <span id="risk-unachieved-arrow" onclick="toggleUnachievedList()"
-                                class="text-amber-800 text-[10px] cursor-pointer">▼</span>
+                                class="text-amber-800 text-[10px] cursor-pointer">▲</span>
                         </div>
                     </div>
                     <div id="risk-unachieved-list" class="space-y-1.5 text-xs hidden"></div>
@@ -1184,10 +1184,10 @@
                         <span id="risk-tomorrow-count"
                             class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
                         <span id="risk-tomorrow-arrow" onclick="toggleTomorrowList()"
-                            class="text-blue-800 text-[10px] cursor-pointer">▼</span>
+                            class="text-blue-800 text-[10px] cursor-pointer">▲</span>
                     </div>
                 </div>
-                <div id="risk-tomorrow-list" class="space-y-1.5 text-xs"></div>
+                <div id="risk-tomorrow-list" class="space-y-1.5 text-xs hidden"></div>
             </div>
 
             <!-- 2. 당일 결과 미취합자 -->
@@ -1208,10 +1208,10 @@
                         <span id="risk-today-count"
                             class="bg-red-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
                         <span id="risk-today-arrow" onclick="toggleTodayList()"
-                            class="text-red-700 text-[10px] cursor-pointer">▼</span>
+                            class="text-red-700 text-[10px] cursor-pointer">▲</span>
                     </div>
                 </div>
-                <div id="risk-today-list" class="space-y-1.5 text-xs"></div>
+                <div id="risk-today-list" class="space-y-1.5 text-xs hidden"></div>
             </div>
 
             <!-- 3. 주간 찾기 미달성자 -->
@@ -1231,7 +1231,7 @@
                         <span id="risk-unachieved-count"
                             class="bg-amber-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
                         <span id="risk-unachieved-arrow" onclick="toggleUnachievedList()"
-                            class="text-amber-800 text-[10px] cursor-pointer">▼</span>
+                            class="text-amber-800 text-[10px] cursor-pointer">▲</span>
                     </div>
                 </div>
                 <div id="risk-unachieved-list" class="space-y-1.5 text-xs hidden"></div>
@@ -1402,8 +1402,8 @@
         let rawRiskData = null;
         let currentWeekName = "";
         let semestersList = [];
-        let isTomorrowCollapsed = false;
-        let isTodayCollapsed = false;
+        let isTomorrowCollapsed = true;
+        let isTodayCollapsed = true;
         let allRegionsList = [];
         let activeNotices = [];
         let cachedAllUsers = [];
