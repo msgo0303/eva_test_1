@@ -1551,8 +1551,6 @@
             const userId = parseTelegramUserId(initData);
             const targetDate = dateKey(currentDate);
 
-            // 🧪 디버그용: 실제 웹앱이 감지한 접속자의 텔레그램 ID 팝업 노출
-            alert("디버그 - 현재 웹앱이 감지한 본인의 텔레그램 ID: " + userId);
 
             if (supabase) {
                 try {
