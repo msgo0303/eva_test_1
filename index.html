@@ -316,10 +316,6 @@
                         <div class="flex justify-between"><span class="text-tg-muted">ID</span> <span id="pd-id"
                                 class="font-medium text-tg-blue text-xs">-</span></div>
                     </div>
-                    <button onclick="activateTelegramAlarm()" class="w-full mt-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-[11px] shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-1.5">
-                        <span>🔔</span>
-                        <span>알림 태그 활성화하기</span>
-                    </button>
                 </div>
             </header>
 
@@ -3105,7 +3101,7 @@
                         reply_markup: {
                             inline_keyboard: [
                                 [
-                                    { text: "🔔 내 알림 태그 활성화하기 (최초 1회)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=true` }
+                                    { text: "📝 결과 입력하러 가기 (알림 자동 활성화)", web_app: { url: "https://msgo0303.github.io/eva_test_1/" } }
                                 ]
                             ]
                         }
@@ -3408,11 +3404,8 @@
                     const { error } = await supabaseClient.from('users').update({ id: tgUserId }).eq('id', selectedUserId);
                     if (error) throw error;
                     closeRegSheet();
-                    showToast("사용자 등록 완료! 🔔 알림 봇 연동 화면으로 이동합니다.", "success");
+                    showToast("사용자 등록 완료!", "success");
                     await fetchAppData();
-
-                    // 🔔 최초 회원 등록 후 바로 봇 활성화(/start) 유도
-                    setTimeout(() => { activateTelegramAlarm(); }, 1200);
                     return;
                 } catch (e) { showToast("등록 실패: " + e.message, "error"); }
                 finally { $('reg-spinner').classList.add('hidden'); $('btn-reg-submit').disabled = false; }
@@ -3423,24 +3416,11 @@
                 const resData = await response.json();
                 if (resData.result === "success") {
                     closeRegSheet();
-                    showToast("사용자 등록 완료! 🔔 알림 봇 연동 화면으로 이동합니다.", "success");
+                    showToast("사용자 등록 완료!", "success");
                     await fetchAppData();
-
-                    // 🔔 최초 회원 등록 후 바로 봇 활성화(/start) 유도
-                    setTimeout(() => { activateTelegramAlarm(); }, 1200);
                 } else { showToast("등록 실패: " + resData.message, "error"); }
             } catch (err) { showToast("오류 발생: " + err.message, "error"); }
             finally { $('reg-spinner').classList.add('hidden'); $('btn-reg-submit').disabled = false; }
-        }
-
-        // 🔔 텔레그램 봇 1:1 대화(/start)로 조용하게 이동시켜주는 독립 함수
-        function activateTelegramAlarm() {
-            const url = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=true`;
-            if (tg && typeof tg.openTelegramLink === 'function') {
-                tg.openTelegramLink(url);
-            } else {
-                window.open(url, '_blank');
-            }
         }
 
         function renderDashboard(list, dashRange, usersData) {
@@ -4417,7 +4397,7 @@
                             reply_markup: {
                                 inline_keyboard: [
                                     [
-                                        { text: "🔔 내 알림 태그 활성화하기 (최초 1회)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=true` }
+                                        { text: "📝 결과 입력하러 가기 (알림 자동 활성화)", web_app: { url: "https://msgo0303.github.io/eva_test_1/" } }
                                     ]
                                 ]
                             }

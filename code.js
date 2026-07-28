@@ -1224,7 +1224,7 @@ function checkAndSendTelegramAlarms() {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "🔔 내 알림 태그 활성화하기 (최초 1회)", url: `https://t.me/${botUsername}?start=true` }
+                { text: "📝 결과 입력하러 가기 (알림 자동 활성화)", web_app: { url: "https://msgo0303.github.io/eva_test_1/" } }
               ]
             ]
           }
