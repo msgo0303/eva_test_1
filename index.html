@@ -1006,6 +1006,12 @@
                     <div class="w-full h-80 relative">
                         <canvas id="chart-group"></canvas>
                     </div>
+
+                    <h3 id="chart-book-title" class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">🍎복음방 미션 달성 현황(1인 1복음방)</h3>
+                    <p id="chart-book-summary" class="text-[11px] text-tg-muted"></p>
+                    <div class="w-full h-80 relative">
+                        <canvas id="chart-book"></canvas>
+                    </div>
                 </div>
 
                 <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
@@ -1299,6 +1305,7 @@
 
         let catChartInstance = null;
         let groupChartInstance = null;
+        let bookChartInstance = null;
 
         const RESULT_SCHEMA = {
             '합자찾기(오프)': { types: ['오프만찾', '오프번찾'], hasCount: true },
@@ -3754,6 +3761,85 @@
                     plugins: [ChartDataLabels]
                 });
             }
+
+            // ─────────────────────────────────────────────
+            // 3. 복음방 미션 달성 현황(1인 1복음방) 차트 그리기
+            // ─────────────────────────────────────────────
+            const ctxBook = $('chart-book').getContext('2d');
+            if (bookChartInstance) bookChartInstance.destroy();
+
+            const bookTargets = {};
+            const bookAchieved = {};
+            (usersData || []).forEach(u => {
+                if (!u.isExempt) {
+                    bookTargets[u.region] = (bookTargets[u.region] || 0) + 1;
+                    bookAchieved[u.region] = (bookAchieved[u.region] || 0) + (u.bookCount || 0);
+                }
+            });
+
+            const totalBookTarget = Object.values(bookTargets).reduce((a, b) => a + b, 0);
+            const totalBookAchieved = Object.values(bookAchieved).reduce((a, b) => a + b, 0);
+            const totalBookPct = totalBookTarget > 0 ? Math.round((totalBookAchieved / totalBookTarget) * 100) : 0;
+            const bookSummaryEl = $('chart-book-summary');
+            if (bookSummaryEl) {
+                bookSummaryEl.textContent = `미션 ${totalBookTarget}개 중 ${totalBookAchieved}개 달성 (${totalBookPct}% 달성)`;
+            }
+
+            const bookPctData = fixedRegionsOrder.map(r => {
+                const t = bookTargets[r] || 0;
+                const a = bookAchieved[r] || 0;
+                return t > 0 ? Math.min(Math.round((a / t) * 100), 100) : 0;
+            });
+
+            bookChartInstance = new Chart(ctxBook, {
+                type: 'bar',
+                data: {
+                    labels: fixedRegionsOrder,
+                    datasets: [{
+                        label: '달성률(%)',
+                        data: bookPctData,
+                        backgroundColor: bookPctData.map(v => v >= 100 ? '#16a34a' : v >= 60 ? '#60a5fa' : '#f87171'),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+                        y: { ticks: { font: { size: 10, weight: 'bold' } } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const r = fixedRegionsOrder[ctx.dataIndex];
+                                    const t = bookTargets[r] || 0;
+                                    const a = bookAchieved[r] || 0;
+                                    const realPct = t > 0 ? Math.round((a / t) * 100) : 0;
+                                    return `${a}/${t}개 (${realPct}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: ctx => bookPctData[ctx.dataIndex] > 0,
+                            formatter: (value, ctx) => {
+                                const r = fixedRegionsOrder[ctx.dataIndex];
+                                const t = bookTargets[r] || 0;
+                                const a = bookAchieved[r] || 0;
+                                const realPct = t > 0 ? Math.round((a / t) * 100) : 0;
+                                return `${a}/${t}개 (${realPct}%)`;
+                            },
+                            anchor: ctx => bookPctData[ctx.dataIndex] >= 30 ? 'end' : 'end',
+                            align: ctx => bookPctData[ctx.dataIndex] >= 30 ? 'start' : 'end',
+                            color: ctx => bookPctData[ctx.dataIndex] >= 30 ? '#fff' : '#374151',
+                            font: { size: 10, weight: 'bold' },
+                            clamp: true
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
         }
 
         function renderDashboardTimeline(list) {
