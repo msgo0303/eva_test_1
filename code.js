@@ -1134,3 +1134,75 @@ function getSemestersList() {
   }
   return list;
 }
+
+// 💡 Supabase 접속 정보 및 텔레그램 설정
+const SUPABASE_URL = "https://qrrnvmskijxwtutgfrhf.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFycm52bXNraWp4d3R1dGdmcmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNDAyNTUsImV4cCI6MjEwMDcxNjI1NX0.-EcLv73jL7yw3vwGQqIQ330ajq6_HHy2UDVNxmpzGa4";
+const TELEGRAM_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"; // 텔레그램 봇 토큰 입력
+const TELEGRAM_CHAT_ID = "-1003955494530";             // 텔레그램 그룹방 ID
+
+// ⏰ 구글 서버가 주기적으로(예: 5분마다) 자동 실행할 함수
+function checkAndSendTelegramAlarms() {
+  const now = new Date();
+  const currentHHmm = Utilities.formatDate(now, "Asia/Seoul", "HH:mm");
+  const todayStr = Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd");
+
+  const headers = {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+  };
+
+  // 1. Supabase의 alarm_schedules 테이블에서 활성화(is_active=true) 및 현재 시각(currentHHmm) 일치 알람 조회
+  const alarmUrl = `${SUPABASE_URL}/rest/v1/alarm_schedules?is_active=eq.true&alarm_time=eq.${currentHHmm}`;
+  const alarmRes = UrlFetchApp.fetch(alarmUrl, { headers: headers, muteHttpExceptions: true });
+
+  if (alarmRes.getResponseCode() !== 200) return;
+  const alarms = JSON.parse(alarmRes.getContentText());
+
+  if (!alarms || alarms.length === 0) return; // 실행할 알람 없음
+
+  // 2. 전체 유저 목록 및 당일 활동 기록 조회
+  const usersRes = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/users?select=*`, { headers: headers });
+  const allUsers = JSON.parse(usersRes.getContentText());
+
+  const actsRes = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/activities?activity_date=eq.${todayStr}`, { headers: headers });
+  const todayActs = JSON.parse(actsRes.getContentText());
+
+  // 3. 알람 조건에 따른 미취합자 추출 및 메시지 생성
+  alarms.forEach(alarm => {
+    let uncollectedList = [];
+    let titleText = "";
+
+    if (alarm.category === 'today') {
+      titleText = "[⚠️ 오늘 결과 미입력자 알림]\n\n오늘 활동 결과를 아직 입력하지 않은 멤버입니다. 마감 전 입력 바랍니다!";
+      uncollectedList = (allUsers || []).filter(u => {
+        if (u.is_exempt) return false;
+        const act = (todayActs || []).find(a => a.name === u.name);
+        return !act || act.status !== 'completed';
+      });
+    } else if (alarm.category === 'tomorrow') {
+      titleText = "[📢 내일 일정 미입력자 알림]\n\n내일 일정을 아직 등록하지 않은 멤버입니다. 확인 후 작성 바랍니다!";
+      // 내일 미취합자 체크 필요시 추가
+    }
+
+    if (uncollectedList.length > 0) {
+      // 지역별 그룹화
+      const grouped = {};
+      uncollectedList.forEach(u => {
+        const reg = u.region || '미정';
+        if (!grouped[reg]) grouped[reg] = [];
+        grouped[reg].push(u.name);
+      });
+
+      const lines = Object.keys(grouped).map(reg => `📍 [${reg}]: ${grouped[reg].join(', ')}`);
+      const finalMsg = `${titleText}\n\n${lines.join('\n')}`;
+
+      // 텔레그램 직발송
+      UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: finalMsg })
+      });
+    }
+  });
+}
