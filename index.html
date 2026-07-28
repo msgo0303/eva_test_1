@@ -2024,6 +2024,7 @@
                     return;
                 } catch (e) {
                     console.error("Supabase 관리자 로직 처리 실패:", e);
+                    showToast("Supabase 조회 실패 (GAS 전환): " + e.message, "error");
                 }
             }
 
@@ -3227,6 +3228,9 @@
             // 메시지 텍스트 생성
             const msgPlain = buildRiskMessage(category, list, false);
             const msgMarkdown = buildRiskMessage(category, list, true);
+
+            console.log("Uncollected List for Send:", list.map(u => ({ name: u.name, id: u.id })));
+            console.log("Generated Markdown Message:", msgMarkdown);
 
             // 모달 UI 반영
             $('risk-send-title').textContent = titleStr;
