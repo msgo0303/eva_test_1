@@ -1035,7 +1035,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="openRiskSendModal('tomorrow')"
-                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                                class="risk-send-btn bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
                                 <span>📣</span>
                                 <span>안내 전송</span>
                             </button>
@@ -1058,7 +1058,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="openRiskSendModal('today')"
-                                class="bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                                class="risk-send-btn bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
                                 <span>📣</span>
                                 <span>안내 전송</span>
                             </button>
@@ -1080,7 +1080,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="openRiskSendModal('unachieved')"
-                                class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                                class="risk-send-btn bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
                                 <span>📣</span>
                                 <span>안내 전송</span>
                             </button>
@@ -1177,7 +1177,7 @@
                     <div class="flex items-center gap-2">
                         <!-- 📣 내일 안내 전송 버튼 -->
                         <button onclick="openRiskSendModal('tomorrow')"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                            class="risk-send-btn bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
                             <span>📣</span>
                             <span>안내 전송</span>
                         </button>
@@ -1201,7 +1201,7 @@
                     <div class="flex items-center gap-2">
                         <!-- 📣 당일 안내 전송 버튼 -->
                         <button onclick="openRiskSendModal('today')"
-                            class="bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                            class="risk-send-btn bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
                             <span>📣</span>
                             <span>안내 전송</span>
                         </button>
@@ -1224,7 +1224,7 @@
                     <div class="flex items-center gap-2">
                         <!-- 📣 미달성 안내 전송 버튼 -->
                         <button onclick="openRiskSendModal('unachieved')"
-                            class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                            class="risk-send-btn bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
                             <span>📣</span>
                             <span>안내 전송</span>
                         </button>
@@ -1886,6 +1886,12 @@
             if (semTab) {
                 if (isGroup) semTab.classList.add('hidden');
             }
+
+            // 조장/부조장은 안내 전송 버튼 숨김
+            document.querySelectorAll('.risk-send-btn').forEach(btn => {
+                if (isGroup) btn.classList.add('hidden');
+                else btn.classList.remove('hidden');
+            });
 
             if (isGroup) {
                 const userRegion = profile.region || "";
