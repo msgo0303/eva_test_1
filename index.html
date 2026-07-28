@@ -1881,6 +1881,12 @@
             const riskSelect = $('risk-region-select');
             const memberSelect = $('member-region-select');
 
+            // 조장/부조장은 사이클 설정 탭 접근 불가
+            const semTab = $('btn-tab-semester');
+            if (semTab) {
+                if (isGroup) semTab.classList.add('hidden');
+            }
+
             if (isGroup) {
                 const userRegion = profile.region || "";
                 if (homeSelect) { homeSelect.value = userRegion; homeSelect.disabled = true; activeHomeRegionFilter = userRegion; }
