@@ -2857,6 +2857,79 @@
             }
         }
 
+        // 1. 하트 이모지 매핑 객체
+        const REGION_HEARTS = {
+            "사당": "❤️",
+            "안양": "🩷",
+            "신림": "🧡",
+            "신사": "💛",
+            "금천": "💚",
+            "군포": "🩵",
+            "인덕원": "💙",
+            "잠실": "💜",
+            "양재": "🖤",
+            "약수": "🩶",
+            "서울시흥": "🤍",
+            "서울역": "🤎",
+            "새신자": "💖",
+            "대학": "❣️"
+        };
+
+        // 2. 메시지 조립 전용 독립 함수 (바깥에 작성)
+        function buildRiskMessage(category, uncollectedList) {
+            const isToday = (category === 'today');
+            const titleHeader = isToday
+                ? "⚠️ 오늘 결과 미입력자 알림\n\n오늘 활동 결과를 아직 입력하지 않은 인원입니다. 입력 바랍니다!"
+                : "📢 내일 일정 미입력자 알림\n\n내일 일정을 아직 등록하지 않은 인원입니다. 작성 바랍니다!";
+
+            if (!uncollectedList || uncollectedList.length === 0) return "";
+
+            // 지역별 유저 묶기
+            const grouped = {};
+            uncollectedList.forEach(u => {
+                const reg = u.region || '미정';
+                if (!grouped[reg]) grouped[reg] = [];
+                grouped[reg].push(u.name);
+            });
+
+            // 하트 + 지역명 + 이름 나열 조립
+            const lines = Object.keys(grouped).map(reg => {
+                const heart = REGION_HEARTS[reg] || "📍";
+                return `${heart} ${reg}\n${grouped[reg].join(', ')}`;
+            });
+
+            return `${titleHeader}\n\n${lines.join('\n\n')}`;
+        }
+
+        // 3. 모달 열기 함수 (buildRiskMessage를 호출해서 사용)
+        function openRiskSendModal(category) {
+            currentSendCategory = category;
+            const overlay = $('risk-send-overlay');
+            if (!overlay) return;
+
+            const list = (category === 'today')
+                ? (rawRiskData ? rawRiskData.todayUncollected : [])
+                : (rawRiskData ? rawRiskData.tomorrowUncollected : []);
+
+            if (!list || list.length === 0) {
+                showToast(category === 'today' ? '당일 결과 미취합자가 없습니다!' : '내일 계획 미취합자가 없습니다!', 'info');
+                return;
+            }
+
+            // 💡 바깥에 있는 buildRiskMessage 함수를 호출하여 메시지 텍스트 가져오기
+            const msgText = buildRiskMessage(category, list);
+
+            $('risk-send-title').textContent = (category === 'today')
+                ? "⚠️ 당일 결과 미취합 독촉 알림"
+                : "🌙 내일 계획 미취합 독촉 알림";
+
+            $('risk-send-preview').textContent = msgText;
+
+            setSendType('now');
+            loadAlarmSchedules();
+            overlay.classList.remove('hidden');
+        }
+
         async function saveActivity() {
             const targetDate = dateKey(currentDate);
             const startTime = $('f-starttime').value;
@@ -3723,21 +3796,39 @@
         }
 
         // 새 반복 알람 추가
+        // index.html 내 addAlarmSchedule 함수 수정
         async function addAlarmSchedule() {
             const timeVal = $('risk-send-time').value; // HH:mm
             if (!timeVal) return showToast('발송 시각을 선택해 주세요.', 'error');
 
+            let isSuccess = false;
+
+            // 1. Supabase DB에 저장
             if (supabaseClient) {
-                const payload = {
-                    category: currentSendCategory,
-                    alarm_time: timeVal,
-                    is_active: true
-                };
-                const { error } = await supabaseClient.from('alarm_schedules').insert([payload]);
-                if (error) {
-                    showToast('알람 추가 실패: ' + error.message, 'error');
+                try {
+                    const payload = {
+                        category: currentSendCategory,
+                        alarm_time: timeVal,
+                        is_active: true
+                    };
+                    const { error } = await supabaseClient.from('alarm_schedules').insert([payload]);
+                    if (error) throw error;
+                    isSuccess = true;
+                } catch (err) {
+                    showToast('Supabase 저장 실패: ' + err.message, 'error');
                     return;
                 }
+            }
+
+            // 2. 구글 시트(AlarmSchedules 탭) 동기화 호출
+            try {
+                const gasApiUrl = `${GAS_URL}?action=addAlarmSchedule&category=${currentSendCategory}&alarmTime=${timeVal}&isActive=true`;
+                fetch(gasApiUrl, { mode: 'no-cors' }); // 비동기로 시트에 추가
+            } catch (e) {
+                console.warn("구글 시트 동기화 중 오류 (Supabase에는 저장됨):", e);
+            }
+
+            if (isSuccess || !supabaseClient) {
                 showToast(`매일 ${timeVal} 반복 알람이 추가되었습니다!`, 'success');
                 loadAlarmSchedules();
             }
