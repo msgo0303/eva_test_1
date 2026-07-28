@@ -1132,155 +1132,36 @@
                     <p class="text-[11px] text-tg-muted">새 사이클을 추가하면 자동으로 현재 활성 사이클로 설정됩니다.</p>
 
                     <div class="space-y-3 text-xs pt-2">
-                        <div>
-                            <label class="block text-tg-muted mb-1 font-semibold">사이클명</label>
-                            <input id="sem-name" type="text" placeholder="예: 2026-2학기 개강"
-                                class="w-full max-w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
-                        </div>
-                        <div>
-                            <label class="block text-tg-muted mb-1 font-semibold">시작일</label>
-                            <input id="sem-start" type="date"
-                                class="w-full min-w-0 max-w-full block appearance-none box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
-                        </div>
-                        <div>
-                            <label class="block text-tg-muted mb-1 font-semibold">종료일</label>
-                            <input id="sem-end" type="date"
-                                class="w-full min-w-0 max-w-full block appearance-none box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
-                        </div>
-                        <button onclick="saveSemesterSetting()"
-                            class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">+
-                            새 사이클 저장</button>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- 탭 2: 미취합/미달성 관리 -->
-        <!-- 탭 2: 미취합/미달성 관리 -->
-        <div id="tab-sec-risk" class="hidden space-y-4">
-            <div class="bg-white p-3 rounded-2xl border border-tg-border flex items-center justify-between shadow-sm">
-                <span class="text-xs font-bold text-tg-text">📍 지역별 필터</span>
-                <select id="risk-region-select" onchange="filterRiskDataByRegion()"
-                    class="border border-tg-border rounded-xl bg-tg-surface px-3 py-1.5 text-xs font-bold text-tg-blue focus:outline-none">
-                    <option value="ALL">전체 지역</option>
-                </select>
-            </div>
-
-            <!-- 1. 내일 계획 미취합자 -->
-            <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 cursor-pointer select-none" onclick="toggleTomorrowList()">
-                        <h3 id="risk-tomorrow-title" class="text-xs font-bold text-blue-800">🌙 내일 계획 미취합자 명단</h3>
-                        <p id="risk-tomorrow-sub" class="text-[10px] text-blue-600 mt-0.5">내일 일정 미등록 인원 (밤 안내용)</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <!-- 📣 내일 안내 전송 버튼 -->
-                        <button onclick="openRiskSendModal('tomorrow')"
-                            class="risk-send-btn bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
-                            <span>📣</span>
-                            <span>안내 전송</span>
-                        </button>
-                        <span id="risk-tomorrow-count"
-                            class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
-                        <span id="risk-tomorrow-arrow" onclick="toggleTomorrowList()"
-                            class="text-blue-800 text-[10px] cursor-pointer">▲</span>
-                    </div>
-                </div>
-                <div id="risk-tomorrow-list" class="space-y-1.5 text-xs hidden"></div>
-            </div>
-
-            <!-- 2. 당일 결과 미취합자 -->
-            <div class="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 cursor-pointer select-none" onclick="toggleTodayList()">
-                        <h3 id="risk-today-title" class="text-xs font-bold text-red-700">⚠️ 당일 결과 미취합자 명단</h3>
-                        <p id="risk-today-sub" class="text-[10px] text-red-500 mt-0.5">오늘 일정 미등록 또는 계획중 상태 (저녁 안내용)
-                        </p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <!-- 📣 당일 안내 전송 버튼 -->
-                        <button onclick="openRiskSendModal('today')"
-                            class="risk-send-btn bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
-                            <span>📣</span>
-                            <span>안내 전송</span>
-                        </button>
-                        <span id="risk-today-count"
-                            class="bg-red-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
-                        <span id="risk-today-arrow" onclick="toggleTodayList()"
-                            class="text-red-700 text-[10px] cursor-pointer">▲</span>
-                    </div>
-                </div>
-                <div id="risk-today-list" class="space-y-1.5 text-xs hidden"></div>
-            </div>
-
-            <!-- 3. 주간 찾기 미달성자 -->
-            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 cursor-pointer select-none" onclick="toggleUnachievedList()">
-                        <h3 class="text-xs font-bold text-amber-800">🎯 이번 주 찾기 미달성자 명단</h3>
-                        <p class="text-[10px] text-amber-600 mt-0.5">복방 0개 + 이번 주 찾기(온+오프만) 6개 미만 인원</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <!-- 📣 미달성 안내 전송 버튼 -->
-                        <button onclick="openRiskSendModal('unachieved')"
-                            class="risk-send-btn bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
-                            <span>📣</span>
-                            <span>안내 전송</span>
-                        </button>
-                        <span id="risk-unachieved-count"
-                            class="bg-amber-600 text-white font-bold text-xs px-2 py-0.5 rounded-full">0명</span>
-                        <span id="risk-unachieved-arrow" onclick="toggleUnachievedList()"
-                            class="text-amber-800 text-[10px] cursor-pointer">▲</span>
-                    </div>
-                </div>
-                <div id="risk-unachieved-list" class="space-y-1.5 text-xs hidden"></div>
-            </div>
-
-            <!-- 탭 3: 멤버 관리 -->
-            <div id="tab-sec-members" class="hidden space-y-3">
-                <div
-                    class="bg-white p-3 rounded-2xl border border-tg-border flex items-center justify-between shadow-sm">
-                    <span class="text-xs font-bold text-tg-text">📍 지역별 필터</span>
-                    <select id="member-region-select" onchange="filterMemberDataByRegion()"
-                        class="border border-tg-border rounded-xl bg-tg-surface px-3 py-1.5 text-xs font-bold text-tg-blue focus:outline-none">
-                        <option value="ALL">전체 지역</option>
-                    </select>
-                </div>
-                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-bold text-tg-text">👥 전체 멤버 보유 자산 및 예외 설정</h3>
-                        <span id="member-total-count" class="text-xs text-tg-muted">0명</span>
-                    </div>
-                    <p class="text-[11px] text-tg-muted">복방 1개 이상 보유 시 주간 찾기 미션이 자동 면제됩니다.</p>
-                    <div id="member-management-list" class="space-y-2 pt-2 border-t border-tg-border"></div>
-                </div>
-            </div>
-
-            <!-- 탭 4: 사이클 설정 -->
-            <div id="tab-sec-semester" class="hidden space-y-4">
-
-                <!-- 등록된 사이클 목록 -->
-                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-bold text-tg-text">📋 등록된 사이클 목록</h3>
-                        <span id="sem-list-count" class="text-xs text-tg-muted">0개</span>
-                    </div>
-                    <div id="sem-list-container" class="space-y-2 pt-1">
-                        <p class="text-xs text-tg-muted text-center py-3">등록된 사이클이 없습니다.</p>
-                    </div>
-                </div>
-
-                <!-- 새 사이클 추가 폼 -->
-                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
-                    <h3 class="text-xs font-bold text-tg-text">🎓 새 사이클 등록</h3>
-                    <p class="text-[11px] text-tg-muted">새 사이클을 추가하면 자동으로 현재 활성 사이클로 설정됩니다.</p>
-
-                    <div class="space-y-3 text-xs pt-2">
-                        <div>
-                            <label class="block text-tg-muted mb-1 font-semibold">사이클명</label>
-                            <input id="sem-name" type="text" placeholder="예: 2026-2학기 개강"
-                                class="w-full max-w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-tg-muted mb-1 font-semibold">달 사이클 (개강 선택)</label>
+                                <select id="sem-month"
+                                    class="w-full max-w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                                    <option value="1월 개강">1월 개강</option>
+                                    <option value="2월 개강">2월 개강</option>
+                                    <option value="3월 개강">3월 개강</option>
+                                    <option value="4월 개강">4월 개강</option>
+                                    <option value="5월 개강">5월 개강</option>
+                                    <option value="6월 개강">6월 개강</option>
+                                    <option value="7월 개강">7월 개강</option>
+                                    <option value="8월 개강" selected>8월 개강</option>
+                                    <option value="9월 개강">9월 개강</option>
+                                    <option value="10월 개강">10월 개강</option>
+                                    <option value="11월 개강">11월 개강</option>
+                                    <option value="12월 개강">12월 개강</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-tg-muted mb-1 font-semibold">주차 선택</label>
+                                <select id="sem-week"
+                                    class="w-full max-w-full box-border border border-tg-border rounded-xl px-3.5 py-2.5 bg-tg-surface text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                                    <option value="1주차">1주차</option>
+                                    <option value="2주차">2주차</option>
+                                    <option value="3주차">3주차</option>
+                                    <option value="4주차">4주차</option>
+                                    <option value="5주차">5주차</option>
+                                </select>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-tg-muted mb-1 font-semibold">시작일</label>
@@ -1638,24 +1519,10 @@
         }
 
         function getRangeDateText(baseDateStr, range) {
-            const parts = baseDateStr.split('-');
-            const base = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            const fmt = d => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-
-            if (range === 'today') {
-                return `${fmt(base)} ~ ${fmt(base)}`;
-            } else if (range === 'week') {
-                const dayOfWeek = base.getDay();
-                const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-                const mon = new Date(base); mon.setDate(base.getDate() + diffToMon);
-                const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-                return `${fmt(mon)} ~ ${fmt(sun)}`;
-            } else if (range === 'month') {
-                const start = new Date(base.getFullYear(), base.getMonth(), 1);
-                const end = new Date(base.getFullYear(), base.getMonth() + 1, 0);
-                return `${fmt(start)} ~ ${fmt(end)}`;
-            }
-            return '';
+            const dates = calculateRangeDates(baseDateStr, range);
+            if (dates.length === 0) return '';
+            const fmt = str => str.replace(/-/g, '.');
+            return `${fmt(dates[0])} ~ ${fmt(dates[dates.length - 1])}`;
         }
 
         // 🚀 Supabase 고속 앱 초기화 (보강된 예외 및 타임아웃 처리)
@@ -1781,7 +1648,11 @@
                             const badgeEl = $('hdr-semester-badge');
                             badgeEl.textContent = `🎓 ${activeSem.name}`;
                             badgeEl.classList.remove('hidden');
-                            $('sem-name').value = '';
+                            
+                            const nameParts = activeSem.name.trim().split(/\s+/);
+                            if (nameParts[0] && $('sem-month')) $('sem-month').value = nameParts[0];
+                            if (nameParts[1] && $('sem-week')) $('sem-week').value = nameParts[1];
+                            
                             $('sem-start').value = '';
                             $('sem-end').value = '';
                         }
@@ -1839,7 +1710,11 @@
                         const badgeEl = $('hdr-semester-badge');
                         badgeEl.textContent = `🎓 ${data.currentSemester.name}`;
                         badgeEl.classList.remove('hidden');
-                        $('sem-name').value = data.currentSemester.name || '';
+                        
+                        const nameParts = data.currentSemester.name.trim().split(/\s+/);
+                        if (nameParts[0] && $('sem-month')) $('sem-month').value = nameParts[0];
+                        if (nameParts[1] && $('sem-week')) $('sem-week').value = nameParts[1];
+                        
                         $('sem-start').value = data.currentSemester.startDate || '';
                         $('sem-end').value = data.currentSemester.endDate || '';
                     }
@@ -1976,18 +1851,60 @@
             if (rangeType === "today") {
                 results.push(baseDateStr);
             } else if (rangeType === "week") {
-                const dayOfWeek = base.getDay();
-                const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-                const monday = new Date(base); monday.setDate(base.getDate() + diffToMon);
-                for (let i = 0; i < 7; i++) {
-                    const d = new Date(monday); d.setDate(monday.getDate() + i);
-                    results.push(dateKey(d));
+                const matchedSem = (semestersList || []).find(s => baseDateStr >= s.startDate && baseDateStr <= s.endDate);
+                if (matchedSem) {
+                    const start = new Date(matchedSem.startDate);
+                    const end = new Date(matchedSem.endDate);
+                    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                        results.push(dateKey(d));
+                    }
+                } else {
+                    const dayOfWeek = base.getDay();
+                    const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                    const monday = new Date(base); monday.setDate(base.getDate() + diffToMon);
+                    for (let i = 0; i < 7; i++) {
+                        const d = new Date(monday); d.setDate(monday.getDate() + i);
+                        results.push(dateKey(d));
+                    }
                 }
             } else if (rangeType === "month") {
-                const y = base.getFullYear(); const m = base.getMonth();
-                const lastDay = new Date(y, m + 1, 0).getDate();
-                for (let i = 1; i <= lastDay; i++) {
-                    results.push(dateKey(new Date(y, m, i)));
+                const matchedSem = (semestersList || []).find(s => baseDateStr >= s.startDate && baseDateStr <= s.endDate);
+                if (matchedSem) {
+                    let cyclePrefix = "";
+                    const nameParts = matchedSem.name.trim().split(/\s+/);
+                    if (nameParts[0] && nameParts[0].includes("개강")) {
+                        cyclePrefix = nameParts[0];
+                    } else if (nameParts[0] && nameParts[1] && nameParts[1].includes("개강")) {
+                        cyclePrefix = nameParts[0] + " " + nameParts[1];
+                    } else {
+                        cyclePrefix = matchedSem.name;
+                    }
+
+                    const cycleSemesters = semestersList.filter(s => s.name.includes(cyclePrefix));
+                    if (cycleSemesters.length > 0) {
+                        const startDates = cycleSemesters.map(s => s.startDate);
+                        const endDates = cycleSemesters.map(s => s.endDate);
+                        const minStart = startDates.reduce((min, d) => d < min ? d : min, startDates[0]);
+                        const maxEnd = endDates.reduce((max, d) => d > max ? d : max, endDates[0]);
+
+                        const start = new Date(minStart);
+                        const end = new Date(maxEnd);
+                        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                            results.push(dateKey(d));
+                        }
+                    } else {
+                        const y = base.getFullYear(); const m = base.getMonth();
+                        const lastDay = new Date(y, m + 1, 0).getDate();
+                        for (let i = 1; i <= lastDay; i++) {
+                            results.push(dateKey(new Date(y, m, i)));
+                        }
+                    }
+                } else {
+                    const y = base.getFullYear(); const m = base.getMonth();
+                    const lastDay = new Date(y, m + 1, 0).getDate();
+                    for (let i = 1; i <= lastDay; i++) {
+                        results.push(dateKey(new Date(y, m, i)));
+                    }
                 }
             }
             return results;
@@ -3039,11 +2956,13 @@
         }
 
         async function saveSemesterSetting() {
-            const name = $('sem-name').value.trim();
+            const semMonth = $('sem-month').value;
+            const semWeek = $('sem-week').value;
+            const name = `${semMonth} ${semWeek}`;
             const startDate = $('sem-start').value;
             const endDate = $('sem-end').value;
 
-            if (!name || !startDate || !endDate) return showToast('⚠️ 모든 항목을 입력해 주세요.', 'error');
+            if (!startDate || !endDate) return showToast('⚠️ 시작일과 종료일을 입력해 주세요.', 'error');
 
             if (supabase) {
                 try {
@@ -3051,7 +2970,6 @@
                     const { error } = await supabaseClient.from('semesters').insert([{ name: name, start_date: startDate, end_date: endDate, is_active: true }]);
                     if (error) throw error;
                     showToast('새 사이클이 등록되었습니다!', 'success');
-                    $('sem-name').value = '';
                     $('sem-start').value = '';
                     $('sem-end').value = '';
 
