@@ -8,6 +8,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -3648,9 +3649,24 @@
                                         return `${a}/${t}개 (${ctx.parsed.x}%)`;
                                     }
                                 }
+                            },
+                            datalabels: {
+                                display: ctx => pctData[ctx.dataIndex] > 0,
+                                formatter: (value, ctx) => {
+                                    const r = fixedRegionsOrder[ctx.dataIndex];
+                                    const t = regionTargets[r] || 0;
+                                    const a = regionFindResult[r] || 0;
+                                    return `${a}/${t}개 (${value}%)`;
+                                },
+                                anchor: ctx => pctData[ctx.dataIndex] >= 30 ? 'end' : 'end',
+                                align: ctx => pctData[ctx.dataIndex] >= 30 ? 'start' : 'end',
+                                color: ctx => pctData[ctx.dataIndex] >= 30 ? '#fff' : '#374151',
+                                font: { size: 10, weight: 'bold' },
+                                clamp: true
                             }
                         }
-                    }
+                    },
+                    plugins: [ChartDataLabels]
                 });
 
             } else if (dashRange === 'month') {
@@ -3718,9 +3734,24 @@
                                         return `${a}/${t}개 (${ctx.parsed.x}%)`;
                                     }
                                 }
+                            },
+                            datalabels: {
+                                display: ctx => pctData[ctx.dataIndex] > 0,
+                                formatter: (value, ctx) => {
+                                    const r = fixedRegionsOrder[ctx.dataIndex];
+                                    const t = regionTargets[r] || 0;
+                                    const a = regionFindResult[r] || 0;
+                                    return `${a}/${t}개 (${value}%)`;
+                                },
+                                anchor: ctx => pctData[ctx.dataIndex] >= 30 ? 'end' : 'end',
+                                align: ctx => pctData[ctx.dataIndex] >= 30 ? 'start' : 'end',
+                                color: ctx => pctData[ctx.dataIndex] >= 30 ? '#fff' : '#374151',
+                                font: { size: 10, weight: 'bold' },
+                                clamp: true
                             }
                         }
-                    }
+                    },
+                    plugins: [ChartDataLabels]
                 });
             }
         }
