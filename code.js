@@ -1186,12 +1186,28 @@ function checkAndSendTelegramAlarms() {
     }
 
     if (uncollectedList.length > 0) {
+      // 텔레그램 봇 유저네임 동적 감지 (버튼 링크 생성용)
+      let botUsername = "Edu_Pom_test_bot";
+      try {
+        const meRes = UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`);
+        const meData = JSON.parse(meRes.getContentText());
+        if (meData.ok && meData.result.username) {
+          botUsername = meData.result.username;
+        }
+      } catch (e) {}
+
       // 지역별 그룹화
       const grouped = {};
       uncollectedList.forEach(u => {
         const reg = u.region || '미정';
         if (!grouped[reg]) grouped[reg] = [];
-        grouped[reg].push(u.name);
+        
+        // 마크다운 문법 충돌 방지를 위한 특수문자 제거
+        const cleanName = String(u.name).replace(/[\[\]\(\)\_\*]/g, "").trim();
+        const mention = (u.id && !isNaN(u.id) && u.id.toString() !== "GUEST_USER" && !u.id.toString().startsWith("UNREG_"))
+            ? `[${cleanName}](tg://user?id=${u.id})`
+            : cleanName;
+        grouped[reg].push(mention);
       });
 
       const lines = Object.keys(grouped).map(reg => `📍 [${reg}]: ${grouped[reg].join(', ')}`);
@@ -1201,7 +1217,18 @@ function checkAndSendTelegramAlarms() {
       UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'post',
         contentType: 'application/json',
-        payload: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: finalMsg })
+        payload: JSON.stringify({ 
+          chat_id: TELEGRAM_CHAT_ID, 
+          text: finalMsg,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "🔔 내 알림 태그 활성화하기 (최초 1회)", url: `https://t.me/${botUsername}?start=true` }
+              ]
+            ]
+          }
+        })
       });
     }
   });

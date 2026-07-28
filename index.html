@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -3042,6 +3042,7 @@
         // 텔레그램 봇 API 설정 (지정하신 Chat ID 및 Token)
         const TELEGRAM_BOT_TOKEN = "8356704503:AAFV9YoSCGKvZAjIWgqa0prjMZyQkF3XySM";
         const TELEGRAM_CHAT_ID = "-1003955494530";
+        const TELEGRAM_BOT_USERNAME = "Edu_Pom_test_bot";
 
         let currentSendCategory = 'today';
         let currentSendType = 'now';
@@ -3096,7 +3097,14 @@
                     const payload = {
                         chat_id: TELEGRAM_CHAT_ID,
                         text: messageText,
-                        parse_mode: 'Markdown' // 👈 반드시 대소문자를 맞춰 'Markdown'으로 지정해 주세요!
+                        parse_mode: 'Markdown', // 👈 반드시 대소문자를 맞춰 'Markdown'으로 지정해 주세요!
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    { text: "🔔 내 알림 태그 활성화하기 (최초 1회)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=true` }
+                                ]
+                            ]
+                        }
                     };
 
                     const response = await fetch(url, {
@@ -4385,7 +4393,14 @@
                         body: JSON.stringify({
                             chat_id: TELEGRAM_CHAT_ID,
                             text: finalMessage,
-                            parse_mode: 'Markdown' // 👈 마크다운 파싱 옵션 명시
+                            parse_mode: 'Markdown', // 👈 마크다운 파싱 옵션 명시
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        { text: "🔔 내 알림 태그 활성화하기 (최초 1회)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=true` }
+                                    ]
+                                ]
+                            }
                         })
                     });
                 }
