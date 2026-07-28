@@ -1111,6 +1111,7 @@
                         <span id="member-total-count" class="text-xs text-tg-muted">0명</span>
                     </div>
                     <p class="text-[11px] text-tg-muted">복방 1개 이상 보유 시 주간 찾기 미션이 자동 면제됩니다.</p>
+                    <p class="text-[11px] text-tg-muted">📌 이름을 클릭하면, 해당 인원 활동 기록 조회</p>
                     <div id="member-management-list" class="space-y-2 pt-2 border-t border-tg-border"></div>
                 </div>
             </div>
@@ -2620,7 +2621,7 @@
                             <button onclick="event.stopPropagation(); toggleUserExempt('${escHtml(u.name)}', ${!u.isExempt})" class="px-2 py-1 rounded-lg font-bold text-[10px] ${u.isExempt ? 'bg-green-600 text-white' : 'bg-zinc-200 text-zinc-700'}">
                                 ${u.isExempt ? '예외 ON' : '예외 OFF'}
                             </button>
-                            <span class="text-tg-muted text-[10px]">👆</span>
+
                         </div>
                     </div>
                 </div>
