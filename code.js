@@ -1224,7 +1224,7 @@ function checkAndSendTelegramAlarms() {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "📝 결과 입력하러 가기 (알림 자동 활성화)", web_app: { url: "https://msgo0303.github.io/eva_test_1/" } }
+                { text: "📝 결과 입력하러 가기 (알림 자동 활성화)", url: `https://t.me/${botUsername}/msg_eva_test_01` }
               ]
             ]
           }
