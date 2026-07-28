@@ -3069,7 +3069,7 @@
 
         // 4. 전송 버튼 클릭 실행 함수 (Bot API 직접 통신 또는 Supabase 예약 등록)
         async function submitRiskNotification() {
-            const messageText = $('risk-send-preview').textContent;
+            const messageText = $('risk-send-preview').dataset.htmlMessage || $('risk-send-preview').textContent;
             const btn = $('btn-submit-risk-send');
 
             if (!messageText) {
@@ -3087,7 +3087,8 @@
                     // 💡 General 메인방 전송은 chat_id와 text만 전송하면 됩니다.
                     const payload = {
                         chat_id: TELEGRAM_CHAT_ID,
-                        text: messageText
+                        text: messageText,
+                        parse_mode: 'HTML'
                     };
 
                     const response = await fetch(url, {
@@ -3160,10 +3161,10 @@
         };
 
         // 2. 카테고리별 독촉 메시지 조립 전용 독립 함수
-        function buildRiskMessage(category, uncollectedList) {
+        function buildRiskMessage(category, uncollectedList, useHtml = false) {
             let titleHeader = "";
             if (category === 'today') {
-                titleHeader = "⚠️ 오늘 결과 미입력자 알림\n\n오늘 활동 결과를 아직 입력하지 않은 인원입니다. 입력 바랍니다!";
+                titleHeader = "⚠️ 오늘 결과 미입력자 알림\n\n오늘 활동 결과를 아직 입력하지 않은 인원입니다. 마감 전 입력 바랍니다!";
             } else if (category === 'tomorrow') {
                 titleHeader = "📢 내일 일정 미입력자 알림\n\n내일 일정을 아직 등록하지 않은 인원입니다. 작성 바랍니다!";
             } else if (category === 'unachieved') {
@@ -3177,7 +3178,11 @@
             uncollectedList.forEach(u => {
                 const reg = u.region || '미정';
                 if (!grouped[reg]) grouped[reg] = [];
-                grouped[reg].push(u.name);
+                
+                const mention = (useHtml && u.id && !isNaN(u.id) && u.id !== "GUEST_USER") 
+                    ? `<a href="tg://user?id=${u.id}">${u.name}</a>` 
+                    : u.name;
+                grouped[reg].push(mention);
             });
 
             // 하트 이모지 + 지역명 + 이름 나열 조립
@@ -3217,11 +3222,14 @@
             }
 
             // 메시지 텍스트 생성
-            const msgText = buildRiskMessage(category, list);
+            const msgPlain = buildRiskMessage(category, list, false);
+            const msgHtml = buildRiskMessage(category, list, true);
 
             // 모달 UI 반영
             $('risk-send-title').textContent = titleStr;
-            $('risk-send-preview').textContent = msgText;
+            const previewEl = $('risk-send-preview');
+            previewEl.textContent = msgPlain; // 미리보기 창엔 plain text 표시
+            previewEl.dataset.htmlMessage = msgHtml; // 실제 전송할 HTML 메시지는 dataset에 보관
 
             // 기본 전송 방식을 '즉시 발송(now)'으로 설정 후 저장된 반복 알람 목록 로드
             setSendType('now');
@@ -4343,7 +4351,10 @@
                     list.forEach(u => {
                         const reg = u.region || '미정';
                         if (!grouped[reg]) grouped[reg] = [];
-                        grouped[reg].push(u.name);
+                        const mention = (u.id && !isNaN(u.id) && u.id !== "GUEST_USER") 
+                            ? `<a href="tg://user?id=${u.id}">${u.name}</a>` 
+                            : u.name;
+                        grouped[reg].push(mention);
                     });
 
                     const lines = Object.keys(grouped).map(reg => `📍 [${reg}]: ${grouped[reg].join(', ')}`);
@@ -4353,7 +4364,7 @@
                     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: finalMessage })
+                        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: finalMessage, parse_mode: 'HTML' })
                     });
                 }
             }
