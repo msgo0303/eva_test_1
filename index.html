@@ -2705,7 +2705,7 @@
         let currentSendCategory = 'today';
         let currentSendType = 'now';
 
-        // 1. 안내 알림 전송 모달 열기
+        // 1. 모달 열기 시 알람 목록 로드 추가
         function openRiskSendModal(category) {
             currentSendCategory = category;
             const overlay = $('risk-send-overlay');
@@ -2719,7 +2719,6 @@
                     return;
                 }
 
-                // 지역별 그룹핑
                 const grouped = {};
                 list.forEach(u => {
                     const reg = u.region || '미정';
@@ -2738,7 +2737,6 @@
                     return;
                 }
 
-                // 지역별 그룹핑
                 const grouped = {};
                 list.forEach(u => {
                     const reg = u.region || '미정';
@@ -2753,6 +2751,7 @@
 
             $('risk-send-preview').textContent = msgText;
             setSendType('now');
+            loadAlarmSchedules(); // 👈 모달이 열릴 때 저장된 알람 목록을 불러옵니다.
             overlay.classList.remove('hidden');
         }
 
@@ -2762,24 +2761,25 @@
             if (overlay) overlay.classList.add('hidden');
         }
 
-        // 3. 발송 방식 탭 전환 (즉시 vs 시간 지정)
+        // 2. 발송 방식 탭 전환 (즉시 vs 매일 반복 알람 관리)
         function setSendType(type) {
             currentSendType = type;
             const btnNow = $('btn-send-now');
             const btnSched = $('btn-send-schedule');
-            const box = $('schedule-time-box');
-            const submitBtn = $('btn-submit-risk-send');
+            const nowBox = $('send-now-box');
+            const schedBox = $('schedule-manage-box');
 
             if (type === 'now') {
                 btnNow.className = "py-2 rounded-xl border font-bold text-xs bg-tg-blue text-white border-tg-blue";
                 btnSched.className = "py-2 rounded-xl border font-bold text-xs bg-tg-surface text-tg-muted border-tg-border";
-                box.classList.add('hidden');
-                submitBtn.textContent = "⚡ 즉시 발송하기";
+                nowBox.classList.remove('hidden');
+                schedBox.classList.add('hidden');
             } else {
                 btnSched.className = "py-2 rounded-xl border font-bold text-xs bg-tg-blue text-white border-tg-blue";
                 btnNow.className = "py-2 rounded-xl border font-bold text-xs bg-tg-surface text-tg-muted border-tg-border";
-                box.classList.remove('hidden');
-                submitBtn.textContent = "📅 선택한 시간에 예약 저장";
+                schedBox.classList.remove('hidden');
+                nowBox.classList.add('hidden');
+                loadAlarmSchedules(); // 알람 관리 탭 클릭 시 목록 새로고침
             }
         }
 
@@ -4064,14 +4064,15 @@
         });
     </script>
 
-    <!-- 안내 알림 전송 설정 모달 SHEET -->
+    <!-- 안내 알림 및 반복 알람 설정 모달 SHEET -->
     <div id="risk-send-overlay" class="fixed inset-0 z-[60] bg-black/50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-tg-border pb-3">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <!-- 모달 헤더 -->
+            <div class="flex items-center justify-between border-b border-tg-border pb-3 flex-shrink-0">
                 <div>
-                    <h3 id="risk-send-title" class="text-sm font-extrabold text-tg-text">📣 텔레그램 안내 알림 전송</h3>
-                    <p id="risk-send-sub" class="text-[10px] text-tg-blue font-semibold mt-0.5">지정된 단체방의 토픽으로 알림을 전송합니다.
-                    </p>
+                    <h3 id="risk-send-title" class="text-sm font-extrabold text-tg-text">📣 텔레그램 안내 알림 전송 및 스케줄</h3>
+                    <p id="risk-send-sub" class="text-[10px] text-tg-blue font-semibold mt-0.5">즉시 발송하거나 매일 반복 발송될 알람을
+                        관리합니다.</p>
                 </div>
                 <button onclick="closeRiskSendModal()"
                     class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
@@ -4082,51 +4083,66 @@
                 </button>
             </div>
 
-            <div class="space-y-3 text-xs">
-                <!-- 1. 전송할 토픽 선택 -->
-                <!-- 1. 전송할 토픽 선택 -->
+            <div class="space-y-4 text-xs overflow-y-auto flex-1 pr-1">
+                <!-- 1. 발송 방식 탭 선택 -->
                 <div>
-                    <label class="block font-bold text-tg-muted mb-1">📍 전송 대상 토픽(Topic) 선택</label>
-                    <select id="risk-send-topic"
-                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
-                        <option value="3" selected>General (기본 메인방 - 3)</option>
-                    </select>
-                </div>
-
-                <!-- 2. 전송 시각 선택 -->
-                <div>
-                    <label class="block font-bold text-tg-muted mb-1">⏰ 발송 시각 선택</label>
-                    <div class="grid grid-cols-2 gap-2 mb-2">
+                    <label class="block font-bold text-tg-muted mb-1">⚡ 실행 방식 선택</label>
+                    <div class="grid grid-cols-2 gap-2">
                         <button type="button" id="btn-send-now" onclick="setSendType('now')"
                             class="py-2 rounded-xl border font-bold text-xs bg-tg-blue text-white border-tg-blue">⚡ 즉시
                             발송</button>
                         <button type="button" id="btn-send-schedule" onclick="setSendType('schedule')"
-                            class="py-2 rounded-xl border font-bold text-xs bg-tg-surface text-tg-muted border-tg-border">📅
-                            시간 지정 발송</button>
-                    </div>
-
-                    <!-- 시간 지정 입력 박스 -->
-                    <div id="schedule-time-box" class="hidden bg-tg-surface p-2.5 rounded-xl border border-tg-border">
-                        <span class="text-[10px] text-tg-muted block mb-1">오늘 발송할 시각 선택</span>
-                        <input id="risk-send-time" type="time" value="21:00"
-                            class="w-full rounded-lg border border-tg-border bg-white px-3 py-1.5 font-bold text-tg-text focus:outline-none focus:border-tg-blue" />
+                            class="py-2 rounded-xl border font-bold text-xs bg-tg-surface text-tg-muted border-tg-border">⏰
+                            매일 반복 알람 관리</button>
                     </div>
                 </div>
 
-                <!-- 3. 발송 메시지 미리보기 -->
-                <div>
-                    <label class="block font-bold text-tg-muted mb-1">💬 발송 메시지 미리보기</label>
-                    <div id="risk-send-preview"
-                        class="bg-tg-surface p-3 rounded-xl border border-tg-border text-[11px] text-tg-text whitespace-pre-wrap max-h-32 overflow-y-auto font-mono">
-                        메시지 준비 중...
+                <!-- 구역 A: 즉시 발송 설정 (현재 모드: now) -->
+                <div id="send-now-box" class="space-y-3">
+                    <!-- 메시지 미리보기 -->
+                    <div>
+                        <label class="block font-bold text-tg-muted mb-1">💬 발송 메시지 미리보기</label>
+                        <div id="risk-send-preview"
+                            class="bg-tg-surface p-3 rounded-xl border border-tg-border text-[11px] text-tg-text whitespace-pre-wrap max-h-36 overflow-y-auto font-mono">
+                            메시지 준비 중...
+                        </div>
+                    </div>
+
+                    <button id="btn-submit-risk-send" onclick="submitRiskNotification()"
+                        class="w-full py-3.5 bg-tg-blue text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform">
+                        ⚡ 즉시 발송하기
+                    </button>
+                </div>
+
+                <!-- 구역 B: 매일 반복 알람 등록 및 목록 관리 (현재 모드: schedule) -->
+                <div id="schedule-manage-box" class="hidden space-y-4 pt-1">
+                    <!-- 새 반복 알람 추가 폼 -->
+                    <div class="bg-blue-50/70 p-3 rounded-2xl border border-blue-100 space-y-2">
+                        <label class="block font-bold text-blue-900 text-[11px]">➕ 새 매일 반복 알람 추가</label>
+                        <div class="flex gap-2 items-center">
+                            <input id="risk-send-time" type="time" value="21:00"
+                                class="flex-1 rounded-xl border border-tg-border bg-white px-3 py-2 font-bold text-tg-text focus:outline-none focus:border-tg-blue text-sm" />
+                            <button type="button" onclick="addAlarmSchedule()"
+                                class="bg-tg-blue text-white px-3.5 py-2 rounded-xl font-bold text-xs flex-shrink-0 shadow-sm active:scale-95 transition-transform">
+                                + 등록하기
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-blue-700">※ 등록된 시각마다 매일 실시간 미취합자를 계산하여 텔레그램으로 자동 전송합니다.</p>
+                    </div>
+
+                    <!-- 등록된 반복 알람 목록 -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="font-bold text-tg-text text-xs">📋 등록된 반복 알람 목록</label>
+                            <button type="button" onclick="loadAlarmSchedules()"
+                                class="text-[10px] font-bold text-tg-blue">🔄 새로고침</button>
+                        </div>
+                        <div id="alarm-list-container" class="space-y-1.5 max-h-40 overflow-y-auto pr-0.5">
+                            <p class="text-xs text-tg-muted text-center py-3">알람 목록을 불러오는 중...</p>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <button id="btn-submit-risk-send" onclick="submitRiskNotification()"
-                class="w-full py-3.5 bg-tg-blue text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform">
-                ⚡ 즉시 발송하기
-            </button>
         </div>
     </div>
 
