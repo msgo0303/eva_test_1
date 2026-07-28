@@ -2064,7 +2064,7 @@
                         tomorrowOffReason: tomorrowOffReason,
                         todayUncollected: targetDateOff ? [] : allUsersList.filter(u => (!u.hasTodayActivity || !u.isTodayCompleted) && !u.isExempt),
                         tomorrowUncollected: tomorrowDateOff ? [] : allUsersList.filter(u => !u.hasTomorrowActivity && !u.isExempt),
-                        unachievedUsers: allUsersList.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6),
+                        unachievedUsers: allUsersList.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6 && !u.isExempt),
                         allUsers: allUsersList
                     };
 
@@ -4166,25 +4166,18 @@
         }
 
         function toggleUnachievedList() {
-            const container = $('unachieved-list-container');
-            const icon = $('unachieved-toggle-icon');
-            const buttonText = $('unachieved-toggle-text');
+            const container = $('risk-unachieved-list');
+            const arrow = $('risk-unachieved-arrow');
+            if (!container) return;
+
             const isHidden = container.classList.contains('hidden');
 
             if (isHidden) {
                 container.classList.remove('hidden');
-                container.style.maxHeight = '500px'; // 임의의 적절한 높이 (또는 0에서 애니메이션)
-                container.style.opacity = '1';
-                icon.innerHTML = '▼'; // 아래 방향 아이콘
-                buttonText.textContent = '접기';
+                if (arrow) arrow.textContent = '▲';
             } else {
-                container.style.maxHeight = '0';
-                container.style.opacity = '0';
-                setTimeout(() => {
-                    container.classList.add('hidden');
-                }, 300); // 애니메이션 시간과 일치
-                icon.innerHTML = '▶'; // 오른쪽 방향 아이콘
-                buttonText.textContent = '펴보기';
+                container.classList.add('hidden');
+                if (arrow) arrow.textContent = '▼';
             }
         }
 
