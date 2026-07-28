@@ -2596,34 +2596,257 @@
                 return;
             }
 
+            const role = profile.role || "";
+            const isSuper = role.includes("관리자") || role.includes("전체관리자");
+
             container.innerHTML = filteredUsers.map(u => `
-                <div class="bg-tg-surface p-3 rounded-xl border border-tg-border flex items-center justify-between text-xs">
-                    <div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="font-bold text-tg-blue">[${escHtml(u.region || '미정')}]</span>
-                            <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
+                <div class="member-card bg-tg-surface p-3 rounded-xl border border-tg-border text-xs cursor-pointer hover:bg-blue-50/40 hover:border-blue-200 transition-all active:scale-[0.98]" data-member-name="${escHtml(u.name)}" data-member-region="${escHtml(u.region || '미정')}" data-member-role="${escHtml(u.role || '부원')}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-tg-blue">[${escHtml(u.region || '미정')}]</span>
+                                <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
+                                <span class="text-[10px] text-tg-muted">(${escHtml(u.role || '부원')})</span>
+                            </div>
+                            <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span> · 복방 <span class="font-bold text-purple-700">${u.bookCount}개</span></p>
                         </div>
-                        <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span></p>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center gap-1 bg-white border border-tg-border rounded-lg p-1">
-                            <span class="text-[10px] font-bold text-purple-700 px-1">복방</span>
-                            <button onclick="updateUserBookCount('${escHtml(u.name)}', ${u.bookCount - 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">-</button>
-                            <span class="font-extrabold text-tg-text w-4 text-center">${u.bookCount}</span>
-                            <button onclick="updateUserBookCount('${escHtml(u.name)}', ${u.bookCount + 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">+</button>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <div class="flex items-center gap-1 bg-white border border-tg-border rounded-lg p-1" onclick="event.stopPropagation()">
+                                <span class="text-[10px] font-bold text-purple-700 px-1">복방</span>
+                                <button onclick="event.stopPropagation(); updateUserBookCount('${escHtml(u.name)}', ${u.bookCount - 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">-</button>
+                                <span class="font-extrabold text-tg-text w-4 text-center">${u.bookCount}</span>
+                                <button onclick="event.stopPropagation(); updateUserBookCount('${escHtml(u.name)}', ${u.bookCount + 1})" class="w-5 h-5 bg-tg-surface rounded font-bold text-tg-muted hover:bg-zinc-200 flex items-center justify-center">+</button>
+                            </div>
+                            <button onclick="event.stopPropagation(); toggleUserExempt('${escHtml(u.name)}', ${!u.isExempt})" class="px-2 py-1 rounded-lg font-bold text-[10px] ${u.isExempt ? 'bg-green-600 text-white' : 'bg-zinc-200 text-zinc-700'}">
+                                ${u.isExempt ? '예외 ON' : '예외 OFF'}
+                            </button>
+                            <span class="text-tg-muted text-[10px]">👆</span>
                         </div>
-
-                        <button onclick="toggleUserExempt('${escHtml(u.name)}', ${!u.isExempt})" class="px-2 py-1 rounded-lg font-bold text-[10px] ${u.isExempt ? 'bg-green-600 text-white' : 'bg-zinc-200 text-zinc-700'}">
-                            ${u.isExempt ? '예외 ON' : '예외 OFF'}
-                        </button>
                     </div>
                 </div>
             `).join('');
+
+            // 멤버 카드 클릭 이벤트 등록
+            container.querySelectorAll('.member-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const memberName = card.dataset.memberName;
+                    const memberRegion = card.dataset.memberRegion;
+                    const memberRole = card.dataset.memberRole;
+                    const userObj = filteredUsers.find(u => u.name === memberName);
+                    if (userObj) openMemberDetail(userObj);
+                });
+            });
         }
 
         function filterRiskDataByRegion() { renderRiskTab(); }
         function filterMemberDataByRegion() { renderMemberTab(); }
+
+        // ===== 멤버 상세 팝업 =====
+        async function openMemberDetail(userObj) {
+            const overlay = $('member-detail-overlay');
+            if (!overlay) return;
+
+            const role = profile.role || "";
+            const isSuper = role.includes("관리자") || role.includes("전체관리자");
+
+            // 헤더 정보 채우기
+            $('md-avatar').textContent = userObj.name ? userObj.name.charAt(0) : '?';
+            $('md-name').textContent = userObj.name;
+            $('md-region').textContent = userObj.region || '-';
+            $('md-role').textContent = userObj.role || '-';
+            $('md-book').textContent = userObj.bookCount + '개';
+            $('md-exempt').textContent = userObj.isExempt ? '예외 지정됨' : '미지정';
+            $('md-exempt').className = userObj.isExempt ? 'font-bold text-green-600 text-xs' : 'font-bold text-tg-muted text-xs';
+
+            // 관리자 전용 권한 수정 섹션
+            const roleEditSection = $('md-role-edit-section');
+            if (isSuper) {
+                roleEditSection.classList.remove('hidden');
+                $('md-role-select').value = userObj.role || '부원';
+            } else {
+                roleEditSection.classList.add('hidden');
+            }
+
+            // 사이클별 활동 데이터 로드
+            const semContainer = $('md-semester-list');
+            semContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">📊 데이터 로딩 중...</p>';
+
+            overlay.classList.remove('hidden');
+
+            try {
+                if (supabaseClient && semestersList.length > 0) {
+                    // 가장 오래된 사이클 시작일 ~ 가장 최근 사이클 종료일까지 조회
+                    const allStart = semestersList.reduce((min, s) => s.startDate < min ? s.startDate : min, semestersList[0].startDate);
+                    const allEnd = semestersList.reduce((max, s) => s.endDate > max ? s.endDate : max, semestersList[0].endDate);
+
+                    const { data: actData } = await supabaseClient.from('activities')
+                        .select('*')
+                        .eq('name', userObj.name)
+                        .gte('activity_date', allStart)
+                        .lte('activity_date', allEnd);
+
+                    renderMemberSemesterStats(actData || [], userObj);
+                } else {
+                    semContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">등록된 사이클이 없습니다.</p>';
+                }
+            } catch (e) {
+                console.error('멤버 상세 로드 오류:', e);
+                semContainer.innerHTML = `<p class="text-xs text-red-500 text-center py-6">데이터 로드 실패: ${escHtml(e.message)}</p>`;
+            }
+        }
+
+        function renderMemberSemesterStats(actData, userObj) {
+            const semContainer = $('md-semester-list');
+            if (!semestersList || semestersList.length === 0) {
+                semContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">등록된 사이클이 없습니다.</p>';
+                return;
+            }
+
+            // 사이클별 통계 계산
+            const semStats = semestersList.map(sem => {
+                const semActs = actData.filter(a => a.activity_date >= sem.startDate && a.activity_date <= sem.endDate);
+                const total = semActs.length;
+                const completed = semActs.filter(a => a.status === 'completed').length;
+                const planned = semActs.filter(a => a.status === 'planned').length;
+                const canceled = semActs.filter(a => a.status === 'canceled').length;
+
+                // 카테고리별 완료 집계
+                const catCounts = { '찾기(오프라인)': 0, '찾기(온라인)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+                let findCount = 0;
+                const detailMap = {};
+
+                semActs.filter(a => a.status === 'completed').forEach(a => {
+                    if (catCounts[a.content] !== undefined) catCounts[a.content]++;
+                    if (a.result_data) {
+                        try {
+                            const parsed = typeof a.result_data === 'string' ? JSON.parse(a.result_data) : a.result_data;
+                            if (Array.isArray(parsed)) {
+                                parsed.forEach(r => {
+                                    const key = `${r.category}:${r.type}`;
+                                    const cnt = r.count !== undefined ? parseInt(r.count, 10) : 1;
+                                    detailMap[key] = (detailMap[key] || 0) + cnt;
+                                    if ((r.category === '찾기(오프라인)' || r.category === '찾기(온라인)' || r.category === '찾기') &&
+                                        (r.type === '오프만찾' || r.type === '온만찾')) {
+                                        findCount += cnt;
+                                    }
+                                });
+                            }
+                        } catch (e) {}
+                    }
+                });
+
+                return { sem, total, completed, planned, canceled, catCounts, findCount, detailMap, semActs };
+            });
+
+            if (semStats.every(s => s.total === 0)) {
+                semContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">📭 등록된 사이클 기간에 활동 기록이 없습니다.</p>';
+                return;
+            }
+
+            semContainer.innerHTML = semStats.slice().reverse().map(({ sem, total, completed, planned, canceled, catCounts, findCount, detailMap }) => {
+                const activeBadge = sem.isCurrent
+                    ? '<span class="bg-tg-blue text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">현재</span>'
+                    : '<span class="bg-zinc-100 text-zinc-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-zinc-200">이전</span>';
+
+                const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                const rateColor = rate >= 80 ? 'text-green-600' : rate >= 50 ? 'text-amber-600' : 'text-red-500';
+
+                const detailChips = Object.keys(detailMap).length > 0
+                    ? Object.keys(detailMap).map(k => {
+                        const [c, t] = k.split(':');
+                        return `<span class="bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold px-2 py-0.5 rounded-md">${c.replace('(오프라인)', '(오프)').replace('(온라인)', '(온)')} [${t}]: ${detailMap[k]}</span>`;
+                    }).join('')
+                    : '<span class="text-tg-muted text-[10px]">기록 없음</span>';
+
+                return `
+                    <div class="bg-white rounded-2xl border border-tg-border p-4 space-y-3 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-xs font-extrabold text-tg-text">${escHtml(sem.name)}</span>
+                                ${activeBadge}
+                            </div>
+                            <span class="text-[10px] text-tg-muted">${sem.startDate || '-'} ~ ${sem.endDate || '-'}</span>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <div class="bg-blue-50 rounded-xl p-2 text-center border border-blue-100">
+                                <p class="text-[9px] text-blue-600 font-bold">전체</p>
+                                <p class="text-sm font-extrabold text-blue-800">${total}</p>
+                            </div>
+                            <div class="bg-green-50 rounded-xl p-2 text-center border border-green-100">
+                                <p class="text-[9px] text-green-600 font-bold">완료</p>
+                                <p class="text-sm font-extrabold text-green-800">${completed}</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-xl p-2 text-center border border-amber-100">
+                                <p class="text-[9px] text-amber-600 font-bold">계획중</p>
+                                <p class="text-sm font-extrabold text-amber-800">${planned}</p>
+                            </div>
+                            <div class="bg-red-50 rounded-xl p-2 text-center border border-red-100">
+                                <p class="text-[9px] text-red-600 font-bold">취소</p>
+                                <p class="text-sm font-extrabold text-red-800">${canceled}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1">
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-full bg-zinc-100 rounded-full h-1.5" style="width:80px">
+                                    <div class="h-1.5 rounded-full bg-green-500" style="width:${rate}%"></div>
+                                </div>
+                                <span class="text-[10px] font-bold ${rateColor}">${rate}% 달성</span>
+                            </div>
+                            <span class="text-[10px] text-tg-muted">찾기 <span class="font-bold text-tg-blue">${findCount}건</span></span>
+                        </div>
+
+                        ${Object.keys(detailMap).length > 0 ? `
+                        <div>
+                            <p class="text-[10px] font-bold text-tg-muted mb-1.5">✨ 세부 활동 성과</p>
+                            <div class="flex flex-wrap gap-1">${detailChips}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function closeMemberDetail() {
+            const overlay = $('member-detail-overlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        async function updateUserRole(targetName) {
+            const newRole = $('md-role-select').value;
+            if (!newRole) return showToast('권한을 선택해 주세요.', 'error');
+
+            const btn = $('btn-save-role');
+            btn.disabled = true; btn.textContent = '저장 중...';
+
+            try {
+                if (supabaseClient) {
+                    const { error } = await supabaseClient.from('users').update({ role: newRole }).eq('name', targetName);
+                    if (error) throw error;
+
+                    // 로컬 캐시 업데이트
+                    if (rawRiskData && rawRiskData.allUsers) {
+                        const target = rawRiskData.allUsers.find(u => u.name === targetName);
+                        if (target) target.role = newRole;
+                    }
+                    if (cachedAllUsers) {
+                        const target = cachedAllUsers.find(u => u.name === targetName);
+                        if (target) target.role = newRole;
+                    }
+
+                    $('md-role').textContent = newRole;
+                    showToast(`${targetName}님의 권한이 '${newRole}'으로 변경되었습니다.`, 'success');
+                    renderMemberTab();
+                } else {
+                    showToast('DB가 연결되어 있지 않습니다.', 'error');
+                }
+            } catch (e) {
+                showToast('권한 수정 실패: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false; btn.textContent = '권한 저장';
+            }
+        }
 
         function initAllRegionDropdowns() {
             const fillSelect = (selectId) => {
@@ -4315,6 +4538,14 @@
             document.addEventListener('click', () => { $('profile-dropdown').classList.remove('open'); });
 
             if (window.Telegram && window.Telegram.WebApp) { tg.setHeaderColor('#ffffff'); }
+
+            // 멤버 상세 팝업: 오버레이 클릭 시 닫기
+            const memberDetailOverlay = $('member-detail-overlay');
+            if (memberDetailOverlay) {
+                memberDetailOverlay.addEventListener('click', (e) => {
+                    if (e.target === memberDetailOverlay) closeMemberDetail();
+                });
+            }
         });
     </script>
 
@@ -4397,6 +4628,71 @@
                             <p class="text-xs text-tg-muted text-center py-3">알람 목록을 불러오는 중...</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 멤버 상세 팝업 -->
+    <div id="member-detail-overlay" class="fixed inset-0 z-[60] bg-black/50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden">
+            <!-- 헤더 -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-4 flex-shrink-0">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                        <div id="md-avatar" class="w-11 h-11 rounded-full bg-white/20 text-white text-lg font-extrabold flex items-center justify-center shadow-inner">?</div>
+                        <div>
+                            <h3 id="md-name" class="text-base font-extrabold text-white">-</h3>
+                            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                <span id="md-region" class="text-[11px] text-blue-100 font-semibold">-</span>
+                                <span class="text-blue-200 text-[10px]">·</span>
+                                <span id="md-role" class="text-[11px] text-blue-100 font-semibold">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="closeMemberDetail()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex items-center gap-3 mt-3 text-[11px]">
+                    <div class="flex items-center gap-1.5 bg-white/15 rounded-lg px-2.5 py-1.5">
+                        <span class="text-blue-100">복방</span>
+                        <span id="md-book" class="font-extrabold text-white">0개</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-white/15 rounded-lg px-2.5 py-1.5">
+                        <span class="text-blue-100">예외</span>
+                        <span id="md-exempt" class="font-bold text-white text-xs">미지정</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 관리자 전용: 권한 수정 섹션 -->
+            <div id="md-role-edit-section" class="hidden bg-amber-50 border-b border-amber-200 px-5 py-3 flex-shrink-0">
+                <p class="text-[10px] font-extrabold text-amber-800 mb-2">🔐 관리자 전용 — 권한 수정</p>
+                <div class="flex items-center gap-2">
+                    <select id="md-role-select" class="flex-1 rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-bold text-tg-text focus:outline-none focus:border-amber-500">
+                        <option value="부원">부원</option>
+                        <option value="부조장">부조장</option>
+                        <option value="조장">조장</option>
+                        <option value="관리자">관리자</option>
+                    </select>
+                    <button id="btn-save-role" onclick="updateUserRole(document.getElementById('md-name').textContent)"
+                        class="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm active:scale-95 transition-transform flex-shrink-0">
+                        권한 저장
+                    </button>
+                </div>
+            </div>
+
+            <!-- 사이클별 활동 결과 -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="px-4 py-3 border-b border-tg-border bg-tg-surface flex-shrink-0">
+                    <h4 class="text-xs font-extrabold text-tg-text">📊 사이클별 활동 결과</h4>
+                    <p class="text-[10px] text-tg-muted mt-0.5">등록된 모든 사이클 기간의 활동 데이터를 확인합니다.</p>
+                </div>
+                <div id="md-semester-list" class="p-4 space-y-3">
+                    <p class="text-xs text-tg-muted text-center py-6">데이터를 불러오는 중...</p>
                 </div>
             </div>
         </div>
