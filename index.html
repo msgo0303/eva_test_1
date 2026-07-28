@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -3468,7 +3468,9 @@
             const planCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
             // 2) 완료 기준 카테고리 집계
             const doneCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
-            // 3) 완료 오프라인 찾기 세부 수량 ('오프만찾', '오프번찾')
+            // 3) 실제 입력된 결과 건수 집계 (resultData 기준)
+            const resultCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            // 4) 완료 오프라인 찾기 세부 수량 ('오프만찾', '오프번찾')
             const findSubDone = { '오프만찾': 0, '오프번찾': 0 };
 
             const regionTotalCounts = {};
@@ -3501,8 +3503,29 @@
                                     // 합자찾기(오프) 세부 유형 집계 ('오프만찾', '오프번찾')
                                     if (r.type === '오프만찾') {
                                         findSubDone['오프만찾'] += countVal;
-                                    } else if (r.type === '오프번찾' || r.type === '구두만픽') { // 구두만픽은 오프번찾으로 흡수
+                                        resultCounts['합자찾기(오프)'] += countVal;  // 실제 결과
+                                    } else if (r.type === '오프번찾' || r.type === '구두만픽') {
                                         findSubDone['오프번찾'] += countVal;
+                                    }
+
+                                    // 합자찾기(온) 결과
+                                    if (r.type === '온만찾') {
+                                        resultCounts['합자찾기(온)'] += countVal;
+                                    }
+
+                                    // 매칭 결과 (취소 제외)
+                                    if (r.category === '매칭' && r.type !== '취소') {
+                                        resultCounts['매칭'] += (countVal || 1);
+                                    }
+
+                                    // 잎사귀 결과 (모든 유형)
+                                    if (r.category === '잎사귀') {
+                                        resultCounts['잎사귀'] += (countVal || 1);
+                                    }
+
+                                    // 복방 결과 (취소 제외)
+                                    if (r.category === '복방' && r.type !== '취소') {
+                                        resultCounts['복방'] += (countVal || 1);
                                     }
                                 });
                             }
@@ -3539,23 +3562,24 @@
                     return `<span class="bg-blue-50 text-tg-blue border border-blue-100 font-bold px-2 py-0.5 rounded-md">${c} [${t}]: ${detailedResultsMap[k]}</span>`;
                 }).join('');
 
-            renderCharts(planCounts, regionTotalCounts, total);
+            renderCharts(planCounts, regionTotalCounts, total, resultCounts);
             renderDashboardTimeline(list);
         }
 
-        function renderCharts(planCounts, regionCounts, totalCount) {
-            // 1. 도넛 차트 (계획 등록 기준)
+        function renderCharts(planCounts, regionCounts, totalCount, resultCounts) {
+            // 1. 도넛 차트 (실제 입력 결과 기준)
             const ctxCat = $('chart-category').getContext('2d');
             if (catChartInstance) catChartInstance.destroy();
 
             const catLabels = ['합자찾기(오프)', '합자찾기(온)', '매칭', '잎사귀', '복방'];
             const catData = [
-                planCounts['합자찾기(오프)'] || 0,
-                planCounts['합자찾기(온)'] || 0,
-                planCounts['매칭'] || 0,
-                planCounts['잎사귀'] || 0,
-                planCounts['복방'] || 0
+                (resultCounts || planCounts)['합자찾기(오프)'] || 0,
+                (resultCounts || planCounts)['합자찾기(온)'] || 0,
+                (resultCounts || planCounts)['매칭'] || 0,
+                (resultCounts || planCounts)['잎사귀'] || 0,
+                (resultCounts || planCounts)['복방'] || 0
             ];
+            const resultTotal = catData.reduce((a, b) => a + b, 0);
             const catColors = ['#2563eb', '#60a5fa', '#16a34a', '#d97706', '#9333ea'];
 
             catChartInstance = new Chart(ctxCat, {
@@ -3576,7 +3600,7 @@
             if (legendEl) {
                 legendEl.innerHTML = catLabels.map((label, idx) => {
                     const cnt = catData[idx];
-                    const pct = totalCount > 0 ? Math.round((cnt / totalCount) * 100) : 0;
+                    const pct = resultTotal > 0 ? Math.round((cnt / resultTotal) * 100) : 0;
                     return `
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-1.5">
