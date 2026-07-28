@@ -3629,6 +3629,137 @@
             }
         }
 
+        // 백엔드 배치 스케줄러 핵심 로직 (매분 또는 지정 시각마다 실행)
+        async function executeDailyAlarms() {
+            const now = new Date();
+            const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            // 1. 활성화(is_active = true) 상태이고 현재 시각과 일치하는 알람 조회
+            const { data: alarms } = await supabaseClient
+                .from('alarm_schedules')
+                .select('*')
+                .eq('is_active', true)
+                .eq('alarm_time', currentTimeStr);
+
+            if (!alarms || alarms.length === 0) return;
+
+            // 2. 알람 타입별로 최신 미취합 데이터 실시간 DB 조회
+            for (const alarm of alarms) {
+                const targetDateStr = dateKey(now);
+                let list = [];
+                let headerText = "";
+
+                if (alarm.category === 'today') {
+                    // 당일 미취합 실시간 추출 로직 수행
+                    list = await fetchRealtimeTodayUncollected(targetDateStr);
+                    headerText = "[⚠️ 오늘 결과 미입력자 알림]\n\n오늘 활동 결과를 아직 입력하지 않은 멤버입니다. 마감 전 입력 바랍니다!";
+                } else {
+                    // 내일 미취합 실시간 추출 로직 수행
+                    list = await fetchRealtimeTomorrowUncollected(targetDateStr);
+                    headerText = "[📢 내일 일정 미입력자 알림]\n\n내일 일정을 아직 등록하지 않은 멤버입니다. 확인 후 작성 바랍니다!";
+                }
+
+                if (list.length > 0) {
+                    // 지역별 그룹핑 메시지 조립
+                    const grouped = {};
+                    list.forEach(u => {
+                        const reg = u.region || '미정';
+                        if (!grouped[reg]) grouped[reg] = [];
+                        grouped[reg].push(u.name);
+                    });
+
+                    const lines = Object.keys(grouped).map(reg => `📍 [${reg}]: ${grouped[reg].join(', ')}`);
+                    const finalMessage = `${headerText}\n\n${lines.join('\n')}`;
+
+                    // 텔레그램 General 방 발송
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: finalMessage })
+                    });
+                }
+            }
+        }
+
+        // 알람 목록 로드 및 UI 렌더링
+        async function loadAlarmSchedules() {
+            if (!supabaseClient) return;
+
+            const { data: alarms } = await supabaseClient
+                .from('alarm_schedules')
+                .select('*')
+                .order('alarm_time', { ascending: true });
+
+            const container = $('alarm-list-container');
+            if (!container) return;
+
+            if (!alarms || alarms.length === 0) {
+                container.innerHTML = '<p class="text-xs text-tg-muted text-center py-3">등록된 반복 알람이 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = alarms.map(a => `
+                <div class="flex items-center justify-between p-2.5 bg-tg-surface rounded-xl border border-tg-border text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="font-extrabold text-tg-blue text-sm">${a.alarm_time}</span>
+                        <span class="font-bold text-tg-text">
+                            ${a.category === 'today' ? '⚠️ 당일 결과' : '🌙 내일 계획'}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- ON / OFF 토글 버튼 -->
+                        <button onclick="toggleAlarmActive(${a.id}, ${!a.is_active})" 
+                                class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${a.is_active ? 'bg-green-600 text-white' : 'bg-zinc-300 text-zinc-600'}">
+                            ${a.is_active ? 'ON' : 'OFF'}
+                        </button>
+                        <!-- 삭제 버튼 -->
+                        <button onclick="deleteAlarmSchedule(${a.id})" 
+                                class="px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg text-[10px] font-bold">
+                            삭제
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 새 반복 알람 추가
+        async function addAlarmSchedule() {
+            const timeVal = $('risk-send-time').value; // HH:mm
+            if (!timeVal) return showToast('발송 시각을 선택해 주세요.', 'error');
+
+            if (supabaseClient) {
+                const payload = {
+                    category: currentSendCategory,
+                    alarm_time: timeVal,
+                    is_active: true
+                };
+                const { error } = await supabaseClient.from('alarm_schedules').insert([payload]);
+                if (error) {
+                    showToast('알람 추가 실패: ' + error.message, 'error');
+                    return;
+                }
+                showToast(`매일 ${timeVal} 반복 알람이 추가되었습니다!`, 'success');
+                loadAlarmSchedules();
+            }
+        }
+
+        // ON/OFF 토글
+        async function toggleAlarmActive(id, newState) {
+            if (supabaseClient) {
+                await supabaseClient.from('alarm_schedules').update({ is_active: newState }).eq('id', id);
+                loadAlarmSchedules();
+            }
+        }
+
+        // 알람 삭제
+        async function deleteAlarmSchedule(id) {
+            if (!confirm('이 알람 설정을 삭제하시겠습니까?')) return;
+            if (supabaseClient) {
+                await supabaseClient.from('alarm_schedules').delete().eq('id', id);
+                loadAlarmSchedules();
+            }
+        }
+
         function getDatesInRange(start, end) {
             const dates = []; let curr = new Date(start); const last = new Date(end);
             while (curr <= last) { dates.push(dateKey(curr)); curr.setDate(curr.getDate() + 1); }
