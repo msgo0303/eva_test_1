@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -764,8 +764,8 @@
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 내용 선택 (1개)</label>
                     <select id="f-content-category"
                         class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm font-bold text-tg-text focus:outline-none focus:border-tg-blue">
-                        <option value="찾기(오프라인)">찾기(오프라인)</option>
-                        <option value="찾기(온라인)">찾기(온라인)</option>
+                        <option value="합자찾기(오프)">합자찾기(오프)</option>
+                        <option value="합자찾기(온)">합자찾기(온)</option>
                         <option value="매칭">매칭</option>
                         <option value="잎사귀">잎사귀</option>
                         <option value="복방">복방</option>
@@ -1418,8 +1418,8 @@
         let groupChartInstance = null;
 
         const RESULT_SCHEMA = {
-            '찾기(오프라인)': { types: ['오프만찾', '오프번찾'], hasCount: true },
-            '찾기(온라인)': { types: ['온만찾'], hasCount: true },
+            '합자찾기(오프)': { types: ['오프만찾', '오프번찾'], hasCount: true },
+            '합자찾기(온)': { types: ['온만찾'], hasCount: true },
             '매칭': { types: ['취소', '2차', '비합', '따기'], hasCount: false },
             '잎사귀': { types: ['간증잎', '생노잎', '서류잎', '풍문잎', '기타'], hasCount: false },
             '복방': { types: ['진행', '취소'], hasCount: false }
@@ -1740,7 +1740,7 @@
                                 const parsed = typeof w.result_data === 'string' ? JSON.parse(w.result_data) : w.result_data;
                                 if (Array.isArray(parsed)) {
                                     parsed.forEach(r => {
-                                        if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") &&
+                                        if ((r.category === "찾기" || r.category === "합자찾기(오프)" || r.category === "합자찾기(온)") &&
                                             (r.type === "온만찾" || r.type === "오프만찾")) { // ✅ 온만찾, 오프만찾 2개만 허용
                                             weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                         }
@@ -2062,7 +2062,7 @@
                                 const parsed = typeof a.result_data === 'string' ? JSON.parse(a.result_data) : a.result_data;
                                 if (Array.isArray(parsed)) {
                                     parsed.forEach(r => {
-                                        if ((r.category === '찾기' || r.category === '찾기(오프라인)' || r.category === '찾기(온라인)') && (r.type === '온만찾' || r.type === '오프만찾')) {
+                                        if ((r.category === '찾기' || r.category === '합자찾기(오프)' || r.category === '합자찾기(온)') && (r.type === '온만찾' || r.type === '오프만찾')) {
                                             userMap[a.name].weeklyFindCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                         }
                                     });
@@ -2727,7 +2727,7 @@
                 const canceled = semActs.filter(a => a.status === 'canceled').length;
 
                 // 카테고리별 완료 집계
-                const catCounts = { '찾기(오프라인)': 0, '찾기(온라인)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+                const catCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
                 let findCount = 0;
                 const detailMap = {};
 
@@ -2741,7 +2741,7 @@
                                     const key = `${r.category}:${r.type}`;
                                     const cnt = r.count !== undefined ? parseInt(r.count, 10) : 1;
                                     detailMap[key] = (detailMap[key] || 0) + cnt;
-                                    if ((r.category === '찾기(오프라인)' || r.category === '찾기(온라인)' || r.category === '찾기') &&
+                                    if ((r.category === '합자찾기(오프)' || r.category === '합자찾기(온)' || r.category === '찾기') &&
                                         (r.type === '오프만찾' || r.type === '온만찾')) {
                                         findCount += cnt;
                                     }
@@ -3465,9 +3465,9 @@
             $('db-kpi-rate').textContent = rate + '%';
 
             // 1) 계획 기준 카테고리 집계
-            const planCounts = { '찾기(오프라인)': 0, '찾기(온라인)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            const planCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
             // 2) 완료 기준 카테고리 집계
-            const doneCounts = { '찾기(오프라인)': 0, '찾기(온라인)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            const doneCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
             // 3) 완료 오프라인 찾기 세부 수량 ('오프만찾', '오프번찾')
             const findSubDone = { '오프만찾': 0, '오프번찾': 0 };
 
@@ -3475,7 +3475,7 @@
             const detailedResultsMap = {};
 
             list.forEach(item => {
-                const cat = item.content || '찾기(오프라인)';
+                const cat = item.content || '합자찾기(오프)';
                 const region = item.region || '미정';
 
                 // 계획 수량 합산
@@ -3498,7 +3498,7 @@
                                     const countVal = (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                     detailedResultsMap[key] += countVal;
 
-                                    // 찾기(오프라인) 세부 유형 집계 ('오프만찾', '오프번찾')
+                                    // 합자찾기(오프) 세부 유형 집계 ('오프만찾', '오프번찾')
                                     if (r.type === '오프만찾') {
                                         findSubDone['오프만찾'] += countVal;
                                     } else if (r.type === '오프번찾' || r.type === '구두만픽') { // 구두만픽은 오프번찾으로 흡수
@@ -3512,15 +3512,15 @@
             });
 
             // 1) 계획 기준 칩 출력
-            $('db-plan-find-off').textContent = (planCounts['찾기(오프라인)'] || 0) + '건';
-            $('db-plan-find-on').textContent = (planCounts['찾기(온라인)'] || 0) + '건';
+            $('db-plan-find-off').textContent = (planCounts['합자찾기(오프)'] || 0) + '건';
+            $('db-plan-find-on').textContent = (planCounts['합자찾기(온)'] || 0) + '건';
             $('db-plan-match').textContent = (planCounts['매칭'] || 0) + '건';
             $('db-plan-leaf').textContent = (planCounts['잎사귀'] || 0) + '건';
             $('db-plan-book').textContent = (planCounts['복방'] || 0) + '건';
 
             // 2) 완료 기준 칩 출력
-            $('db-done-find-off').textContent = (doneCounts['찾기(오프라인)'] || 0) + '건';
-            $('db-done-find-on').textContent = (doneCounts['찾기(온라인)'] || 0) + '건';
+            $('db-done-find-off').textContent = (doneCounts['합자찾기(오프)'] || 0) + '건';
+            $('db-done-find-on').textContent = (doneCounts['합자찾기(온)'] || 0) + '건';
             $('db-done-match').textContent = (doneCounts['매칭'] || 0) + '건';
             $('db-done-leaf').textContent = (doneCounts['잎사귀'] || 0) + '건';
             $('db-done-book').textContent = (doneCounts['복방'] || 0) + '건';
@@ -3550,8 +3550,8 @@
 
             const catLabels = ['찾기(오프)', '찾기(온)', '매칭', '잎사귀', '복방'];
             const catData = [
-                planCounts['찾기(오프라인)'] || 0,
-                planCounts['찾기(온라인)'] || 0,
+                planCounts['합자찾기(오프)'] || 0,
+                planCounts['합자찾기(온)'] || 0,
                 planCounts['매칭'] || 0,
                 planCounts['잎사귀'] || 0,
                 planCounts['복방'] || 0
@@ -3911,7 +3911,7 @@
 
             $('f-starttime').value = `${String(startH).padStart(2, '0')}:${startM}`;
             updateEndTimeOptions();
-            $('f-content-category').value = '찾기(오프라인)';
+            $('f-content-category').value = '합자찾기(오프)';
             $('f-location').value = '';
             $('f-result-text').value = '';
             $('result-rows-container').innerHTML = '';
@@ -3929,7 +3929,7 @@
             if (item.startTime) $('f-starttime').value = item.startTime;
             updateEndTimeOptions(item.endTime);
 
-            $('f-content-category').value = item.content || '찾기(오프라인)';
+            $('f-content-category').value = item.content || '합자찾기(오프)';
             $('f-location').value = item.location || '';
             $('f-result-text').value = item.resultText || '';
 
@@ -4256,7 +4256,7 @@
                                 const cVal = r.count !== undefined ? parseInt(r.count, 10) : 1;
 
                                 // 💡 찾기 계수 조건: '오프만찾' 또는 '온만찾'만 수량 합산 ('오프번찾' 제외)
-                                if ((r.category === '찾기(오프라인)' || r.category === '찾기(온라인)' || r.category === '찾기') &&
+                                if ((r.category === '합자찾기(오프)' || r.category === '합자찾기(온)' || r.category === '찾기') &&
                                     (r.type === '오프만찾' || r.type === '온만찾')) {
                                     countFind += cVal;
                                 } else if (r.category === '매칭') countMatch += cVal;
