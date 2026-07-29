@@ -1346,16 +1346,11 @@
             <!-- 2) 직접 입력 신청 모드 -->
             <div id="reg-apply-mode" class="space-y-4 hidden">
                 <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-[11px] text-blue-700">
-                    💡 이름과 직책을 직접 입력하여 가입을 신청합니다. 등록 후 관리자가 최종 승인(구역 및 조 편성)을 진행하게 됩니다.
+                    💡 이름만 직접 입력하여 가입을 신청합니다. 등록 후 관리자가 최종 승인(구역 및 조 편성)을 진행하게 됩니다.
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">이름 *</label>
                     <input id="reg-apply-name" type="text" placeholder="본인의 이름을 정확히 입력하세요"
-                        class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue" />
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">직무/직책 (선택)</label>
-                    <input id="reg-apply-role" type="text" placeholder="예: 구역장, 조장, 부원 등"
                         class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue" />
                 </div>
                 <button id="btn-reg-apply-submit" onclick="submitCustomRegistration()"
@@ -4012,9 +4007,8 @@
                 $('reg-select-mode').classList.add('hidden');
                 $('reg-apply-mode').classList.remove('hidden');
                 $('reg-apply-name').value = '';
-                $('reg-apply-role').value = '';
                 document.querySelector('#reg-sheet h2').textContent = '📝 신규 가입 신청';
-                document.querySelector('#reg-sheet p').textContent = '명단에 이름이 없는 경우 직접 정보를 입력해 가입을 신청할 수 있습니다.';
+                document.querySelector('#reg-sheet p').textContent = '명단에 이름이 없는 경우 직접 이름을 입력해 가입을 신청할 수 있습니다.';
             } else {
                 $('reg-apply-mode').classList.add('hidden');
                 $('reg-select-mode').classList.remove('hidden');
@@ -4025,7 +4019,6 @@
 
         async function submitCustomRegistration() {
             const customName = $('reg-apply-name').value.trim();
-            const customRole = $('reg-apply-role').value.trim();
 
             if (!customName) return showToast("이름을 입력해 주세요.", "error");
 
@@ -4039,9 +4032,9 @@
                     const payload = {
                         id: tgUserId,
                         name: customName,
-                        role: customRole || '부원',
-                        region: '미지정',
-                        group_name: '미지정',
+                        role: '부원',
+                        region: '',
+                        group_name: '',
                         book_count: 0,
                         is_exempt: false
                     };
@@ -4061,7 +4054,7 @@
             }
 
             try {
-                const response = await fetch(`${GAS_URL}?action=registerCustomUser&initData=${encodeURIComponent(tg ? tg.initData : '')}&tgUserId=${encodeURIComponent(tgUserId)}&name=${encodeURIComponent(customName)}&role=${encodeURIComponent(customRole)}`);
+                const response = await fetch(`${GAS_URL}?action=registerCustomUser&initData=${encodeURIComponent(tg ? tg.initData : '')}&tgUserId=${encodeURIComponent(tgUserId)}&name=${encodeURIComponent(customName)}`);
                 const resData = await response.json();
                 if (resData.result === "success") {
                     closeRegSheet();

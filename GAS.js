@@ -176,7 +176,6 @@ function doGet(e) {
     if (action === "registerCustomUser") {
       const tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
       const name = e.parameter.name;
-      const role = e.parameter.role || "부원";
       const config = getConfig();
 
       const headers = {
@@ -189,9 +188,9 @@ function doGet(e) {
       const payload = {
         id: tgUserId,
         name: name,
-        role: role,
-        region: "미지정",
-        group_name: "미지정",
+        role: "부원",
+        region: "",
+        group_name: "",
         book_count: 0,
         is_exempt: false
       };
