@@ -2564,13 +2564,13 @@
             const isSuper = role.includes("관리자") || role.includes("전체관리자");
 
             container.innerHTML = filteredUsers.map(u => `
-                <div class="member-card bg-tg-surface p-3 rounded-xl border border-tg-border text-xs cursor-pointer hover:bg-blue-50/40 hover:border-blue-200 transition-all active:scale-[0.98]" data-member-name="${escHtml(u.name)}" data-member-region="${escHtml(u.region || '미정')}" data-member-role="${escHtml(u.role || '부원')}">
+                <div class="member-card bg-tg-surface p-3 rounded-xl border border-tg-border text-xs cursor-pointer hover:bg-blue-50/40 hover:border-blue-200 transition-all active:scale-[0.98]" data-member-name="${escHtml(u.name)}" data-member-region="${escHtml(u.region || '미정')}" data-member-role="${escHtml(u.role || '')}">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-1.5">
                                 <span class="font-bold text-tg-blue">[${escHtml(u.region || '미정')}]</span>
                                 <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
-                                <span class="text-[10px] text-tg-muted">(${escHtml(u.role || '부원')})</span>
+                                ${u.role ? `<span class="text-[10px] text-tg-muted">(${escHtml(u.role)})</span>` : ''}
                             </div>
                             <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span> · 복방 <span class="font-bold text-purple-700">${u.bookCount}개</span></p>
                         </div>
@@ -4460,7 +4460,7 @@
           ${isMine ? `<span class="bg-blue-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md shadow-sm">📌 내 활동</span>` : ''}
           <span class="bg-blue-50 text-tg-blue font-bold text-[11px] px-2 py-0.5 rounded-md border border-blue-100">${escHtml(item.region || '미정')}</span>
           <span class="text-xs font-bold text-tg-text">${escHtml(item.name || '작성자')}</span>
-          <span class="text-[10px] text-tg-muted">(${escHtml(item.role || '부원')})</span>
+          ${item.role ? `<span class="text-[10px] text-tg-muted">(${escHtml(item.role)})</span>` : ''}
         </div>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
       </div>
