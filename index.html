@@ -2555,7 +2555,7 @@
                     ? '<p class="text-xs text-tg-muted text-center py-2">🎉 조건에 해당하는 내일 계획 미취합자가 없습니다!</p>'
                     : tmList.map(u => `
                         <div class="bg-white p-2.5 rounded-xl border border-blue-100 flex items-center justify-between">
-                            <div><span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span></div>
+                            <div><span class="font-bold text-blue-800 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span><span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(u.group_name, u.role))}</span></div>
                             <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">내일 일정 없음</span>
                         </div>
                     `).join('');
@@ -2577,7 +2577,7 @@
                     ? '<p class="text-xs text-tg-muted text-center py-2">🎉 당일 결과 미취합자가 없습니다!</p>'
                     : tdList.map(u => `
                         <div class="bg-white p-2.5 rounded-xl border border-red-100 flex items-center justify-between">
-                            <div><span class="font-bold text-red-700 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span></div>
+                            <div><span class="font-bold text-red-700 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span><span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(u.group_name, u.role))}</span></div>
                             <span class="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">${!u.hasTodayActivity ? '오늘 일정 없음' : '계획중 (결과 미입력)'}</span>
                         </div>
                     `).join('');
@@ -2591,7 +2591,7 @@
                 ? '<p class="text-xs text-tg-muted text-center py-2">🎉 주간 찾기 미달성자가 없습니다!</p>'
                 : unachieved.map(u => `
                     <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-center justify-between">
-                        <div><span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span></div>
+                        <div><span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span><span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(u.group_name, u.role))}</span></div>
                         <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">이번 주 ${u.weeklyFindCount}/6건</span>
                     </div>
                 `).join('');
