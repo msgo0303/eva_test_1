@@ -681,7 +681,8 @@ function doGet(e) {
               hasTodayActivity: false,
               isTodayCompleted: false,
               hasTomorrowActivity: false,
-              weeklyFindCount: 0
+              weeklyFindCount: 0,
+              hasOverdueActivity: false
             };
             userMap[name] = uObj;
             allUsers.push(uObj);
@@ -690,6 +691,10 @@ function doGet(e) {
       }
 
       if (actSheet) {
+        const now = new Date();
+        const todayStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+        const currentHHMM = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm");
+
         const actData = actSheet.getDataRange().getValues();
         for (let i = 1; i < actData.length; i++) {
           let rowDate = actData[i][6];
@@ -702,6 +707,8 @@ function doGet(e) {
           const name = actData[i][2] ? actData[i][2].toString().trim() : "";
           const status = actData[i][11];
           const resultData = actData[i][12] ? actData[i][12].toString() : "";
+          const startTime = formatTimeString(actData[i][7]);
+          const endTime = formatTimeString(actData[i][8]);
 
           if (userMap[name]) {
             // 당일 활동 파악
@@ -709,6 +716,18 @@ function doGet(e) {
               userMap[name].hasTodayActivity = true;
               if (status === 'completed') {
                 userMap[name].isTodayCompleted = true;
+              } else {
+                let isOverdue = false;
+                if (targetDateStr < todayStr) {
+                  isOverdue = true;
+                } else if (targetDateStr === todayStr) {
+                  if (endTime && endTime < currentHHMM) {
+                    isOverdue = true;
+                  }
+                }
+                if (isOverdue) {
+                  userMap[name].hasOverdueActivity = true;
+                }
               }
             }
             // 내일 활동 파악
@@ -738,8 +757,8 @@ function doGet(e) {
       // 1. [선택 날짜 + 1일] 내일 계획 미취합자 (내일 일정 아예 없음 & 예외 N)
       const tomorrowUncollected = tomorrowDateOff ? [] : allUsers.filter(u => !u.hasTomorrowActivity && !u.isExempt);
 
-      // 2. [선택 날짜] 당일 결과 미취합자 (오늘 일정 없음 또는 오늘 완료 상태가 아님 & 예외 N)
-      const todayUncollected = targetDateOff ? [] : allUsers.filter(u => (!u.hasTodayActivity || !u.isTodayCompleted) && !u.isExempt);
+      // 2. [선택 날짜] 당일 결과 미취합자 (오늘 일정 없음 또는 시간 종료되었는데 결과 미입력 상태 & 예외 N)
+      const todayUncollected = targetDateOff ? [] : allUsers.filter(u => (!u.hasTodayActivity || u.hasOverdueActivity) && !u.isExempt);
 
       // 3. 이번 주 찾기 미달성자 (복방 0개 & 이번 주 찾기 6개 미만)
       const unachievedUsers = allUsers.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6);

@@ -2192,17 +2192,36 @@
                             hasTodayActivity: false,
                             isTodayCompleted: false,
                             hasTomorrowActivity: false,
-                            weeklyFindCount: 0
+                            weeklyFindCount: 0,
+                            hasOverdueActivity: false
                         };
                         userMap[u.name] = uObj;
                         return uObj;
                     });
 
+                    const now = new Date();
+                    const todayStr = dateKey(now);
+                    const currentHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
                     (actData || []).forEach(a => {
                         if (userMap[a.name]) {
                             if (a.activity_date === baseDate) {
                                 userMap[a.name].hasTodayActivity = true;
-                                if (a.status === 'completed') userMap[a.name].isTodayCompleted = true;
+                                if (a.status === 'completed') {
+                                    userMap[a.name].isTodayCompleted = true;
+                                } else {
+                                    let isOverdue = false;
+                                    if (baseDate < todayStr) {
+                                        isOverdue = true;
+                                    } else if (baseDate === todayStr) {
+                                        if (a.end_time && a.end_time < currentHHMM) {
+                                            isOverdue = true;
+                                        }
+                                    }
+                                    if (isOverdue) {
+                                        userMap[a.name].hasOverdueActivity = true;
+                                    }
+                                }
                             }
                             if (a.activity_date === tomorrowStr) {
                                 userMap[a.name].hasTomorrowActivity = true;
@@ -2227,7 +2246,7 @@
                         targetOffReason: targetOffReason,
                         tomorrowDateOff: tomorrowDateOff,
                         tomorrowOffReason: tomorrowOffReason,
-                        todayUncollected: targetDateOff ? [] : allUsersList.filter(u => (!u.hasTodayActivity || !u.isTodayCompleted) && !u.isExempt),
+                        todayUncollected: targetDateOff ? [] : allUsersList.filter(u => (!u.hasTodayActivity || u.hasOverdueActivity) && !u.isExempt),
                         tomorrowUncollected: tomorrowDateOff ? [] : allUsersList.filter(u => !u.hasTomorrowActivity && !u.isExempt),
                         unachievedUsers: allUsersList.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6 && !u.isExempt),
                         allUsers: allUsersList
