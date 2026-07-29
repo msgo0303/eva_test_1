@@ -5266,7 +5266,8 @@
         //붉은 테두리 강조
         // 붉은 테두리 및 안내 말풍선 검사 함수
         // 붉은 테두리 및 안내 말풍선 검사 함수
-        function checkUncompletedOverdueActivities() {
+        // 붉은 테두리 및 안내 말풍선 검사 함수 (Supabase DB 직접 연동형)
+        async function checkUncompletedOverdueActivities() {
             const dashBtn = $('dash-btn');
             const badgeDash = $('uncompleted-badge');
             const msgDash = $('uncompleted-msg');
@@ -5287,18 +5288,18 @@
             const currentUserIdStr = profile.id ? String(profile.id).trim() : "";
             const currentUserNameStr = profile.name ? String(profile.name).trim() : "";
 
+            if (!currentUserIdStr) return;
+
             // 시간을 'HH:mm' 5자리 정규 포맷으로 맞춰 비교하는 헬퍼
             const formatTimeStr = (tStr) => {
                 if (!tStr) return "00:00";
                 const parts = String(tStr).split(':');
                 if (parts.length < 2) return tStr;
-                const h = parts[0].padStart(2, '0');
-                const m = parts[1].padStart(2, '0');
-                return `${h}:${m}`;
+                return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
             };
 
             // ─────────────────────────────────────────────────────────────
-            // 1. [우측 +버튼 검사] 오직 '오늘 날짜'를 조회 중일 때 '오늘 내 계획 0개' 검사
+            // 1. [우측 +버튼 검사] 오직 화면 날짜가 '오늘'일 때 '오늘 내 계획 0개' 검사
             // ─────────────────────────────────────────────────────────────
             if (selectedDateStr === todayStr) {
                 const myTodayActivities = activities.filter(item => {
@@ -5320,30 +5321,53 @@
             }
 
             // ─────────────────────────────────────────────────────────────
-            // 2. [좌측 대시보드 버튼 검사] 오늘 포함 '어제 이전(과거) 날짜'의 미입력 계획까지 종합 검사
+            // 2. [좌측 대시보드 버튼 검사] DB 전체에서 '어제 이전 미입력' + '오늘 시간경과 미입력' 카운트
             // ─────────────────────────────────────────────────────────────
-            // activities 배열 전체(오늘 및 어제 등)에서 본인의 planned 상태 항목 검사
-            const overdueCount = activities.filter(item => {
-                const matchId = item.userId && String(item.userId).trim() === currentUserIdStr;
-                const matchName = item.name && String(item.name).trim() === currentUserNameStr;
-                if (!matchId && !matchName) return false;
-                if (item.status !== 'planned') return false;
+            let overdueCount = 0;
 
-                const itemDateStr = item.date;
+            if (supabaseClient) {
+                try {
+                    // A. 오늘 이전(어제 및 과거 전체) 날짜 중 아직 'planned' 상태로 남아있는 내 활동 수
+                    const { count: pastCount } = await supabaseClient
+                        .from('activities')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', profile.id)
+                        .eq('status', 'planned')
+                        .lt('activity_date', todayStr);
 
-                // A. 완전히 어제 이전 날짜인 항목 (무조건 결과 미입력 간주)
-                if (itemDateStr < todayStr) {
-                    return true;
+                    overdueCount += (pastCount || 0);
+
+                    // B. 오늘 날짜 활동 중 종료 시각이 지난 'planned' 상태 수
+                    const { data: todayActs } = await supabaseClient
+                        .from('activities')
+                        .select('end_time, status')
+                        .eq('user_id', profile.id)
+                        .eq('activity_date', todayStr)
+                        .eq('status', 'planned');
+
+                    const todayOverdueCount = (todayActs || []).filter(item => formatTimeStr(item.end_time) < currentHHmm).length;
+                    overdueCount += todayOverdueCount;
+
+                } catch (e) {
+                    console.error("미입력 내역 DB 조회 중 오류:", e);
                 }
-                // B. 오늘 날짜인 항목 중 종료 시각이 지난 항목
-                if (itemDateStr === todayStr) {
-                    const endTimeFmt = formatTimeStr(item.endTime);
-                    return endTimeFmt < currentHHmm;
-                }
+            } else {
+                // GAS 폴백 처리
+                overdueCount = activities.filter(item => {
+                    const matchId = item.userId && String(item.userId).trim() === currentUserIdStr;
+                    const matchName = item.name && String(item.name).trim() === currentUserNameStr;
+                    if (!matchId && !matchName) return false;
+                    if (item.status !== 'planned') return false;
 
-                return false;
-            }).length;
+                    if (item.date < todayStr) return true;
+                    if (item.date === todayStr) {
+                        return formatTimeStr(item.endTime) < currentHHmm;
+                    }
+                    return false;
+                }).length;
+            }
 
+            // UI 결과 반영
             if (overdueCount > 0) {
                 dashBtn.classList.add('dash-btn-urgent');
                 if (msgDash) msgDash.textContent = `결과가 입력되지 않은 계획이 ${overdueCount}개 있습니다`;
