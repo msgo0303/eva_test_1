@@ -376,19 +376,41 @@ function sendWeeklyTelegramReport() {
           resultCounts['잎사귀'] || 0,
           resultCounts['복방'] || 0
         ],
-        backgroundColor: ['#2563eb', '#60a5fa', '#16a34a', '#d97706', '#9333ea']
+        backgroundColor: ['#2563eb', '#60a5fa', '#16a34a', '#d97706', '#9333ea'],
+        borderWidth: 2,
+        borderColor: '#ffffff'
       }]
     },
     options: {
+      cutout: '70%',
       plugins: {
-        legend: { position: 'right' },
-        title: { display: true, text: '📈 활동 결과 비중' }
+        legend: {
+          position: 'right',
+          labels: {
+            font: { family: 'Noto Sans KR', size: 11, weight: 'bold' },
+            color: '#18181b',
+            boxWidth: 12,
+            padding: 10
+          }
+        },
+        title: {
+          display: true,
+          text: '📈 활동 결과 비중',
+          font: { family: 'Noto Sans KR', size: 14, weight: 'bold' },
+          color: '#18181b',
+          padding: 15
+        },
+        datalabels: {
+          display: false
+        }
       }
     }
   };
-  const doughnutChartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(doughnutConfig))}`;
+  const doughnutChartUrl = `https://quickchart.io/chart?bkg=%23ffffff&w=400&h=250&c=${encodeURIComponent(JSON.stringify(doughnutConfig))}`;
 
   // 차트 2: 가로 막대 차트 (주간 미션)
+  const weeklyAchievedData = FIXED_REGIONS.map(r => regionFindResult[r] || 0);
+  const weeklyTargetsData = FIXED_REGIONS.map(r => regionTargets[r] || 0);
   const weeklyPctData = FIXED_REGIONS.map(r => {
     const t = regionTargets[r] || 0;
     const a = regionFindResult[r] || 0;
@@ -402,31 +424,75 @@ function sendWeeklyTelegramReport() {
       datasets: [{
         label: '달성률(%)',
         data: weeklyPctData,
+        achieved: weeklyAchievedData,
+        targets: weeklyTargetsData,
         backgroundColor: weeklyBackgroundColors,
         borderRadius: 4
       }]
     },
     options: {
       indexAxis: 'y',
+      layout: {
+        padding: { left: 10, right: 40, top: 10, bottom: 10 }
+      },
       plugins: {
         legend: { display: false },
-        title: { display: true, text: '📊 주간 미션 달성 현황(%)' },
+        title: {
+          display: true,
+          text: '📊 주간 미션 달성 현황(%)',
+          font: { family: 'Noto Sans KR', size: 14, weight: 'bold' },
+          color: '#18181b',
+          padding: 10
+        },
         datalabels: {
           display: true,
+          formatter: `function(value, context) {
+            var index = context.dataIndex;
+            var achieved = context.dataset.achieved[index];
+            var target = context.dataset.targets[index];
+            if (value === 0 && achieved === 0) return '';
+            return achieved + '/' + target + '개 (' + value + '%)';
+          }`,
           anchor: 'end',
-          align: 'right',
-          color: '#333',
-          font: { weight: 'bold', size: 10 }
+          align: `function(context) {
+            return context.dataset.data[context.dataIndex] >= 30 ? 'start' : 'end';
+          }`,
+          color: `function(context) {
+            return context.dataset.data[context.dataIndex] >= 30 ? '#ffffff' : '#374151';
+          }`,
+          font: { family: 'Noto Sans KR', size: 10, weight: 'bold' }
         }
       },
       scales: {
-        x: { beginAtZero: true, max: 100 }
+        x: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            callback: `function(value) { return value + '%'; }`,
+            font: { family: 'Noto Sans KR', size: 10 }
+          },
+          grid: {
+            color: '#e4e4e7',
+            borderDash: [4, 4]
+          }
+        },
+        y: {
+          ticks: {
+            font: { family: 'Noto Sans KR', size: 10, weight: 'bold' },
+            color: '#18181b'
+          },
+          grid: {
+            display: false
+          }
+        }
       }
     }
   };
-  const weeklyChartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(weeklyConfig))}`;
+  const weeklyChartUrl = `https://quickchart.io/chart?bkg=%23ffffff&w=500&h=450&c=${encodeURIComponent(JSON.stringify(weeklyConfig))}`;
 
   // 차트 3: 가로 막대 차트 (복방 미션)
+  const bookAchievedData = FIXED_REGIONS.map(r => bookAchieved[r] || 0);
+  const bookTargetsData = FIXED_REGIONS.map(r => bookTargets[r] || 0);
   const bookPctData = FIXED_REGIONS.map(r => {
     const t = bookTargets[r] || 0;
     const a = bookAchieved[r] || 0;
@@ -440,29 +506,71 @@ function sendWeeklyTelegramReport() {
       datasets: [{
         label: '달성률(%)',
         data: bookPctData,
+        achieved: bookAchievedData,
+        targets: bookTargetsData,
         backgroundColor: bookBackgroundColors,
         borderRadius: 4
       }]
     },
     options: {
       indexAxis: 'y',
+      layout: {
+        padding: { left: 10, right: 40, top: 10, bottom: 10 }
+      },
       plugins: {
         legend: { display: false },
-        title: { display: true, text: '🍎 복음방 미션 달성 현황(%)' },
+        title: {
+          display: true,
+          text: '🍎 복음방 미션 달성 현황(%)',
+          font: { family: 'Noto Sans KR', size: 14, weight: 'bold' },
+          color: '#18181b',
+          padding: 10
+        },
         datalabels: {
           display: true,
+          formatter: `function(value, context) {
+            var index = context.dataIndex;
+            var achieved = context.dataset.achieved[index];
+            var target = context.dataset.targets[index];
+            if (value === 0 && achieved === 0) return '';
+            return achieved + '/' + target + '개 (' + value + '%)';
+          }`,
           anchor: 'end',
-          align: 'right',
-          color: '#333',
-          font: { weight: 'bold', size: 10 }
+          align: `function(context) {
+            return context.dataset.data[context.dataIndex] >= 30 ? 'start' : 'end';
+          }`,
+          color: `function(context) {
+            return context.dataset.data[context.dataIndex] >= 30 ? '#ffffff' : '#374151';
+          }`,
+          font: { family: 'Noto Sans KR', size: 10, weight: 'bold' }
         }
       },
       scales: {
-        x: { beginAtZero: true, max: 100 }
+        x: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            callback: `function(value) { return value + '%'; }`,
+            font: { family: 'Noto Sans KR', size: 10 }
+          },
+          grid: {
+            color: '#e4e4e7',
+            borderDash: [4, 4]
+          }
+        },
+        y: {
+          ticks: {
+            font: { family: 'Noto Sans KR', size: 10, weight: 'bold' },
+            color: '#18181b'
+          },
+          grid: {
+            display: false
+          }
+        }
       }
     }
   };
-  const bookChartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(bookConfig))}`;
+  const bookChartUrl = `https://quickchart.io/chart?bkg=%23ffffff&w=500&h=450&c=${encodeURIComponent(JSON.stringify(bookConfig))}`;
 
   // 7. 구글 시트에서 메시지 템플릿 로드
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
