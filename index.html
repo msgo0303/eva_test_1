@@ -5265,6 +5265,7 @@
 
         //붉은 테두리 강조
         // 붉은 테두리 및 안내 말풍선 검사 함수
+        // 붉은 테두리 및 안내 말풍선 검사 함수
         function checkUncompletedOverdueActivities() {
             const dashBtn = $('dash-btn');
             const badgeDash = $('uncompleted-badge');
@@ -5279,16 +5280,6 @@
             const todayStr = dateKey(now);
             const selectedDateStr = dateKey(currentDate);
 
-            // 오직 "오늘 날짜"를 조회 중일 때만 두 툴팁을 체크합니다.
-            if (selectedDateStr !== todayStr) {
-                dashBtn.classList.remove('dash-btn-urgent');
-                if (badgeDash) badgeDash.classList.add('hidden');
-
-                fabBtn.classList.remove('fab-btn-urgent');
-                if (badgeFab) badgeFab.classList.add('hidden');
-                return;
-            }
-
             const currentHH = String(now.getHours()).padStart(2, '0');
             const currentMM = String(now.getMinutes()).padStart(2, '0');
             const currentHHmm = `${currentHH}:${currentMM}`;
@@ -5296,24 +5287,7 @@
             const currentUserIdStr = profile.id ? String(profile.id).trim() : "";
             const currentUserNameStr = profile.name ? String(profile.name).trim() : "";
 
-            // 1. 내 오늘 전체 활동 파악 (ID 또는 이름 일치)
-            const myTodayActivities = activities.filter(item => {
-                const matchId = item.userId && String(item.userId).trim() === currentUserIdStr;
-                const matchName = item.name && String(item.name).trim() === currentUserNameStr;
-                return matchId || matchName;
-            });
-
-            // 2. [우측 +버튼 검사] 오늘 등록된 내 활동(계획/완료/취소)이 0개인 경우
-            if (myTodayActivities.length === 0) {
-                fabBtn.classList.add('fab-btn-urgent');
-                if (badgeFab) badgeFab.classList.remove('hidden');
-            } else {
-                fabBtn.classList.remove('fab-btn-urgent');
-                if (badgeFab) badgeFab.classList.add('hidden');
-            }
-
-            // 3. [좌측 대시보드 버튼 검사] 종료 시각이 지났는데 여전히 'planned' 상태인 내 일정
-            // 시간을 'HH:mm' 5자리 정규 포맷으로 맞춰 비교
+            // 시간을 'HH:mm' 5자리 정규 포맷으로 맞춰 비교하는 헬퍼
             const formatTimeStr = (tStr) => {
                 if (!tStr) return "00:00";
                 const parts = String(tStr).split(':');
@@ -5323,10 +5297,51 @@
                 return `${h}:${m}`;
             };
 
-            const overdueCount = myTodayActivities.filter(item => {
+            // ─────────────────────────────────────────────────────────────
+            // 1. [우측 +버튼 검사] 오직 '오늘 날짜'를 조회 중일 때 '오늘 내 계획 0개' 검사
+            // ─────────────────────────────────────────────────────────────
+            if (selectedDateStr === todayStr) {
+                const myTodayActivities = activities.filter(item => {
+                    const matchId = item.userId && String(item.userId).trim() === currentUserIdStr;
+                    const matchName = item.name && String(item.name).trim() === currentUserNameStr;
+                    return matchId || matchName;
+                });
+
+                if (myTodayActivities.length === 0) {
+                    fabBtn.classList.add('fab-btn-urgent');
+                    if (badgeFab) badgeFab.classList.remove('hidden');
+                } else {
+                    fabBtn.classList.remove('fab-btn-urgent');
+                    if (badgeFab) badgeFab.classList.add('hidden');
+                }
+            } else {
+                fabBtn.classList.remove('fab-btn-urgent');
+                if (badgeFab) badgeFab.classList.add('hidden');
+            }
+
+            // ─────────────────────────────────────────────────────────────
+            // 2. [좌측 대시보드 버튼 검사] 오늘 포함 '어제 이전(과거) 날짜'의 미입력 계획까지 종합 검사
+            // ─────────────────────────────────────────────────────────────
+            // activities 배열 전체(오늘 및 어제 등)에서 본인의 planned 상태 항목 검사
+            const overdueCount = activities.filter(item => {
+                const matchId = item.userId && String(item.userId).trim() === currentUserIdStr;
+                const matchName = item.name && String(item.name).trim() === currentUserNameStr;
+                if (!matchId && !matchName) return false;
                 if (item.status !== 'planned') return false;
-                const endTimeFmt = formatTimeStr(item.endTime);
-                return endTimeFmt < currentHHmm;
+
+                const itemDateStr = item.date;
+
+                // A. 완전히 어제 이전 날짜인 항목 (무조건 결과 미입력 간주)
+                if (itemDateStr < todayStr) {
+                    return true;
+                }
+                // B. 오늘 날짜인 항목 중 종료 시각이 지난 항목
+                if (itemDateStr === todayStr) {
+                    const endTimeFmt = formatTimeStr(item.endTime);
+                    return endTimeFmt < currentHHmm;
+                }
+
+                return false;
             }).length;
 
             if (overdueCount > 0) {
