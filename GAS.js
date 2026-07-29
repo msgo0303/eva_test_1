@@ -243,3 +243,328 @@ function doPost(e) {
     return makeJsonResponse({ error: err.message });
   }
 }
+
+
+// ============================================================
+// [4] sendWeeklyTelegramReport — 매주 수요일/일요일 오전 9시 주간 리포트 발송
+// ============================================================
+function sendWeeklyTelegramReport() {
+  const { botToken, chatId, supabaseUrl, supabaseKey } = getConfig();
+
+  if (!botToken || !chatId) {
+    Logger.log("봇 토큰 또는 챗 ID가 설정되지 않았습니다.");
+    return;
+  }
+  if (!supabaseUrl || !supabaseKey) {
+    Logger.log("Supabase URL 또는 Key가 설정되지 않았습니다.");
+    return;
+  }
+
+  // 1. KST 기준 날짜 계산
+  const now = new Date();
+  const kstDateStr = Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd");
+  const parts = kstDateStr.split('-');
+  const kstYear = parseInt(parts[0], 10);
+  const kstMonth = parseInt(parts[1], 10) - 1;
+  const kstDay = parseInt(parts[2], 10);
+  const kstNow = new Date(kstYear, kstMonth, kstDay);
+
+  const day = kstNow.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
+  
+  const sunday = new Date(kstNow);
+  sunday.setDate(kstNow.getDate() - day);
+  
+  const saturday = new Date(sunday);
+  saturday.setDate(sunday.getDate() + 6);
+  
+  const startStr = Utilities.formatDate(sunday, "Asia/Seoul", "yyyy-MM-dd");
+  const endStr = Utilities.formatDate(saturday, "Asia/Seoul", "yyyy-MM-dd");
+
+  const headers = {
+    "apikey": supabaseKey,
+    "Authorization": `Bearer ${supabaseKey}`
+  };
+
+  // 2. 전체 유저 목록 조회
+  const usersUrl = `${supabaseUrl}/rest/v1/users?select=*`;
+  const usersRes = UrlFetchApp.fetch(usersUrl, { headers: headers });
+  const allUsers = JSON.parse(usersRes.getContentText()) || [];
+
+  // 3. 이번 주(일요일~토요일) 활동 조회
+  const actsUrl = `${supabaseUrl}/rest/v1/activities?activity_date=gte.${startStr}&activity_date=lte.${endStr}`;
+  const actsRes = UrlFetchApp.fetch(actsUrl, { headers: headers });
+  const weeklyActs = JSON.parse(actsRes.getContentText()) || [];
+
+  // 4. 활동 결과 집계
+  const resultCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+  const regionFindResult = {};
+  
+  weeklyActs.forEach(item => {
+    if (item.status === 'completed' && item.result_data) {
+      let parsed = [];
+      try {
+        parsed = typeof item.result_data === 'string' ? JSON.parse(item.result_data) : item.result_data;
+      } catch (e) { }
+      
+      if (Array.isArray(parsed)) {
+        parsed.forEach(r => {
+          const countVal = (r.count !== undefined ? parseInt(r.count, 10) : 1);
+          
+          if (r.type === '오프만찾') {
+            resultCounts['합자찾기(오프)'] += countVal;
+          }
+          if (r.type === '온만찾') {
+            resultCounts['합자찾기(온)'] += countVal;
+          }
+          if (r.category === '매칭' && r.type !== '취소') {
+            resultCounts['매칭'] += (countVal || 1);
+          }
+          if (r.category === '잎사귀') {
+            resultCounts['잎사귀'] += (countVal || 1);
+          }
+          if (r.category === '복방' && r.type !== '취소') {
+            resultCounts['복방'] += (countVal || 1);
+          }
+          
+          if (r.type === '오프만찾' || r.type === '온만찾') {
+            const reg = item.region || '미정';
+            regionFindResult[reg] = (regionFindResult[reg] || 0) + countVal;
+          }
+        });
+      }
+    }
+  });
+
+  // 5. 달성률 분모/분자 계산
+  const regionTargets = {};
+  const bookTargets = {};
+  const bookAchieved = {};
+  const FIXED_REGIONS = [
+    "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
+    "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
+  ];
+
+  allUsers.forEach(u => {
+    if (!u.is_exempt) {
+      const reg = u.region || '미정';
+      // 주간 미션
+      if ((u.book_count || 0) === 0) {
+        regionTargets[reg] = (regionTargets[reg] || 0) + 6;
+      }
+      // 복방
+      bookTargets[reg] = (bookTargets[reg] || 0) + 1;
+      bookAchieved[reg] = (bookAchieved[reg] || 0) + (u.book_count || 0);
+    }
+  });
+
+  const totalFindAchieved = Object.values(regionFindResult).reduce((a, b) => a + b, 0);
+  const totalFindTarget = Object.values(regionTargets).reduce((a, b) => a + b, 0);
+  const totalBookAchieved = Object.values(bookAchieved).reduce((a, b) => a + b, 0);
+  const totalBookTarget = Object.values(bookTargets).reduce((a, b) => a + b, 0);
+
+  // 6. QuickChart.io 차트 이미지 URL 생성
+  // 차트 1: 도넛 차트 (결과 비중)
+  const doughnutConfig = {
+    type: 'doughnut',
+    data: {
+      labels: ['합자(오프)', '합자(온)', '매칭', '잎사귀', '복방'],
+      datasets: [{
+        data: [
+          resultCounts['합자찾기(오프)'] || 0,
+          resultCounts['합자찾기(온)'] || 0,
+          resultCounts['매칭'] || 0,
+          resultCounts['잎사귀'] || 0,
+          resultCounts['복방'] || 0
+        ],
+        backgroundColor: ['#2563eb', '#60a5fa', '#16a34a', '#d97706', '#9333ea']
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'right' },
+        title: { display: true, text: '📈 활동 결과 비중' }
+      }
+    }
+  };
+  const doughnutChartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(doughnutConfig))}`;
+
+  // 차트 2: 가로 막대 차트 (주간 미션)
+  const weeklyPctData = FIXED_REGIONS.map(r => {
+    const t = regionTargets[r] || 0;
+    const a = regionFindResult[r] || 0;
+    return t > 0 ? Math.min(Math.round((a / t) * 100), 100) : 0;
+  });
+  const weeklyBackgroundColors = weeklyPctData.map(v => v >= 100 ? '#16a34a' : v >= 60 ? '#60a5fa' : '#f87171');
+  const weeklyConfig = {
+    type: 'bar',
+    data: {
+      labels: FIXED_REGIONS,
+      datasets: [{
+        label: '달성률(%)',
+        data: weeklyPctData,
+        backgroundColor: weeklyBackgroundColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: '📊 주간 미션 달성 현황(%)' },
+        datalabels: {
+          display: true,
+          anchor: 'end',
+          align: 'right',
+          color: '#333',
+          font: { weight: 'bold', size: 10 }
+        }
+      },
+      scales: {
+        x: { beginAtZero: true, max: 100 }
+      }
+    }
+  };
+  const weeklyChartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(weeklyConfig))}`;
+
+  // 차트 3: 가로 막대 차트 (복방 미션)
+  const bookPctData = FIXED_REGIONS.map(r => {
+    const t = bookTargets[r] || 0;
+    const a = bookAchieved[r] || 0;
+    return t > 0 ? Math.min(Math.round((a / t) * 100), 100) : 0;
+  });
+  const bookBackgroundColors = bookPctData.map(v => v >= 100 ? '#16a34a' : v >= 60 ? '#60a5fa' : '#f87171');
+  const bookConfig = {
+    type: 'bar',
+    data: {
+      labels: FIXED_REGIONS,
+      datasets: [{
+        label: '달성률(%)',
+        data: bookPctData,
+        backgroundColor: bookBackgroundColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: '🍎 복음방 미션 달성 현황(%)' },
+        datalabels: {
+          display: true,
+          anchor: 'end',
+          align: 'right',
+          color: '#333',
+          font: { weight: 'bold', size: 10 }
+        }
+      },
+      scales: {
+        x: { beginAtZero: true, max: 100 }
+      }
+    }
+  };
+  const bookChartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(bookConfig))}`;
+
+  // 7. 구글 시트에서 메시지 템플릿 로드
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let templateSheet = ss.getSheetByName("MessageTemplates");
+  if (!templateSheet) {
+    templateSheet = ss.insertSheet("MessageTemplates");
+    templateSheet.appendRow(["template_key", "template_text", "description"]);
+    
+    const defaultTemplate = 
+      "📢 [주간 활동 리포트]\n" +
+      "기간: {start_date} ~ {end_date}\n\n" +
+      "📈 활동 결과 비중:\n" +
+      "- 합자찾기(오프): {find_off}건\n" +
+      "- 합자찾기(온): {find_on}건\n" +
+      "- 매칭: {match}건\n" +
+      "- 잎사귀: {leaf}건\n" +
+      "- 복방: {book}건\n\n" +
+      "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
+      "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
+      "🔥 이번 주도 수고하셨습니다!";
+      
+    templateSheet.appendRow([
+      "weekly_report",
+      defaultTemplate,
+      "수요일/일요일 오전 9시 주간 리포트 발송용 템플릿"
+    ]);
+  }
+
+  const data = templateSheet.getDataRange().getValues();
+  let templateText = "";
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === "weekly_report") {
+      templateText = data[i][1].toString();
+      break;
+    }
+  }
+
+  if (!templateText) {
+    templateText = 
+      "📢 [주간 활동 리포트]\n" +
+      "기간: {start_date} ~ {end_date}\n\n" +
+      "📈 활동 결과:\n" +
+      "- 합자찾기(오프): {find_off}건\n" +
+      "- 합자찾기(온): {find_on}건\n" +
+      "- 매칭: {match}건\n" +
+      "- 잎사귀: {leaf}건\n" +
+      "- 복방: {book}건\n\n" +
+      "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
+      "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
+      "🔥 이번 주도 수고하셨습니다!";
+  }
+
+  // 8. 템플릿 변수 치환
+  const formattedMsg = templateText
+    .replace(/{start_date}/g, startStr)
+    .replace(/{end_date}/g, endStr)
+    .replace(/{find_off}/g, (resultCounts['합자찾기(오프)'] || 0).toString())
+    .replace(/{find_on}/g, (resultCounts['합자찾기(온)'] || 0).toString())
+    .replace(/{match}/g, (resultCounts['매칭'] || 0).toString())
+    .replace(/{leaf}/g, (resultCounts['잎사귀'] || 0).toString())
+    .replace(/{book}/g, (resultCounts['복방'] || 0).toString())
+    .replace(/{mission_achieved}/g, totalFindAchieved.toString())
+    .replace(/{mission_target}/g, totalFindTarget.toString())
+    .replace(/{mission_pct}/g, (totalFindTarget > 0 ? Math.round((totalFindAchieved / totalFindTarget) * 100) : 0).toString())
+    .replace(/{book_achieved}/g, totalBookAchieved.toString())
+    .replace(/{book_target}/g, totalBookTarget.toString())
+    .replace(/{book_pct}/g, (totalBookTarget > 0 ? Math.round((totalBookAchieved / totalBookTarget) * 100) : 0).toString());
+
+  // 9. 텔레그램 sendMediaGroup API 전송
+  const media = [
+    {
+      type: 'photo',
+      media: doughnutChartUrl,
+      caption: formattedMsg,
+      parse_mode: 'Markdown'
+    },
+    {
+      type: 'photo',
+      media: weeklyChartUrl
+    },
+    {
+      type: 'photo',
+      media: bookChartUrl
+    }
+  ];
+
+  const payload = {
+    chat_id: chatId,
+    media: JSON.stringify(media)
+  };
+
+  const response = UrlFetchApp.fetch(`https://api.telegram.org/bot${botToken}/sendMediaGroup`, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+
+  Logger.log("sendWeeklyTelegramReport Response: " + response.getContentText());
+}
+
+// 수동 테스트 실행용 헬퍼 함수
+function testSendWeeklyTelegramReport() {
+  sendWeeklyTelegramReport();
+}
