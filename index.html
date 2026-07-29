@@ -301,6 +301,26 @@
             }
         }
 
+        /* +버튼 붉은 테두리 빛남 애니메이션 */
+        @keyframes pulse-red-fab {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7), 0 4px 20px rgba(37, 99, 235, .4);
+                border-color: #dc2626;
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(220, 38, 38, 0), 0 4px 20px rgba(220, 38, 38, .5);
+                border-color: #ef4444;
+            }
+        }
+
+        .fab-btn-urgent {
+            border: 2px solid #dc2626 !important;
+            animation: pulse-red-fab 1.8s infinite !important;
+        }
+
         .animate-bounce-slow {
             animation: bounce-slow 1.5s infinite ease-in-out;
         }
@@ -737,14 +757,26 @@
             </button>
         </div>
 
-        <!-- ADD BUTTON -->
-        <button id="fab"
-            class="fixed bottom-6 right-5 z-30 w-14 h-14 bg-tg-blue text-white rounded-full flex items-center justify-center active:scale-95 transition-transform">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
-                stroke="currentColor" class="w-7 h-7">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-        </button>
+        <!-- FAB BUTTON & NO-PLAN BADGE -->
+        <div id="fab-wrapper" class="fixed bottom-6 right-5 z-30 flex items-center gap-2 flex-row-reverse">
+            <button id="fab"
+                class="w-14 h-14 bg-tg-blue text-white rounded-full flex items-center justify-center active:scale-95 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                    stroke="currentColor" class="w-7 h-7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+            </button>
+
+            <!-- 금일 계획 미입력 붉은 말풍선 툴팁 -->
+            <div id="no-plan-badge"
+                class="hidden bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 animate-bounce-slow relative whitespace-nowrap">
+                <!-- 오른쪽 방향 말풍선 꼬리표 -->
+                <div
+                    class="absolute -right-1.5 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-t-transparent border-l-[7px] border-l-red-600 border-b-[5px] border-b-transparent">
+                </div>
+                <span>금일 계획을 입력해주세요</span>
+            </div>
+        </div>
 
         <div id="modal-overlay" class="fixed inset-0 z-40 bg-black/40"></div>
 
@@ -5230,42 +5262,58 @@
 
         //붉은 테두리 강조
         function checkUncompletedOverdueActivities() {
-            const dashWrapper = $('dash-btn-wrapper');
             const dashBtn = $('dash-btn');
-            const badge = $('uncompleted-badge');
-            const msgEl = $('uncompleted-msg');
+            const badgeDash = $('uncompleted-badge');
+            const msgDash = $('uncompleted-msg');
 
-            if (!dashBtn || !badge) return;
+            const fabBtn = $('fab');
+            const badgeFab = $('no-plan-badge');
+
+            if (!dashBtn || !fabBtn) return;
 
             const now = new Date();
             const todayStr = dateKey(now);
             const selectedDateStr = dateKey(currentDate);
 
-            // 오직 "오늘 날짜"를 조회 중일 때만 시각 경과 여부를 체크합니다.
+            // 오직 "오늘 날짜"를 조회 중일 때만 두 툴팁을 체크합니다.
             if (selectedDateStr !== todayStr) {
                 dashBtn.classList.remove('dash-btn-urgent');
-                badge.classList.add('hidden');
+                if (badgeDash) badgeDash.classList.add('hidden');
+
+                fabBtn.classList.remove('fab-btn-urgent');
+                if (badgeFab) badgeFab.classList.add('hidden');
                 return;
             }
 
             const currentHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             const currentUserIdStr = profile.id ? profile.id.toString().trim() : "";
 
-            // 내 활동 중 종료 시간이 지났는데 여전히 'planned'(계획중) 상태인 항목 개수 산출
-            const overdueCount = activities.filter(item => {
-                const isMine = (item.userId && item.userId.toString().trim() === currentUserIdStr);
-                const isPlanned = (item.status === 'planned');
-                const isEnded = (item.endTime && item.endTime < currentHHmm);
-                return isMine && isPlanned && isEnded;
+            // 1. 내 오늘 전체 활동(계획중, 완료, 취소 포함)
+            const myTodayActivities = activities.filter(item => {
+                return item.userId && item.userId.toString().trim() === currentUserIdStr;
+            });
+
+            // 2. [오른쪽 +버튼 검사] 오늘 등록된 내 계획이 0개인 경우
+            if (myTodayActivities.length === 0) {
+                fabBtn.classList.add('fab-btn-urgent');
+                if (badgeFab) badgeFab.classList.remove('hidden');
+            } else {
+                fabBtn.classList.remove('fab-btn-urgent');
+                if (badgeFab) badgeFab.classList.add('hidden');
+            }
+
+            // 3. [왼쪽 대시보드 버튼 검사] 종료 시각이 지났는데 여전히 'planned' 상태인 내 일정 개수
+            const overdueCount = myTodayActivities.filter(item => {
+                return item.status === 'planned' && item.endTime && item.endTime < currentHHmm;
             }).length;
 
             if (overdueCount > 0) {
                 dashBtn.classList.add('dash-btn-urgent');
-                msgEl.textContent = `결과가 입력되지 않은 계획이 ${overdueCount}개 있습니다`;
-                badge.classList.remove('hidden');
+                if (msgDash) msgDash.textContent = `결과가 입력되지 않은 계획이 ${overdueCount}개 있습니다`;
+                if (badgeDash) badgeDash.classList.remove('hidden');
             } else {
                 dashBtn.classList.remove('dash-btn-urgent');
-                badge.classList.add('hidden');
+                if (badgeDash) badgeDash.classList.add('hidden');
             }
         }
 
