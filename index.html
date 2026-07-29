@@ -1798,6 +1798,9 @@
                         renderDateNav();
                         renderList();
 
+                        // 💡 데이터 로드 완료 직후 미입력/미취합 상태 검사 실행!
+                        checkUncompletedOverdueActivities();
+
                         // 활동 추적 모달이 열려 있다면 데이터도 같이 새로고침
                         const trackerOverlay = $('tracker-overlay');
                         if (trackerOverlay && trackerOverlay.classList.contains('open')) {
@@ -5275,7 +5278,7 @@
             const todayStr = dateKey(now);
             const selectedDateStr = dateKey(currentDate);
 
-            // 오직 "오늘 날짜"를 조회 중일 때만 두 툴팁을 체크합니다.
+            // 오직 "오늘 날짜"를 조회 중일 때만 검사합니다.
             if (selectedDateStr !== todayStr) {
                 dashBtn.classList.remove('dash-btn-urgent');
                 if (badgeDash) badgeDash.classList.add('hidden');
@@ -5286,14 +5289,16 @@
             }
 
             const currentHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            const currentUserIdStr = profile.id ? profile.id.toString().trim() : "";
+            const currentUserIdStr = profile.id ? String(profile.id).trim() : "";
 
-            // 1. 내 오늘 전체 활동(계획중, 완료, 취소 포함)
+            // 1. 내 오늘 활동 파악 (내 ID와 일치하거나 작성자 이름이 일치하는 항목)
             const myTodayActivities = activities.filter(item => {
-                return item.userId && item.userId.toString().trim() === currentUserIdStr;
+                const matchId = item.userId && String(item.userId).trim() === currentUserIdStr;
+                const matchName = item.name && profile.name && item.name.trim() === profile.name.trim();
+                return matchId || matchName;
             });
 
-            // 2. [오른쪽 +버튼 검사] 오늘 등록된 내 계획이 0개인 경우
+            // 2. [오른쪽 +버튼 검사] 오늘 등록된 내 활동(계획/완료/취소)이 0개인 경우
             if (myTodayActivities.length === 0) {
                 fabBtn.classList.add('fab-btn-urgent');
                 if (badgeFab) badgeFab.classList.remove('hidden');
@@ -5302,7 +5307,7 @@
                 if (badgeFab) badgeFab.classList.add('hidden');
             }
 
-            // 3. [왼쪽 대시보드 버튼 검사] 종료 시각이 지났는데 여전히 'planned' 상태인 내 일정 개수
+            // 3. [왼쪽 대시보드 버튼 검사] 종료 시각이 지났는데 여전히 'planned' 상태인 내 일정
             const overdueCount = myTodayActivities.filter(item => {
                 return item.status === 'planned' && item.endTime && item.endTime < currentHHmm;
             }).length;
