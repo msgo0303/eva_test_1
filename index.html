@@ -4733,12 +4733,12 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <!-- ON / OFF 토글 버튼 -->
-                        <button onclick="toggleAlarmActive(${a.id}, ${!a.is_active})" 
+                        <button onclick="toggleAlarmActive(${a.id}, ${!a.is_active}, '${a.category}', '${a.alarm_time}')" 
                                 class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${a.is_active ? 'bg-green-600 text-white' : 'bg-zinc-300 text-zinc-600'}">
                             ${a.is_active ? 'ON' : 'OFF'}
                         </button>
                         <!-- 삭제 버튼 -->
-                        <button onclick="deleteAlarmSchedule(${a.id})" 
+                        <button onclick="deleteAlarmSchedule(${a.id}, '${a.category}', '${a.alarm_time}')" 
                                 class="px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg text-[10px] font-bold">
                             삭제
                         </button>
@@ -4787,19 +4787,37 @@
         }
 
         // ON/OFF 토글
-        async function toggleAlarmActive(id, newState) {
+        async function toggleAlarmActive(id, newState, category, alarmTime) {
             if (supabaseClient) {
-                await supabaseClient.from('alarm_schedules').update({ is_active: newState }).eq('id', id);
-                loadAlarmSchedules();
+                try {
+                    await supabaseClient.from('alarm_schedules').update({ is_active: newState }).eq('id', id);
+                    
+                    // 구글 시트 상태 동기화 호출
+                    const gasApiUrl = `${GAS_URL}?action=toggleAlarmActive&category=${category}&alarmTime=${alarmTime}&isActive=${newState}`;
+                    fetch(gasApiUrl, { mode: 'no-cors' });
+                    
+                    loadAlarmSchedules();
+                } catch (err) {
+                    showToast('상태 변경 실패: ' + err.message, 'error');
+                }
             }
         }
 
         // 알람 삭제
-        async function deleteAlarmSchedule(id) {
+        async function deleteAlarmSchedule(id, category, alarmTime) {
             if (!confirm('이 알람 설정을 삭제하시겠습니까?')) return;
             if (supabaseClient) {
-                await supabaseClient.from('alarm_schedules').delete().eq('id', id);
-                loadAlarmSchedules();
+                try {
+                    await supabaseClient.from('alarm_schedules').delete().eq('id', id);
+                    
+                    // 구글 시트 알람 삭제 동기화 호출
+                    const gasApiUrl = `${GAS_URL}?action=deleteAlarmSchedule&category=${category}&alarmTime=${alarmTime}`;
+                    fetch(gasApiUrl, { mode: 'no-cors' });
+                    
+                    loadAlarmSchedules();
+                } catch (err) {
+                    showToast('알람 삭제 실패: ' + err.message, 'error');
+                }
             }
         }
 

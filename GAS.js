@@ -54,6 +54,41 @@ function doGet(e) {
       return makeJsonResponse({ result: "success", message: "시트에 알람이 등록되었습니다." });
     }
 
+    if (action === "deleteAlarmSchedule") {
+      const category = e.parameter.category;
+      const alarmTime = e.parameter.alarmTime;
+      
+      let alarmSheet = ss.getSheetByName("AlarmSchedules");
+      if (alarmSheet) {
+        const data = alarmSheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][1] === category && data[i][2] === alarmTime) {
+            alarmSheet.deleteRow(i + 1);
+            break;
+          }
+        }
+      }
+      return makeJsonResponse({ result: "success", message: "시트에서 알람이 삭제되었습니다." });
+    }
+
+    if (action === "toggleAlarmActive") {
+      const category = e.parameter.category;
+      const alarmTime = e.parameter.alarmTime;
+      const isActive = e.parameter.isActive || "TRUE";
+      
+      let alarmSheet = ss.getSheetByName("AlarmSchedules");
+      if (alarmSheet) {
+        const data = alarmSheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][1] === category && data[i][2] === alarmTime) {
+            alarmSheet.getRange(i + 1, 4).setValue(isActive.toString().toUpperCase());
+            break;
+          }
+        }
+      }
+      return makeJsonResponse({ result: "success", message: "시트 알람 상태가 변경되었습니다." });
+    }
+
     if (action === "logRegisterClick") {
       const userId = e.parameter.userId;
       const name = e.parameter.name;
