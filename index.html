@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -886,6 +887,10 @@
                         class="dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted">이번
                         달</button>
                 </div>
+                
+                <button id="btn-send-dash-report" onclick="sendDashboardReport()" class="w-full py-2.5 bg-tg-blue text-white rounded-xl font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5">
+                    ⚡ 현재 화면 그래프 텔레그램으로 전송하기
+                </button>
 
                 <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4 relative">
                     <div class="flex items-center justify-between">
@@ -992,7 +997,7 @@
                     </div>
                 </div>
 
-                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
+                <div id="dashboard-graphs-container" class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
                     <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📈 활동 결과 비중(창출된 결과)</h3>
                     <div class="flex items-center gap-3">
                         <div class="w-1/2 h-44 relative">
@@ -3196,6 +3201,134 @@
                     btn.textContent = "📅 선택한 시간에 예약 저장";
                 }
             }
+        }
+
+        // 대시보드 그래프 화면 캡처 및 텔레그램 전송
+        function sendDashboardReport() {
+            const btn = $('btn-send-dash-report');
+            btn.disabled = true;
+            btn.textContent = "화면 캡처 중...";
+
+            const element = $('dashboard-graphs-container');
+            
+            // html2canvas 옵션: 디바이스 픽셀 비율 대응 및 CORS 설정
+            html2canvas(element, {
+                scale: 2, // 고해상도로 캡처
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(async (canvas) => {
+                btn.textContent = "텔레그램 전송 중...";
+                
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        showToast("이미지 캡처에 실패했습니다.", "error");
+                        btn.disabled = false;
+                        btn.textContent = "⚡ 현재 화면 그래프 텔레그램으로 전송하기";
+                        return;
+                    }
+
+                    try {
+                        // 1. GAS에 저장된 리포트 텍스트 템플릿 로드
+                        let templateText = "";
+                        try {
+                            const resTemp = await fetch(`${GAS_URL}?action=getWeeklyReportTemplate`);
+                            const tempData = await resTemp.json();
+                            if (tempData.result === 'success') {
+                                templateText = tempData.template;
+                            }
+                        } catch (e) {
+                            console.error("Template load failed, using default:", e);
+                        }
+
+                        if (!templateText) {
+                            templateText = 
+                              "📢 [주간 활동 리포트]\n" +
+                              "기간: {start_date} ~ {end_date}\n\n" +
+                              "📈 활동 결과 비중:\n" +
+                              "- 합자찾기(오프): {find_off}건\n" +
+                              "- 합자찾기(온): {find_on}건\n" +
+                              "- 매칭: {match}건\n" +
+                              "- 잎사귀: {leaf}건\n" +
+                              "- 복방: {book}건\n\n" +
+                              "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
+                              "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
+                              "🔥 이번 주도 수고하셨습니다!";
+                        }
+
+                        // 2. 현재 화면에 표기된 수치 추출 및 정제
+                        const dateText = $('db-range-dates-text').textContent || "";
+                        const dateParts = dateText.split('~');
+                        const startDateText = dateParts[0] ? dateParts[0].trim() : "";
+                        const endDateText = dateParts[1] ? dateParts[1].trim() : startDateText;
+
+                        const findOff = parseInt($('db-done-find-off').textContent) || 0;
+                        const findOn = parseInt($('db-done-find-on').textContent) || 0;
+                        const match = parseInt($('db-done-match').textContent) || 0;
+                        const leaf = parseInt($('db-done-leaf').textContent) || 0;
+                        const book = parseInt($('db-done-book').textContent) || 0;
+
+                        // 미션 요약 텍스트 파싱 헬퍼
+                        const parseSummary = (text) => {
+                            const match = text.match(/미션\s+(\d+)개\s+중\s+(\d+)개\s+달성\s+\((\d+)%\s+달성\)/);
+                            if (match) {
+                                return {
+                                    target: parseInt(match[1]) || 0,
+                                    achieved: parseInt(match[2]) || 0,
+                                    pct: parseInt(match[3]) || 0
+                                };
+                            }
+                            return { target: 0, achieved: 0, pct: 0 };
+                        };
+
+                        const groupMetrics = parseSummary($('chart-group-summary').textContent || "");
+                        const bookMetrics = parseSummary($('chart-book-summary').textContent || "");
+
+                        // 3. 템플릿 변수 치환
+                        const formattedMsg = templateText
+                            .replace(/{start_date}/g, startDateText)
+                            .replace(/{end_date}/g, endDateText)
+                            .replace(/{find_off}/g, findOff.toString())
+                            .replace(/{find_on}/g, findOn.toString())
+                            .replace(/{match}/g, match.toString())
+                            .replace(/{leaf}/g, leaf.toString())
+                            .replace(/{book}/g, book.toString())
+                            .replace(/{mission_achieved}/g, groupMetrics.achieved.toString())
+                            .replace(/{mission_target}/g, groupMetrics.target.toString())
+                            .replace(/{mission_pct}/g, groupMetrics.pct.toString())
+                            .replace(/{book_achieved}/g, bookMetrics.achieved.toString())
+                            .replace(/{book_target}/g, bookMetrics.target.toString())
+                            .replace(/{book_pct}/g, bookMetrics.pct.toString());
+
+                        // 4. Telegram bot API sendPhoto 호출
+                        const formData = new FormData();
+                        formData.append('chat_id', TELEGRAM_CHAT_ID);
+                        formData.append('photo', blob, 'dashboard_report.png');
+                        formData.append('caption', formattedMsg);
+                        formData.append('parse_mode', 'Markdown');
+
+                        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const resData = await response.json();
+                        if (resData.ok) {
+                            showToast("그래프 스크린샷과 요약 리포트 전송 성공!", "success");
+                        } else {
+                            showToast("전송 실패: " + resData.description, "error");
+                        }
+                    } catch (err) {
+                        showToast("리포트 생성/전송 실패: " + err.message, "error");
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = "⚡ 현재 화면 그래프 텔레그램으로 전송하기";
+                    }
+                }, 'image/png');
+            }).catch((err) => {
+                showToast("화면 캡처 에러: " + err.message, "error");
+                btn.disabled = false;
+                btn.textContent = "⚡ 현재 화면 그래프 텔레그램으로 전송하기";
+            });
         }
 
         // 1. 하트 이모지 매핑 객체

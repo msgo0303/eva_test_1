@@ -75,6 +75,37 @@ function doGet(e) {
       return makeJsonResponse({ result: "success", message: "클릭 기록이 시트에 저장되었습니다." });
     }
 
+    if (action === "getWeeklyReportTemplate") {
+      let templateSheet = ss.getSheetByName("MessageTemplates");
+      let templateText = "";
+      if (templateSheet) {
+        const data = templateSheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][0] === "weekly_report") {
+            templateText = data[i][1].toString();
+            break;
+          }
+        }
+      }
+      
+      if (!templateText) {
+        templateText = 
+          "📢 [주간 활동 리포트]\n" +
+          "기간: {start_date} ~ {end_date}\n\n" +
+          "📈 활동 결과 비중:\n" +
+          "- 합자찾기(오프): {find_off}건\n" +
+          "- 합자찾기(온): {find_on}건\n" +
+          "- 매칭: {match}건\n" +
+          "- 잎사귀: {leaf}건\n" +
+          "- 복방: {book}건\n\n" +
+          "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
+          "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
+          "🔥 이번 주도 수고하셨습니다!";
+      }
+      
+      return makeJsonResponse({ result: "success", template: templateText });
+    }
+
     return makeJsonResponse({ result: "fail", message: "지원하지 않는 action입니다." });
 
   } catch (err) {
