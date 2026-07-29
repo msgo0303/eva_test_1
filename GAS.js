@@ -141,6 +141,77 @@ function doGet(e) {
       return makeJsonResponse({ result: "success", template: templateText });
     }
 
+    if (action === "registerUser") {
+      const tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
+      const selectedUserId = e.parameter.selectedRow;
+      const config = getConfig();
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      const payload = {
+        id: tgUserId
+      };
+
+      const url = `${config.supabaseUrl}/rest/v1/users?id=eq.${encodeURIComponent(selectedUserId)}`;
+      const response = UrlFetchApp.fetch(url, {
+        method: "patch",
+        headers: headers,
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      const code = response.getResponseCode();
+      if (code >= 200 && code < 300) {
+        return makeJsonResponse({ result: "success", message: "사용자 등록 완료" });
+      } else {
+        return makeJsonResponse({ result: "fail", message: "Supabase 업데이트 실패: " + response.getContentText() });
+      }
+    }
+
+    if (action === "registerCustomUser") {
+      const tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
+      const name = e.parameter.name;
+      const role = e.parameter.role || "부원";
+      const config = getConfig();
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      const payload = {
+        id: tgUserId,
+        name: name,
+        role: role,
+        region: "미지정",
+        group_name: "미지정",
+        book_count: 0,
+        is_exempt: false
+      };
+
+      const url = `${config.supabaseUrl}/rest/v1/users`;
+      const response = UrlFetchApp.fetch(url, {
+        method: "post",
+        headers: headers,
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      const code = response.getResponseCode();
+      if (code >= 200 && code < 300) {
+        return makeJsonResponse({ result: "success", message: "사용자 가입 신청 완료" });
+      } else {
+        return makeJsonResponse({ result: "fail", message: "Supabase 저장 실패: " + response.getContentText() });
+      }
+    }
+
     return makeJsonResponse({ result: "fail", message: "지원하지 않는 action입니다." });
 
   } catch (err) {
@@ -844,4 +915,17 @@ function sendWeeklyTelegramReport() {
 // 수동 테스트 실행용 헬퍼 함수
 function testSendWeeklyTelegramReport() {
   sendWeeklyTelegramReport();
+}
+
+function parseTelegramUserIdFromInitData(initDataStr) {
+  if (!initDataStr) return "GUEST_USER";
+  try {
+    const decoded = decodeURIComponent(initDataStr);
+    const userParam = decoded.split('&').find(p => p.startsWith('user='));
+    if (userParam) {
+      const userObj = JSON.parse(userParam.split('user=')[1]);
+      return userObj.id.toString();
+    }
+  } catch (e) { }
+  return "GUEST_USER";
 }
