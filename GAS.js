@@ -182,25 +182,109 @@ function checkAndSendTelegramAlarms() {
         "서울시흥": "🤍", "서울역": "🤎", "새신자": "💖", "대학": "❣️"
       };
 
-      const grouped = {};
+      // 1. 지역별로 유저 객체 그룹핑
+      const groupedByRegion = {};
       uncollectedList.forEach(u => {
         const reg = u.region || '미정';
-        if (!grouped[reg]) grouped[reg] = [];
-        grouped[reg].push(u.name);
+        if (!groupedByRegion[reg]) groupedByRegion[reg] = [];
+        groupedByRegion[reg].push(u);
       });
 
-      const lines = Object.keys(grouped).map(reg => {
-        const heart = REGION_HEARTS[reg] || "📍";
-        return `${heart} ${reg}\n${grouped[reg].join(', ')}`;
-      });
+      // 2. 최대 50명씩 끊어서 청크 나누기 (지역 보존 그리디 패킹)
+      const chunks = [];
+      let currentChunk = [];
+      let currentChunkSize = 0;
 
-      const finalMsg = `${titleHeader}\n\n${lines.join('\n\n')}`;
+      const regions = Object.keys(groupedByRegion);
+      for (let j = 0; j < regions.length; j++) {
+        const reg = regions[j];
+        const regionUsers = groupedByRegion[reg];
+        const count = regionUsers.length;
 
-      // 텔레그램 메인방 직발송
-      UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'post',
-        contentType: 'application/json',
-        payload: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: finalMsg })
+        if (count > 50) {
+          if (currentChunk.length > 0) {
+            chunks.push(currentChunk);
+            currentChunk = [];
+            currentChunkSize = 0;
+          }
+          // 50명씩 나눔
+          for (let i = 0; i < count; i += 50) {
+            chunks.push(regionUsers.slice(i, i + 50));
+          }
+        } else {
+          if (currentChunkSize + count <= 50) {
+            currentChunk.push(...regionUsers);
+            currentChunkSize += count;
+          } else {
+            if (currentChunk.length > 0) {
+              chunks.push(currentChunk);
+            }
+            currentChunk = [...regionUsers];
+            currentChunkSize = count;
+          }
+        }
+      }
+      if (currentChunk.length > 0) {
+        chunks.push(currentChunk);
+      }
+
+      // 3. 각 청크별 메시지 빌드 및 발송
+      chunks.forEach((chunk, index) => {
+        // 지역별 묶기
+        const chunkGrouped = {};
+        chunk.forEach(u => {
+          const reg = u.region || '미정';
+          if (!chunkGrouped[reg]) chunkGrouped[reg] = [];
+          
+          const cleanName = String(u.name).replace(/[\[\]\(\)\_\*]/g, "").trim();
+          
+          // 태그 처리: Markdown 파싱 모드에서 [이름](tg://user?id=아이디)
+          const mention = (u.id && !isNaN(u.id) && u.id !== "GUEST_USER" && String(u.id).trim() !== "")
+            ? `[${cleanName}](tg://user?id=${u.id})`
+            : cleanName;
+            
+          chunkGrouped[reg].push(mention);
+        });
+
+        const lines = Object.keys(chunkGrouped).map(reg => {
+          const heart = REGION_HEARTS[reg] || "📍";
+          return `${heart} ${reg}\n${chunkGrouped[reg].join(', ')}`;
+        });
+
+        let chunkHeader = titleHeader;
+        if (chunks.length > 1) {
+          chunkHeader = `[메시지 ${index + 1}/${chunks.length} - ${chunk.length}명]\n${titleHeader}`;
+        }
+
+        const finalMsg = `${chunkHeader}\n\n${lines.join('\n\n')}`;
+
+        // 텔레그램 메인방 발송 (Markdown 파싱 및 콜백 버튼 포함)
+        const payload = {
+          chat_id: TELEGRAM_CHAT_ID,
+          text: finalMsg,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "내 정보 등록하기 (최초 1회는 클릭 필요)", callback_data: "register_click" }
+              ]
+            ]
+          }
+        };
+
+        const res = UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'post',
+          contentType: 'application/json',
+          payload: JSON.stringify(payload),
+          muteHttpExceptions: true
+        });
+
+        Logger.log(`Scheduled alarm chunk ${index + 1} send response: ${res.getContentText()}`);
+
+        // 레이트 리밋 방지를 위한 약간의 딜레이
+        if (chunks.length > 1 && index < chunks.length - 1) {
+          Utilities.sleep(200);
+        }
       });
     }
   });
