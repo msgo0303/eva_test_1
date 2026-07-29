@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -267,6 +267,43 @@
             -webkit-appearance: none;
             appearance: none;
         }
+
+        /* 버튼 붉은 테두리 빛남 애니메이션 */
+        @keyframes pulse-red-border {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7), 0 4px 20px rgba(24, 24, 27, .3);
+                border-color: #dc2626;
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(220, 38, 38, 0), 0 4px 20px rgba(220, 38, 38, .5);
+                border-color: #ef4444;
+            }
+        }
+
+        .dash-btn-urgent {
+            border: 2px solid #dc2626 !important;
+            animation: pulse-red-border 1.8s infinite !important;
+        }
+
+        /* 말풍선 은은한 바운스 효과 */
+        @keyframes bounce-slow {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            50% {
+                transform: translateX(4px);
+            }
+        }
+
+        .animate-bounce-slow {
+            animation: bounce-slow 1.5s infinite ease-in-out;
+        }
     </style>
 </head>
 
@@ -455,15 +492,27 @@
             <div id="cards-container" class="space-y-3"></div>
         </main>
 
-        <!-- DASHBOARD BUTTON -->
-        <button id="dash-btn"
-            class="hidden fixed bottom-6 left-5 z-30 w-14 h-14 bg-zinc-900 text-white rounded-full flex items-center justify-center active:scale-95 transition-transform">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                stroke="currentColor" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-        </button>
+        <!-- DASHBOARD BUTTON & UNCOMPLETED BADGE -->
+        <div id="dash-btn-wrapper" class="hidden fixed bottom-6 left-5 z-30 flex items-center gap-2">
+            <button id="dash-btn"
+                class="relative w-14 h-14 bg-zinc-900 text-white rounded-full flex items-center justify-center active:scale-95 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+            </button>
+
+            <!-- 붉은 말풍선 툴팁 -->
+            <div id="uncompleted-badge"
+                class="hidden bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 animate-bounce-slow relative whitespace-nowrap">
+                <!-- 왼쪽 말풍선 꼬리표 -->
+                <div
+                    class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-t-transparent border-r-[7px] border-r-red-600 border-b-[5px] border-b-transparent">
+                </div>
+                <span id="uncompleted-msg">결과가 입력되지 않은 계획이 0개 있습니다</span>
+            </div>
+        </div>
 
         <!-- DASHBOARD POP-OVER MENU -->
         <div id="dash-popover-overlay" class="fixed inset-0 z-30 bg-black/20 hidden"></div>
@@ -1791,6 +1840,8 @@
         }
 
         function applyUserPermissionsUI(isAdminOrLeader) {
+            const wrapper = $('dash-btn-wrapper');
+            if (wrapper) wrapper.classList.remove('hidden');
             $('dash-btn').classList.remove('hidden');
             if (isAdminOrLeader) {
                 $('admin-time-filter-bar').classList.remove('hidden');
@@ -4582,6 +4633,7 @@
                     if (item) openEdit(item);
                 });
             });
+            checkUncompletedOverdueActivities();
         }
 
         function openModal() {
@@ -5176,6 +5228,47 @@
             }
         }
 
+        //붉은 테두리 강조
+        function checkUncompletedOverdueActivities() {
+            const dashWrapper = $('dash-btn-wrapper');
+            const dashBtn = $('dash-btn');
+            const badge = $('uncompleted-badge');
+            const msgEl = $('uncompleted-msg');
+
+            if (!dashBtn || !badge) return;
+
+            const now = new Date();
+            const todayStr = dateKey(now);
+            const selectedDateStr = dateKey(currentDate);
+
+            // 오직 "오늘 날짜"를 조회 중일 때만 시각 경과 여부를 체크합니다.
+            if (selectedDateStr !== todayStr) {
+                dashBtn.classList.remove('dash-btn-urgent');
+                badge.classList.add('hidden');
+                return;
+            }
+
+            const currentHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const currentUserIdStr = profile.id ? profile.id.toString().trim() : "";
+
+            // 내 활동 중 종료 시간이 지났는데 여전히 'planned'(계획중) 상태인 항목 개수 산출
+            const overdueCount = activities.filter(item => {
+                const isMine = (item.userId && item.userId.toString().trim() === currentUserIdStr);
+                const isPlanned = (item.status === 'planned');
+                const isEnded = (item.endTime && item.endTime < currentHHmm);
+                return isMine && isPlanned && isEnded;
+            }).length;
+
+            if (overdueCount > 0) {
+                dashBtn.classList.add('dash-btn-urgent');
+                msgEl.textContent = `결과가 입력되지 않은 계획이 ${overdueCount}개 있습니다`;
+                badge.classList.remove('hidden');
+            } else {
+                dashBtn.classList.remove('dash-btn-urgent');
+                badge.classList.add('hidden');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             initTimeSelects();
             initAllRegionDropdowns();
@@ -5318,6 +5411,7 @@
                     if (e.target === memberDetailOverlay) closeMemberDetail();
                 });
             }
+            setInterval(checkUncompletedOverdueActivities, 60000);
         });
     </script>
 
