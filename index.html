@@ -2666,61 +2666,100 @@
                 return;
             }
 
+            // 오늘 날짜 계산 (KST 기준)
+            const todayStr = dateKey(currentDate || new Date());
+
             // 사이클별 통계 계산
             const semStats = semestersList.map(sem => {
                 const semActs = actData.filter(a => a.activity_date >= sem.startDate && a.activity_date <= sem.endDate);
-                const total = semActs.length;
-                const completed = semActs.filter(a => a.status === 'completed').length;
-                const planned = semActs.filter(a => a.status === 'planned').length;
-                const canceled = semActs.filter(a => a.status === 'canceled').length;
-
-                // 카테고리별 완료 집계
-                const catCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+                
                 let findCount = 0;
+                let matchCount = 0;
+                let leafCount = 0;
+                let bookCount = 0;
                 const detailMap = {};
 
                 semActs.filter(a => a.status === 'completed').forEach(a => {
-                    if (catCounts[a.content] !== undefined) catCounts[a.content]++;
-                    if (a.result_data) {
+                    let hasResultData = false;
+                    if (a.resultData) {
                         try {
-                            const parsed = typeof a.result_data === 'string' ? JSON.parse(a.result_data) : a.result_data;
-                            if (Array.isArray(parsed)) {
+                            const parsed = typeof a.resultData === 'string' ? JSON.parse(a.resultData) : a.resultData;
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                hasResultData = true;
                                 parsed.forEach(r => {
-                                    const key = `${r.category}:${r.type}`;
                                     const cnt = r.count !== undefined ? parseInt(r.count, 10) : 1;
+                                    
+                                    const key = `${r.category}:${r.type}`;
                                     detailMap[key] = (detailMap[key] || 0) + cnt;
-                                    if ((r.category === '합자찾기(오프)' || r.category === '합자찾기(온)' || r.category === '찾기') &&
-                                        (r.type === '오프만찾' || r.type === '온만찾')) {
+
+                                    if (r.type === '오프만찾' || r.type === '온만찾') {
                                         findCount += cnt;
+                                    }
+                                    if (r.category === '매칭' && r.type !== '취소') {
+                                        matchCount += cnt;
+                                    }
+                                    if (r.category === '잎사귀') {
+                                        leafCount += cnt;
+                                    }
+                                    if (r.category === '복방' && r.type !== '취소') {
+                                        bookCount += cnt;
                                     }
                                 });
                             }
                         } catch (e) { }
                     }
+                    
+                    if (!hasResultData) {
+                        if (a.content === '합자찾기(오프)' || a.content === '합자찾기(온)') {
+                            findCount += 1;
+                        } else if (a.content === '매칭') {
+                            matchCount += 1;
+                        } else if (a.content === '잎사귀') {
+                            leafCount += 1;
+                        } else if (a.content === '복방') {
+                            bookCount += 1;
+                        }
+                    }
                 });
 
-                return { sem, total, completed, planned, canceled, catCounts, findCount, detailMap, semActs };
+                return { sem, findCount, matchCount, leafCount, bookCount, detailMap };
             });
 
-            if (semStats.every(s => s.total === 0)) {
-                semContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">📭 등록된 사이클 기간에 활동 기록이 없습니다.</p>';
+            // 미래 사이클 제외
+            const visibleStats = semStats.filter(s => s.sem.startDate <= todayStr);
+
+            if (visibleStats.length === 0) {
+                semContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">📭 진행 중이거나 종료된 활동 기록이 없습니다.</p>';
                 return;
             }
 
-            semContainer.innerHTML = semStats.slice().reverse().map(({ sem, total, completed, planned, canceled, catCounts, findCount, detailMap }) => {
-                const activeBadge = sem.isCurrent
+            // 최신 시작일 순서대로 정렬 (내림차순)
+            visibleStats.sort((a, b) => b.sem.startDate.localeCompare(a.sem.startDate));
+
+            // 현재 사이클을 찾아 맨 위로 이동
+            const currentIndex = visibleStats.findIndex(s => s.sem.isCurrent || (s.sem.startDate <= todayStr && s.sem.endDate >= todayStr));
+            if (currentIndex > 0) {
+                const currentCycle = visibleStats.splice(currentIndex, 1)[0];
+                visibleStats.unshift(currentCycle);
+            }
+
+            // 카드 HTML 리스트 빌드
+            const cardsHtml = visibleStats.map(({ sem, findCount, matchCount, leafCount, bookCount, detailMap }) => {
+                const isCurrent = sem.isCurrent || (sem.startDate <= todayStr && sem.endDate >= todayStr);
+                const activeBadge = isCurrent
                     ? '<span class="bg-tg-blue text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">현재</span>'
                     : '<span class="bg-zinc-100 text-zinc-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-zinc-200">이전</span>';
 
-                const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-                const rateColor = rate >= 80 ? 'text-green-600' : rate >= 50 ? 'text-amber-600' : 'text-red-500';
+                // 달성 게이지는 주간 찾기 6개 미션 기준
+                const findPct = Math.min(Math.round((findCount / 6) * 100), 100);
+                const pctColor = findPct >= 100 ? 'text-green-600' : findPct >= 60 ? 'text-tg-blue' : 'text-red-500';
 
                 const detailChips = Object.keys(detailMap).length > 0
                     ? Object.keys(detailMap).map(k => {
                         const [c, t] = k.split(':');
                         return `<span class="bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold px-2 py-0.5 rounded-md">${c.replace('(오프라인)', '(오프)').replace('(온라인)', '(온)')} [${t}]: ${detailMap[k]}</span>`;
                     }).join('')
-                    : '<span class="text-tg-muted text-[10px]">기록 없음</span>';
+                    : '';
 
                 return `
                     <div class="bg-white rounded-2xl border border-tg-border p-4 space-y-3 shadow-sm">
@@ -2734,34 +2773,34 @@
 
                         <div class="grid grid-cols-4 gap-1.5">
                             <div class="bg-blue-50 rounded-xl p-2 text-center border border-blue-100">
-                                <p class="text-[9px] text-blue-600 font-bold">전체</p>
-                                <p class="text-sm font-extrabold text-blue-800">${total}</p>
+                                <p class="text-[9px] text-blue-600 font-bold">찾기</p>
+                                <p class="text-[10px] font-extrabold text-blue-800">${findCount}건</p>
                             </div>
                             <div class="bg-green-50 rounded-xl p-2 text-center border border-green-100">
-                                <p class="text-[9px] text-green-600 font-bold">완료</p>
-                                <p class="text-sm font-extrabold text-green-800">${completed}</p>
+                                <p class="text-[9px] text-green-600 font-bold">매칭</p>
+                                <p class="text-[10px] font-extrabold text-green-800">${matchCount}회 진행</p>
                             </div>
                             <div class="bg-amber-50 rounded-xl p-2 text-center border border-amber-100">
-                                <p class="text-[9px] text-amber-600 font-bold">계획중</p>
-                                <p class="text-sm font-extrabold text-amber-800">${planned}</p>
+                                <p class="text-[9px] text-amber-600 font-bold">잎사귀</p>
+                                <p class="text-[10px] font-extrabold text-amber-800">${leafCount}회</p>
                             </div>
-                            <div class="bg-red-50 rounded-xl p-2 text-center border border-red-100">
-                                <p class="text-[9px] text-red-600 font-bold">취소</p>
-                                <p class="text-sm font-extrabold text-red-800">${canceled}</p>
+                            <div class="bg-purple-50 rounded-xl p-2 text-center border border-purple-100">
+                                <p class="text-[9px] text-purple-600 font-bold">복방</p>
+                                <p class="text-[10px] font-extrabold text-purple-800">${bookCount}회 진행</p>
                             </div>
                         </div>
 
                         <div class="flex items-center justify-between pt-1">
                             <div class="flex items-center gap-1.5">
                                 <div class="w-full bg-zinc-100 rounded-full h-1.5" style="width:80px">
-                                    <div class="h-1.5 rounded-full bg-green-500" style="width:${rate}%"></div>
+                                    <div class="h-1.5 rounded-full bg-green-500" style="width:${findPct}%"></div>
                                 </div>
-                                <span class="text-[10px] font-bold ${rateColor}">${rate}% 달성</span>
+                                <span class="text-[10px] font-bold ${pctColor}">${findPct}% 달성</span>
                             </div>
-                            <span class="text-[10px] text-tg-muted">찾기 <span class="font-bold text-tg-blue">${findCount}건</span></span>
+                            <span class="text-[10px] text-tg-muted">찾기 <span class="font-bold text-tg-blue">${findCount}/6건</span></span>
                         </div>
 
-                        ${Object.keys(detailMap).length > 0 ? `
+                        ${detailChips ? `
                         <div>
                             <p class="text-[10px] font-bold text-tg-muted mb-1.5">✨ 세부 활동 성과</p>
                             <div class="flex flex-wrap gap-1">${detailChips}</div>
@@ -2769,13 +2808,53 @@
                         ` : ''}
                     </div>
                 `;
-            }).join('');
+            });
+
+            // 0번째는 현재 사이클이므로 무조건 표시
+            const currentCardHtml = cardsHtml[0];
+            const pastCardsHtml = cardsHtml.slice(1);
+
+            let finalHtml = currentCardHtml;
+
+            if (pastCardsHtml.length > 0) {
+                finalHtml += `
+                    <div class="pt-2">
+                        <button id="btn-toggle-past-semesters" onclick="togglePastSemesters()" class="w-full py-2.5 bg-tg-surface text-tg-muted rounded-xl border border-tg-border font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1">
+                            <span>📂 이전 활동 기록 보기</span>
+                            <svg id="arrow-past-semesters" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 transition-transform duration-200">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </button>
+                        
+                        <div id="past-semesters-container" class="hidden mt-3 space-y-3">
+                            ${pastCardsHtml.join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            semContainer.innerHTML = finalHtml;
         }
 
         function closeMemberDetail() {
             const overlay = $('member-detail-overlay');
             if (overlay) overlay.classList.add('hidden');
         }
+
+        window.togglePastSemesters = function() {
+            const container = $('past-semesters-container');
+            const arrow = $('arrow-past-semesters');
+            const btnText = document.querySelector('#btn-toggle-past-semesters span');
+            if (container && container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+                if (btnText) btnText.textContent = '📁 이전 활동 기록 접기';
+            } else if (container) {
+                container.classList.add('hidden');
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+                if (btnText) btnText.textContent = '📂 이전 활동 기록 보기';
+            }
+        };
 
         async function updateUserRole(targetName) {
             const newRole = $('md-role-select').value;
