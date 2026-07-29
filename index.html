@@ -887,8 +887,9 @@
                         class="dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted">이번
                         달</button>
                 </div>
-                
-                <button id="btn-send-dash-report" onclick="sendDashboardReport()" class="hidden w-full py-2.5 bg-tg-blue text-white rounded-xl font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5">
+
+                <button id="btn-send-dash-report" onclick="sendDashboardReport()"
+                    class="hidden w-full py-2.5 bg-tg-blue text-white rounded-xl font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5">
                     ⚡ 현재 화면 그래프 텔레그램으로 전송하기
                 </button>
 
@@ -997,7 +998,8 @@
                     </div>
                 </div>
 
-                <div id="dashboard-graphs-container" class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
+                <div id="dashboard-graphs-container"
+                    class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-4">
                     <h3 class="text-xs font-bold text-tg-text uppercase tracking-wide">📈 활동 결과 비중(창출된 결과)</h3>
                     <div class="flex items-center gap-3">
                         <div class="w-1/2 h-44 relative">
@@ -2729,7 +2731,7 @@
             // 사이클별 통계 계산
             const semStats = semestersList.map(sem => {
                 const semActs = actData.filter(a => a.activity_date >= sem.startDate && a.activity_date <= sem.endDate);
-                
+
                 let findCount = 0;
                 let matchCount = 0;
                 let leafCount = 0;
@@ -2745,7 +2747,7 @@
                                 hasResultData = true;
                                 parsed.forEach(r => {
                                     const cnt = r.count !== undefined ? parseInt(r.count, 10) : 1;
-                                    
+
                                     const key = `${r.category}:${r.type}`;
                                     detailMap[key] = (detailMap[key] || 0) + cnt;
 
@@ -2765,7 +2767,7 @@
                             }
                         } catch (e) { }
                     }
-                    
+
                     if (!hasResultData) {
                         if (a.content === '합자찾기(오프)' || a.content === '합자찾기(온)') {
                             findCount += 1;
@@ -2898,7 +2900,7 @@
             if (overlay) overlay.classList.add('hidden');
         }
 
-        window.togglePastSemesters = function() {
+        window.togglePastSemesters = function () {
             const container = $('past-semesters-container');
             const arrow = $('arrow-past-semesters');
             const btnText = document.querySelector('#btn-toggle-past-semesters span');
@@ -3221,7 +3223,7 @@
         async function submitRiskNotification() {
             const previewEl = $('risk-send-preview');
             let markdownMsgs = [];
-            
+
             try {
                 const markdownMessagesStr = previewEl.dataset.markdownMessages;
                 markdownMsgs = markdownMessagesStr ? JSON.parse(markdownMessagesStr) : [];
@@ -3253,9 +3255,9 @@
 
                     for (let i = 0; i < markdownMsgs.length; i++) {
                         const messageText = markdownMsgs[i];
-                        
-                        btn.textContent = markdownMsgs.length > 1 
-                            ? `발송 중 (${i + 1}/${markdownMsgs.length})...` 
+
+                        btn.textContent = markdownMsgs.length > 1
+                            ? `발송 중 (${i + 1}/${markdownMsgs.length})...`
                             : "발송 중...";
 
                         const payload = {
@@ -3347,7 +3349,7 @@
             btn.textContent = "화면 캡처 중...";
 
             const element = $('dashboard-graphs-container');
-            
+
             // html2canvas 옵션: 디바이스 픽셀 비율 대응 및 CORS 설정
             html2canvas(element, {
                 scale: 2, // 고해상도로 캡처
@@ -3355,7 +3357,7 @@
                 backgroundColor: '#ffffff'
             }).then(async (canvas) => {
                 btn.textContent = "텔레그램 전송 중...";
-                
+
                 canvas.toBlob(async (blob) => {
                     if (!blob) {
                         showToast("이미지 캡처에 실패했습니다.", "error");
@@ -3378,18 +3380,18 @@
                         }
 
                         if (!templateText) {
-                            templateText = 
-                              "📢 [주간 활동 리포트]\n" +
-                              "기간: {start_date} ~ {end_date}\n\n" +
-                              "📈 활동 결과 비중:\n" +
-                              "- 합자찾기(오프): {find_off}건\n" +
-                              "- 합자찾기(온): {find_on}건\n" +
-                              "- 매칭: {match}건\n" +
-                              "- 잎사귀: {leaf}건\n" +
-                              "- 복방: {book}건\n\n" +
-                              "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
-                              "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
-                              "🔥 이번 주도 수고하셨습니다!";
+                            templateText =
+                                "📢 [주간 활동 리포트]\n" +
+                                "기간: {start_date} ~ {end_date}\n\n" +
+                                "📈 활동 결과 비중:\n" +
+                                "- 합자찾기(오프): {find_off}건\n" +
+                                "- 합자찾기(온): {find_on}건\n" +
+                                "- 매칭: {match}건\n" +
+                                "- 잎사귀: {leaf}건\n" +
+                                "- 복방: {book}건\n\n" +
+                                "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
+                                "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
+                                "🔥 이번 주도 수고하셨습니다!";
                         }
 
                         // 2. 현재 화면에 표기된 수치 추출 및 정제
@@ -3439,7 +3441,7 @@
                                         regionFindResult[item.region] = (regionFindResult[item.region] || 0) + cnt;
                                     }
                                 });
-                            } catch (e) {}
+                            } catch (e) { }
                         });
 
                         // 지역별 찾기 목표 계산
@@ -4024,18 +4026,18 @@
 
             const userRole = profile.role || "";
             const isSuperUser = userRole.includes("관리자") || userRole.includes("전체관리자");
-            
+
             let chartRegions = [
                 "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
                 "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
             ];
-            
+
             if (!isSuperUser && profile.region && profile.region !== '-' && profile.region !== '미정') {
                 chartRegions = [profile.region];
             } else if (activeHomeRegionFilter && activeHomeRegionFilter !== 'ALL') {
                 chartRegions = [activeHomeRegionFilter];
             }
-            
+
             const fixedRegionsOrder = chartRegions;
 
             // 컨테이너 높이 동적 조절 (지역이 1개일 경우 높이를 80px로 변경하여 그래프 두께 최적화)
@@ -4949,11 +4951,11 @@
             if (supabaseClient) {
                 try {
                     await supabaseClient.from('alarm_schedules').update({ is_active: newState }).eq('id', id);
-                    
+
                     // 구글 시트 상태 동기화 호출
                     const gasApiUrl = `${GAS_URL}?action=toggleAlarmActive&category=${category}&alarmTime=${alarmTime}&isActive=${newState}`;
                     fetch(gasApiUrl, { mode: 'no-cors' });
-                    
+
                     loadAlarmSchedules();
                 } catch (err) {
                     showToast('상태 변경 실패: ' + err.message, 'error');
@@ -4967,11 +4969,11 @@
             if (supabaseClient) {
                 try {
                     await supabaseClient.from('alarm_schedules').delete().eq('id', id);
-                    
+
                     // 구글 시트 알람 삭제 동기화 호출
                     const gasApiUrl = `${GAS_URL}?action=deleteAlarmSchedule&category=${category}&alarmTime=${alarmTime}`;
                     fetch(gasApiUrl, { mode: 'no-cors' });
-                    
+
                     loadAlarmSchedules();
                 } catch (err) {
                     showToast('알람 삭제 실패: ' + err.message, 'error');
