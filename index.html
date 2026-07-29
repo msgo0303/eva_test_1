@@ -1384,6 +1384,18 @@
             return { planned: 'badge-planned', completed: 'badge-completed', canceled: 'badge-canceled' }[s] || '';
         }
 
+        function formatUserRoleLabel(groupName, role) {
+            const parts = [];
+            const cleanGroup = (groupName || '').trim();
+            const cleanRole = (role || '').trim();
+            
+            if (cleanGroup && cleanGroup !== '-' && cleanGroup !== '미정') parts.push(cleanGroup);
+            if (cleanRole && cleanRole !== '-' && cleanRole !== '미정') parts.push(cleanRole);
+            
+            if (parts.length === 0) return '';
+            return `(${parts.join(', ')})`;
+        }
+
         function escHtml(str) {
             return String(str || '')
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -2611,7 +2623,7 @@
                             <div class="flex items-center gap-1.5">
                                 <span class="font-bold text-tg-blue">[${escHtml(u.region || '미정')}]</span>
                                 <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
-                                ${u.role ? `<span class="text-[10px] text-tg-muted">(${escHtml(u.role)})</span>` : ''}
+                                <span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(u.group_name, u.role))}</span>
                             </div>
                             <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span> · 복방 <span class="font-bold text-purple-700">${u.bookCount}개</span></p>
                         </div>
@@ -4307,7 +4319,7 @@
         <div class="flex items-center gap-1.5">
           <span class="font-bold text-tg-blue">${escHtml(item.region)}</span>
           <span class="font-bold text-tg-text">${escHtml(item.name)}</span>
-          <span class="text-[10px] text-tg-muted">(${escHtml(item.role)})</span>
+          <span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(item.group, item.role))}</span>
         </div>
         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
       </div>
@@ -4501,7 +4513,7 @@
           ${isMine ? `<span class="bg-blue-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md shadow-sm">📌 내 활동</span>` : ''}
           <span class="bg-blue-50 text-tg-blue font-bold text-[11px] px-2 py-0.5 rounded-md border border-blue-100">${escHtml(item.region || '미정')}</span>
           <span class="text-xs font-bold text-tg-text">${escHtml(item.name || '작성자')}</span>
-          ${item.role ? `<span class="text-[10px] text-tg-muted">(${escHtml(item.role)})</span>` : ''}
+          <span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(item.group, item.role))}</span>
         </div>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
       </div>
