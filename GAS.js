@@ -183,3 +183,63 @@ function makeJsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+
+// ============================================================
+// [3] doPost — 텔레그램 웹훅 업데이트 처리 (callback_query 수집)
+// ============================================================
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return makeJsonResponse({ result: "fail", message: "데이터가 없습니다." });
+    }
+    
+    const postData = JSON.parse(e.postData.contents);
+    
+    if (postData.callback_query) {
+      const callbackQuery = postData.callback_query;
+      const data = callbackQuery.data;
+      const from = callbackQuery.from;
+      
+      if (data === "register_click") {
+        const userId = from.id ? from.id.toString() : "";
+        const name = [from.first_name, from.last_name].filter(Boolean).join(" ") || "알수없음";
+        const username = from.username || "";
+        
+        const config = getConfig();
+        const botToken = config.botToken;
+        
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let clickSheet = ss.getSheetByName("RegisterClicks");
+        if (!clickSheet) {
+          clickSheet = ss.insertSheet("RegisterClicks");
+          clickSheet.appendRow(["user_id", "name", "username", "clicked_at"]);
+        }
+        
+        clickSheet.appendRow([
+          userId,
+          name,
+          username,
+          new Date()
+        ]);
+        
+        if (botToken) {
+          const answerUrl = `https://api.telegram.org/bot${botToken}/answerCallbackQuery`;
+          UrlFetchApp.fetch(answerUrl, {
+            method: 'post',
+            contentType: 'application/json',
+            payload: JSON.stringify({
+              callback_query_id: callbackQuery.id,
+              text: `${name}님, 최초 1회 정보 등록이 완료되었습니다.`,
+              show_alert: true
+            })
+          });
+        }
+      }
+    }
+    
+    return makeJsonResponse({ result: "success" });
+  } catch (err) {
+    return makeJsonResponse({ error: err.message });
+  }
+}

@@ -1556,28 +1556,6 @@
             const userId = parseTelegramUserId(initData);
             const targetDate = dateKey(currentDate);
 
-            // 💡 "내 정보 등록하기 (최초 1회는 클릭 필요)" 버튼 클릭 기록 수집
-            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param === 'register_click') {
-                const user = tg.initDataUnsafe.user;
-                if (user) {
-                    const clickUserId = user.id ? user.id.toString() : "";
-                    const clickName = [user.first_name, user.last_name].filter(Boolean).join(" ") || "알수없음";
-                    const clickUsername = user.username || "";
-                    
-                    if (!sessionStorage.getItem('logged_register_click')) {
-                        fetch(`${GAS_URL}?action=logRegisterClick&userId=${encodeURIComponent(clickUserId)}&name=${encodeURIComponent(clickName)}&username=${encodeURIComponent(clickUsername)}`)
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.result === 'success') {
-                                    sessionStorage.setItem('logged_register_click', 'true');
-                                    showToast("내 정보 등록 완료! (최초 1회)", "success");
-                                }
-                            })
-                            .catch(err => console.error("Log register click error:", err));
-                    }
-                }
-            }
-
 
             if (supabase) {
                 try {
@@ -3145,7 +3123,7 @@
                             reply_markup: {
                                 inline_keyboard: [
                                     [
-                                        { text: "내 정보 등록하기 (최초 1회는 클릭 필요)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}/msg_eva_test_01?startapp=register_click` }
+                                        { text: "내 정보 등록하기 (최초 1회는 클릭 필요)", callback_data: "register_click" }
                                     ]
                                 ]
                             }
@@ -4519,7 +4497,7 @@
                             reply_markup: {
                                 inline_keyboard: [
                                     [
-                                        { text: "내 정보 등록하기 (최초 1회는 클릭 필요)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}/msg_eva_test_01?startapp=register_click` }
+                                        { text: "내 정보 등록하기 (최초 1회는 클릭 필요)", callback_data: "register_click" }
                                     ]
                                 ]
                             }
