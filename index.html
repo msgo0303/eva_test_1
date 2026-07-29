@@ -3281,11 +3281,48 @@
                 return;
             }
 
-            // 40명씩 분할
+            // 지역별 유저 그룹 생성 후, 하나의 메시지당 최대 50명 이하가 되도록 지역 단위로 묶기
+            const groupedByRegion = {};
+            list.forEach(u => {
+                const reg = u.region || '미정';
+                if (!groupedByRegion[reg]) groupedByRegion[reg] = [];
+                groupedByRegion[reg].push(u);
+            });
+
             const chunks = [];
-            const chunkSize = 40;
-            for (let i = 0; i < list.length; i += chunkSize) {
-                chunks.push(list.slice(i, i + chunkSize));
+            let currentChunk = [];
+            let currentChunkSize = 0;
+
+            for (const reg in groupedByRegion) {
+                const regionUsers = groupedByRegion[reg];
+                const count = regionUsers.length;
+
+                // 단일 지역이 50명을 초과하는 특수한 예외 케이스 처리
+                if (count > 50) {
+                    if (currentChunk.length > 0) {
+                        chunks.push(currentChunk);
+                        currentChunk = [];
+                        currentChunkSize = 0;
+                    }
+                    // 50명씩 끊어서 강제 분할
+                    for (let i = 0; i < count; i += 50) {
+                        chunks.push(regionUsers.slice(i, i + 50));
+                    }
+                } else {
+                    if (currentChunkSize + count <= 50) {
+                        currentChunk.push(...regionUsers);
+                        currentChunkSize += count;
+                    } else {
+                        if (currentChunk.length > 0) {
+                            chunks.push(currentChunk);
+                        }
+                        currentChunk = [...regionUsers];
+                        currentChunkSize = count;
+                    }
+                }
+            }
+            if (currentChunk.length > 0) {
+                chunks.push(currentChunk);
             }
 
             // 각 청크별 메시지 생성 및 조립
