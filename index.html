@@ -1011,7 +1011,7 @@
                         class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">📊
                         미션 달성 현황(주간 찾기)</h3>
                     <p id="chart-group-summary" class="text-[11px] text-tg-muted"></p>
-                    <div class="w-full h-80 relative">
+                    <div id="chart-group-container" class="w-full h-80 relative">
                         <canvas id="chart-group"></canvas>
                     </div>
 
@@ -1019,7 +1019,7 @@
                         class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">
                         🍎복음방 미션 달성 현황(1인 1복음방)</h3>
                     <p id="chart-book-summary" class="text-[11px] text-tg-muted"></p>
-                    <div class="w-full h-80 relative">
+                    <div id="chart-book-container" class="w-full h-80 relative">
                         <canvas id="chart-book"></canvas>
                     </div>
                 </div>
@@ -4031,6 +4031,17 @@
             }
             
             const fixedRegionsOrder = chartRegions;
+
+            // 컨테이너 높이 동적 조절 (지역이 1개일 경우 높이를 80px로 변경하여 그래프 두께 최적화)
+            const groupContainer = $('chart-group-container');
+            const bookContainer = $('chart-book-container');
+            if (fixedRegionsOrder.length === 1) {
+                if (groupContainer) { groupContainer.style.height = '80px'; groupContainer.classList.remove('h-80'); }
+                if (bookContainer) { bookContainer.style.height = '80px'; bookContainer.classList.remove('h-80'); }
+            } else {
+                if (groupContainer) { groupContainer.style.height = '320px'; groupContainer.classList.add('h-80'); }
+                if (bookContainer) { bookContainer.style.height = '320px'; bookContainer.classList.add('h-80'); }
+            }
 
             // 지역별 찾기 결과(오프만찾+온만찾) 집계
             const regionFindResult = {};
