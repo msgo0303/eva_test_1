@@ -876,6 +876,28 @@ function doGet(e) {
       return updateSemester(e.parameter.name, e.parameter.startDate, e.parameter.endDate);
     }
 
+    // 9. 내 정보 등록하기 버튼 클릭 기록
+    if (action === "logRegisterClick") {
+      const userId = e.parameter.userId;
+      const name = e.parameter.name;
+      const username = e.parameter.username || "";
+
+      let clickSheet = ss.getSheetByName("RegisterClicks");
+      if (!clickSheet) {
+        clickSheet = ss.insertSheet("RegisterClicks");
+        clickSheet.appendRow(["user_id", "name", "username", "clicked_at"]);
+      }
+
+      clickSheet.appendRow([
+        userId,
+        name,
+        username,
+        new Date()
+      ]);
+
+      return makeJsonResponse({ result: "success", message: "클릭 기록이 시트에 저장되었습니다." });
+    }
+
   } catch (err) {
     return makeJsonResponse({ error: err.message });
   }
@@ -1224,7 +1246,7 @@ function checkAndSendTelegramAlarms() {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "📝 결과 입력하러 가기 (알림 자동 활성화)", url: `https://t.me/${botUsername}/msg_eva_test_01` }
+                { text: "내 정보 등록하기 (최초 1회는 클릭 필요)", url: `https://t.me/${botUsername}/msg_eva_test_01?startapp=register_click` }
               ]
             ]
           }

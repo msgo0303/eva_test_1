@@ -54,6 +54,27 @@ function doGet(e) {
       return makeJsonResponse({ result: "success", message: "시트에 알람이 등록되었습니다." });
     }
 
+    if (action === "logRegisterClick") {
+      const userId = e.parameter.userId;
+      const name = e.parameter.name;
+      const username = e.parameter.username || "";
+
+      let clickSheet = ss.getSheetByName("RegisterClicks");
+      if (!clickSheet) {
+        clickSheet = ss.insertSheet("RegisterClicks");
+        clickSheet.appendRow(["user_id", "name", "username", "clicked_at"]);
+      }
+
+      clickSheet.appendRow([
+        userId,
+        name,
+        username,
+        new Date()
+      ]);
+
+      return makeJsonResponse({ result: "success", message: "클릭 기록이 시트에 저장되었습니다." });
+    }
+
     return makeJsonResponse({ result: "fail", message: "지원하지 않는 action입니다." });
 
   } catch (err) {
