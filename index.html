@@ -4016,10 +4016,21 @@
             const ctxGroup = $('chart-group').getContext('2d');
             if (groupChartInstance) groupChartInstance.destroy();
 
-            const fixedRegionsOrder = [
+            const userRole = profile.role || "";
+            const isSuperUser = userRole.includes("관리자") || userRole.includes("전체관리자");
+            
+            let chartRegions = [
                 "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
                 "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
             ];
+            
+            if (!isSuperUser && profile.region && profile.region !== '-' && profile.region !== '미정') {
+                chartRegions = [profile.region];
+            } else if (activeHomeRegionFilter && activeHomeRegionFilter !== 'ALL') {
+                chartRegions = [activeHomeRegionFilter];
+            }
+            
+            const fixedRegionsOrder = chartRegions;
 
             // 지역별 찾기 결과(오프만찾+온만찾) 집계
             const regionFindResult = {};
