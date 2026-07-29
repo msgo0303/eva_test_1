@@ -1591,24 +1591,43 @@
                             query = query.eq('user_id', profile.id);
                         }
 
-                        const { data: actData } = await query;
+                        // users도 병렬 조회하여 최신 직책/직급 정보 매핑 준비
+                        let usrQuery = supabaseClient.from('users').select('name,role,group_name');
+                        if (isGroup) {
+                            usrQuery = usrQuery.eq('region', profile.region);
+                        } else if (!isSuper) {
+                            usrQuery = usrQuery.eq('id', profile.id);
+                        }
 
-                        activities = (actData || []).map(a => ({
-                            id: a.id,
-                            userId: a.user_id,
-                            name: a.name,
-                            group: a.group_name,
-                            region: a.region,
-                            role: a.role,
-                            date: a.activity_date,
-                            startTime: a.start_time,
-                            endTime: a.end_time,
-                            location: a.location,
-                            content: a.content,
-                            status: a.status,
-                            resultData: typeof a.result_data === 'object' ? JSON.stringify(a.result_data) : a.result_data,
-                            resultText: a.result_text
-                        }));
+                        const [{ data: actData }, { data: usrData }] = await Promise.all([query, usrQuery]);
+
+                        const userMap = {};
+                        (usrData || []).forEach(u => {
+                            userMap[u.name] = {
+                                role: u.role || '',
+                                groupName: u.group_name || ''
+                            };
+                        });
+
+                        activities = (actData || []).map(a => {
+                            const uInfo = userMap[a.name] || {};
+                            return {
+                                id: a.id,
+                                userId: a.user_id,
+                                name: a.name,
+                                group: uInfo.groupName || a.group_name || '',
+                                region: a.region,
+                                role: uInfo.role || a.role || '',
+                                date: a.activity_date,
+                                startTime: a.start_time,
+                                endTime: a.end_time,
+                                location: a.location,
+                                content: a.content,
+                                status: a.status,
+                                resultData: typeof a.result_data === 'object' ? JSON.stringify(a.result_data) : a.result_data,
+                                resultText: a.result_text
+                            };
+                        });
 
                         // 3. 이번 주 미션 수치 계산
                         const baseDate = new Date(targetDate);
@@ -1830,35 +1849,49 @@
                     let actQuery = supabaseClient.from('activities').select('*').in('activity_date', dates);
                     if (!isSuper) actQuery = actQuery.eq('region', profile.region);
 
-                    // users도 병렬 조회 (찾기 목표 계산용)
-                    let usrQuery = supabaseClient.from('users').select('name,region,book_count,is_exempt');
+                    // users도 병렬 조회 (찾기 목표 계산용 + 직책/직무 매핑용)
+                    let usrQuery = supabaseClient.from('users').select('name,region,book_count,is_exempt,role,group_name');
                     if (!isSuper) usrQuery = usrQuery.eq('region', profile.region);
 
                     const [{ data: actData, error: actErr }, { data: usrData }] = await Promise.all([actQuery, usrQuery]);
                     if (actErr) throw actErr;
 
-                    const list = (actData || []).map(a => ({
-                        id: a.id,
-                        userId: a.user_id,
-                        name: a.name,
-                        group: a.group_name,
-                        region: a.region,
-                        role: a.role,
-                        date: a.activity_date,
-                        startTime: a.start_time,
-                        endTime: a.end_time,
-                        location: a.location,
-                        content: a.content,
-                        status: a.status,
-                        resultData: typeof a.result_data === 'object' ? JSON.stringify(a.result_data) : a.result_data,
-                        resultText: a.result_text
-                    }));
+                    // 사용자 직책/직급 정보 맵 구축
+                    const userMap = {};
+                    (usrData || []).forEach(u => {
+                        userMap[u.name] = {
+                            role: u.role || '',
+                            groupName: u.group_name || ''
+                        };
+                    });
+
+                    const list = (actData || []).map(a => {
+                        const uInfo = userMap[a.name] || {};
+                        return {
+                            id: a.id,
+                            userId: a.user_id,
+                            name: a.name,
+                            group: uInfo.groupName || a.group_name || '',
+                            region: a.region,
+                            role: uInfo.role || a.role || '',
+                            date: a.activity_date,
+                            startTime: a.start_time,
+                            endTime: a.end_time,
+                            location: a.location,
+                            content: a.content,
+                            status: a.status,
+                            resultData: typeof a.result_data === 'object' ? JSON.stringify(a.result_data) : a.result_data,
+                            resultText: a.result_text
+                        };
+                    });
 
                     cachedAllUsers = (usrData || []).map(u => ({
                         name: u.name,
                         region: u.region,
                         bookCount: u.book_count || 0,
-                        isExempt: u.is_exempt || false
+                        isExempt: u.is_exempt || false,
+                        role: u.role || '',
+                        group_name: u.group_name || ''
                     }));
 
                     renderDashboard(list, range, cachedAllUsers);
