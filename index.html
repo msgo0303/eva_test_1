@@ -1385,15 +1385,11 @@
         }
 
         function formatUserRoleLabel(groupName, role) {
-            const parts = [];
-            const cleanGroup = (groupName || '').trim();
             const cleanRole = (role || '').trim();
-            
-            if (cleanGroup && cleanGroup !== '-' && cleanGroup !== '미정') parts.push(cleanGroup);
-            if (cleanRole && cleanRole !== '-' && cleanRole !== '미정') parts.push(cleanRole);
-            
-            if (parts.length === 0) return '';
-            return `(${parts.join(', ')})`;
+            if (cleanRole && cleanRole !== '-' && cleanRole !== '미정') {
+                return `(${cleanRole})`;
+            }
+            return '';
         }
 
         function escHtml(str) {
