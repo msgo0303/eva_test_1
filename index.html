@@ -1306,6 +1306,7 @@
         let allRegionsList = [];
         let activeNotices = [];
         let cachedAllUsers = [];
+        let cachedDashboardList = [];
 
         let modalMode = 'add';
         let editId = null;
@@ -3283,10 +3284,74 @@
                         const groupMetrics = parseSummary($('chart-group-summary').textContent || "");
                         const bookMetrics = parseSummary($('chart-book-summary').textContent || "");
 
+                        // 14개 고정 지역 리스트
+                        const FIXED_REGIONS = [
+                            "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
+                            "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
+                        ];
+
+                        // 지역별 찾기(오프만찾+온만찾) 집계
+                        const regionFindResult = {};
+                        (cachedDashboardList || []).forEach(item => {
+                            if (!item.resultData) return;
+                            try {
+                                const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
+                                if (!Array.isArray(parsed)) return;
+                                parsed.forEach(r => {
+                                    if (r.type === '오프만찾' || r.type === '온만찾') {
+                                        const cnt = parseInt(r.count || 1, 10);
+                                        regionFindResult[item.region] = (regionFindResult[item.region] || 0) + cnt;
+                                    }
+                                });
+                            } catch (e) {}
+                        });
+
+                        // 지역별 찾기 목표 계산
+                        const regionTargets = {};
+                        (cachedAllUsers || []).forEach(u => {
+                            if ((u.bookCount || 0) === 0 && !u.isExempt) {
+                                regionTargets[u.region] = (regionTargets[u.region] || 0) + 6;
+                            }
+                        });
+
+                        const weeklyRegionsSummary = FIXED_REGIONS.map(r => {
+                            const t = regionTargets[r] || 0;
+                            const a = regionFindResult[r] || 0;
+                            const p = t > 0 ? Math.round((a / t) * 100) : 0;
+                            return `- ${r}: ${a}/${t}개 (${p}%)`;
+                        }).join('\n');
+
+                        // 지역별 복음방 목표/달성 계산
+                        const bookTargets = {};
+                        const bookAchieved = {};
+                        (cachedAllUsers || []).forEach(u => {
+                            if (!u.isExempt) {
+                                bookTargets[u.region] = (bookTargets[u.region] || 0) + 1;
+                                bookAchieved[u.region] = (bookAchieved[u.region] || 0) + (u.bookCount || 0);
+                            }
+                        });
+
+                        const bookRegionsSummary = FIXED_REGIONS.map(r => {
+                            const t = bookTargets[r] || 0;
+                            const a = bookAchieved[r] || 0;
+                            const p = t > 0 ? Math.round((a / t) * 100) : 0;
+                            return `- ${r}: ${a}/${t}개 (${p}%)`;
+                        }).join('\n');
+
+                        // 오늘 날짜 (yyyy.MM.dd 포맷)
+                        const today = new Date();
+                        const yyyy = today.getFullYear();
+                        const mm = String(today.getMonth() + 1).padStart(2, '0');
+                        const dd = String(today.getDate()).padStart(2, '0');
+                        const reportDateStr = `${yyyy}.${mm}.${dd}`;
+
                         // 3. 템플릿 변수 치환
                         const formattedMsg = templateText
-                            .replace(/{start_date}/g, startDateText)
-                            .replace(/{end_date}/g, endDateText)
+                            .replace(/{start_date}/g, startDateText.replace(/-/g, '.'))
+                            .replace(/{end_date}/g, endDateText.replace(/-/g, '.'))
+                            .replace(/{report_date}/g, reportDateStr)
+                            .replace(/{weekly_regions_summary}/g, weeklyRegionsSummary)
+                            .replace(/{book_regions_summary}/g, bookRegionsSummary)
                             .replace(/{find_off}/g, findOff.toString())
                             .replace(/{find_on}/g, findOn.toString())
                             .replace(/{match}/g, match.toString())
@@ -3657,6 +3722,7 @@
         }
 
         function renderDashboard(list, dashRange, usersData) {
+            cachedDashboardList = list || [];
             dashRange = dashRange || currentDashRange || 'today';
             usersData = usersData || cachedAllUsers || [];
             const total = list.length;

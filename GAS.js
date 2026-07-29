@@ -655,9 +655,28 @@ function sendWeeklyTelegramReport() {
   }
 
   // 8. 템플릿 변수 치환
+  const reportDateStr = Utilities.formatDate(kstNow, "Asia/Seoul", "yyyy.MM.dd");
+  
+  const weeklyRegionsSummary = FIXED_REGIONS.map(r => {
+    const t = regionTargets[r] || 0;
+    const a = regionFindResult[r] || 0;
+    const p = t > 0 ? Math.round((a / t) * 100) : 0;
+    return `- ${r}: ${a}/${t}개 (${p}%)`;
+  }).join('\n');
+
+  const bookRegionsSummary = FIXED_REGIONS.map(r => {
+    const t = bookTargets[r] || 0;
+    const a = bookAchieved[r] || 0;
+    const p = t > 0 ? Math.round((a / t) * 100) : 0;
+    return `- ${r}: ${a}/${t}개 (${p}%)`;
+  }).join('\n');
+
   const formattedMsg = templateText
-    .replace(/{start_date}/g, startStr)
-    .replace(/{end_date}/g, endStr)
+    .replace(/{start_date}/g, startStr.replace(/-/g, '.')) // yyyy.MM.dd 포맷으로 통일
+    .replace(/{end_date}/g, endStr.replace(/-/g, '.'))     // yyyy.MM.dd 포맷으로 통일
+    .replace(/{report_date}/g, reportDateStr)
+    .replace(/{weekly_regions_summary}/g, weeklyRegionsSummary)
+    .replace(/{book_regions_summary}/g, bookRegionsSummary)
     .replace(/{find_off}/g, (resultCounts['합자찾기(오프)'] || 0).toString())
     .replace(/{find_on}/g, (resultCounts['합자찾기(온)'] || 0).toString())
     .replace(/{match}/g, (resultCounts['매칭'] || 0).toString())
