@@ -288,30 +288,29 @@
             animation: pulse-red-border 1.8s infinite !important;
         }
 
-        /* 말풍선 은은한 바운스 효과 */
-        /* 💡 왼쪽 대시보드 말풍선: 위로 12px 이동한 상태에서 바운스 */
+        /* 💡 대시보드 말풍선: 위로 17px 이동 (기존 -12px에서 -5px 더 위로) */
         @keyframes bounce-slow-up {
 
             0%,
             100% {
-                transform: translateY(-12px) translateX(0);
+                transform: translateY(-17px) translateX(0);
             }
 
             50% {
-                transform: translateY(-12px) translateX(4px);
+                transform: translateY(-17px) translateX(4px);
             }
         }
 
-        /* 💡 오른쪽 +버튼 말풍선: 아래로 12px 이동한 상태에서 바운스 */
+        /* 💡 +버튼 말풍선: 아래로 17px 이동 (기존 +12px에서 +5px 더 아래로) */
         @keyframes bounce-slow-down {
 
             0%,
             100% {
-                transform: translateY(12px) translateX(0);
+                transform: translateY(17px) translateX(0);
             }
 
             50% {
-                transform: translateY(12px) translateX(-4px);
+                transform: translateY(17px) translateX(-4px);
             }
         }
 
