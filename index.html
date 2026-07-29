@@ -3077,10 +3077,27 @@
 
         // 4. 전송 버튼 클릭 실행 함수 (Bot API 직접 통신 또는 Supabase 예약 등록)
         async function submitRiskNotification() {
-            const messageText = $('risk-send-preview').dataset.markdownMessage || $('risk-send-preview').textContent;
+            const previewEl = $('risk-send-preview');
+            let markdownMsgs = [];
+            
+            try {
+                const markdownMessagesStr = previewEl.dataset.markdownMessages;
+                markdownMsgs = markdownMessagesStr ? JSON.parse(markdownMessagesStr) : [];
+            } catch (e) {
+                console.error("Failed to parse markdownMessages:", e);
+            }
+
+            // 폴백 (기존 단일 메시지 처리 등 대응)
+            if (!markdownMsgs || markdownMsgs.length === 0) {
+                const messageText = previewEl.dataset.markdownMessage || previewEl.textContent;
+                if (messageText) {
+                    markdownMsgs = [messageText];
+                }
+            }
+
             const btn = $('btn-submit-risk-send');
 
-            if (!messageText) {
+            if (markdownMsgs.length === 0) {
                 showToast('전송할 메시지가 없습니다.', 'error');
                 return;
             }
@@ -3088,38 +3105,56 @@
             btn.disabled = true;
 
             if (currentSendType === 'now') {
-                btn.textContent = "발송 중...";
                 try {
                     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                    let successCount = 0;
 
-                    // 💡 General 메인방 전송은 chat_id와 text만 전송하면 됩니다.
-                    // 💡 index.html의 submitRiskNotification 함수 내부
-                    const payload = {
-                        chat_id: TELEGRAM_CHAT_ID,
-                        text: messageText,
-                        parse_mode: 'Markdown', // 👈 반드시 대소문자를 맞춰 'Markdown'으로 지정해 주세요!
-                        reply_markup: {
-                            inline_keyboard: [
-                                [
-                                    { text: "📝 결과 입력하러 가기 (알림 자동 활성화)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}/msg_eva_test_01` }
+                    for (let i = 0; i < markdownMsgs.length; i++) {
+                        const messageText = markdownMsgs[i];
+                        
+                        btn.textContent = markdownMsgs.length > 1 
+                            ? `발송 중 (${i + 1}/${markdownMsgs.length})...` 
+                            : "발송 중...";
+
+                        const payload = {
+                            chat_id: TELEGRAM_CHAT_ID,
+                            text: messageText,
+                            parse_mode: 'Markdown',
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        { text: "📝 결과 입력하러 가기 (알림 자동 활성화)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}/msg_eva_test_01` }
+                                    ]
                                 ]
-                            ]
+                            }
+                        };
+
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        const resData = await response.json();
+
+                        if (resData.ok) {
+                            successCount++;
+                        } else {
+                            console.error(`Message ${i + 1} send failed:`, resData.description);
+                            showToast(`메시지 ${i + 1} 전송 실패: ${resData.description}`, "error");
                         }
-                    };
 
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                        // 여러 개 보낼 때는 API rate limit 방지를 위해 약간의 딜레이(200ms) 추가
+                        if (markdownMsgs.length > 1 && i < markdownMsgs.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+                    }
 
-                    const resData = await response.json();
-
-                    if (resData.ok) {
-                        showToast("General 방으로 메시지가 성공적으로 발송되었습니다!", "success");
+                    if (successCount === markdownMsgs.length) {
+                        showToast("General 방으로 모든 메시지가 성공적으로 발송되었습니다!", "success");
                         closeRiskSendModal();
-                    } else {
-                        showToast("전송 실패: " + resData.description, "error");
+                    } else if (successCount > 0) {
+                        showToast(`총 ${markdownMsgs.length}개 중 ${successCount}개 메시지가 전송되었습니다.`, "warning");
                     }
                 } catch (e) {
                     showToast("텔레그램 통신 오류: " + e.message, "error");
@@ -3134,17 +3169,22 @@
 
                 try {
                     if (supabaseClient) {
-                        const payload = {
-                            chat_id: TELEGRAM_CHAT_ID,
-                            scheduled_time: scheduledTime,
-                            message: messageText,
-                            status: 'pending'
-                        };
+                        let successCount = 0;
+                        for (let i = 0; i < markdownMsgs.length; i++) {
+                            const messageText = markdownMsgs[i];
+                            const payload = {
+                                chat_id: TELEGRAM_CHAT_ID,
+                                scheduled_time: scheduledTime,
+                                message: messageText,
+                                status: 'pending'
+                            };
 
-                        const { error } = await supabaseClient.from('notification_schedules').insert([payload]);
-                        if (error) throw error;
+                            const { error } = await supabaseClient.from('notification_schedules').insert([payload]);
+                            if (error) throw error;
+                            successCount++;
+                        }
 
-                        showToast(`오늘 ${scheduledTime}에 발송되도록 예약 저장되었습니다!`, "success");
+                        showToast(`오늘 ${scheduledTime}에 발송되도록 ${successCount}개의 예약이 저장되었습니다!`, "success");
                         closeRiskSendModal();
                     } else {
                         showToast("DB 연결 정보를 확인할 수 없습니다.", "error");
@@ -3241,18 +3281,41 @@
                 return;
             }
 
-            // 메시지 텍스트 생성
-            const msgPlain = buildRiskMessage(category, list, false);
-            const msgMarkdown = buildRiskMessage(category, list, true);
+            // 40명씩 분할
+            const chunks = [];
+            const chunkSize = 40;
+            for (let i = 0; i < list.length; i += chunkSize) {
+                chunks.push(list.slice(i, i + chunkSize));
+            }
+
+            // 각 청크별 메시지 생성 및 조립
+            let previewText = "";
+            let markdownMsgs = [];
+
+            chunks.forEach((chunk, index) => {
+                const chunkPlain = buildRiskMessage(category, chunk, false);
+                const chunkMarkdown = buildRiskMessage(category, chunk, true);
+
+                if (chunks.length > 1) {
+                    previewText += `[메시지 ${index + 1}/${chunks.length} - ${chunk.length}명]\n${chunkPlain}`;
+                    if (index < chunks.length - 1) {
+                        previewText += `\n\n----------------------------------------\n\n`;
+                    }
+                } else {
+                    previewText = chunkPlain;
+                }
+                markdownMsgs.push(chunkMarkdown);
+            });
 
             console.log("Uncollected List for Send:", list.map(u => ({ name: u.name, id: u.id })));
-            console.log("Generated Markdown Message:", msgMarkdown);
+            console.log("Generated Chunks count:", chunks.length);
 
             // 모달 UI 반영
-            $('risk-send-title').textContent = titleStr;
+            $('risk-send-title').textContent = titleStr + (chunks.length > 1 ? ` (총 ${list.length}명, ${chunks.length}분할)` : ` (${list.length}명)`);
             const previewEl = $('risk-send-preview');
-            previewEl.textContent = msgPlain; // 미리보기 창엔 plain text 표시
-            previewEl.dataset.markdownMessage = msgMarkdown; // 실제 전송할 마크다운 메시지 보관
+            previewEl.textContent = previewText; // 미리보기 창엔 plain text 표시
+            previewEl.dataset.markdownMessages = JSON.stringify(markdownMsgs); // 실제 전송할 마크다운 메시지들 보관
+            previewEl.dataset.markdownMessage = markdownMsgs[0] || ""; // 기존 호환용 첫번째 메시지 보관
 
             // 기본 전송 방식을 '즉시 발송(now)'으로 설정 후 저장된 반복 알람 목록 로드
             setSendType('now');
