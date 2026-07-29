@@ -1715,6 +1715,12 @@
                         renderDateNav();
                         renderList();
 
+                        // 활동 추적 모달이 열려 있다면 데이터도 같이 새로고침
+                        const trackerOverlay = $('tracker-overlay');
+                        if (trackerOverlay && trackerOverlay.classList.contains('open')) {
+                            fetchTrackerData();
+                        }
+
                     } else {
                         // 미등록 사용자 명단 조회 (UNREG_ 패턴 대응)
                         const { data: unregData } = await supabaseClient.from('users').select('*').like('id', 'UNREG_%');
@@ -5039,13 +5045,17 @@
                         }
 
                         return `
-                            <div class="bg-tg-surface p-2 rounded-xl border border-tg-border mt-1.5 shadow-sm">
+                            <div class="tracker-activity-card bg-tg-surface p-3 rounded-xl border border-tg-border mt-1.5 shadow-sm cursor-pointer hover:bg-blue-50/40 hover:border-blue-200 transition-all active:scale-[0.98]" data-id="${item.id}">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-tg-text">${item.content}</span>
                                     <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeClass}">${statusLabel}</span>
                                 </div>
                                 <p class="text-[11px] text-tg-muted mt-0.5">⏰ ${item.startTime} ~ ${item.endTime} ${item.location ? `📍 ${item.location}` : ''}</p>
                                 ${resultDetail}
+                                <div class="mt-2.5 flex items-center gap-1 text-blue-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+                                    <span class="text-[9px] font-medium">탭하여 상세 확인 및 수정</span>
+                                </div>
                             </div>
                         `;
                     }).join('');
@@ -5058,6 +5068,14 @@
                     <div class="pl-3 space-y-1.5">${actsHtml}</div>
                 `;
                 dailyContainer.appendChild(dayDiv);
+            });
+
+            // 카드 클릭 시 수정 모달(openEdit) 띄우기
+            dailyContainer.querySelectorAll('.tracker-activity-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const item = list.find(a => a.id == card.dataset.id);
+                    if (item) openEdit(item);
+                });
             });
         }
 
