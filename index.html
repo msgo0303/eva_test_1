@@ -3529,10 +3529,25 @@
                     }
 
                     try {
-                        // 1. GAS에 저장된 리포트 텍스트 템플릿 로드
+                        // 0. 개강 사이클 정보 로드 (월간용)
+                        const baseDateObj = dateKey(currentDate);
+                        const matchedSem = (semestersList || []).find(s => baseDateObj >= s.startDate && baseDateObj <= s.endDate);
+                        let cyclePrefix = '';
+                        let weekCount = 1;
+                        let monthLabel = '월간';
+
+                        if (matchedSem) {
+                            const nameParts = matchedSem.name.trim().split(/\s+/);
+                            cyclePrefix = nameParts[0] || '';
+                            monthLabel = cyclePrefix.replace('개강', '').trim();
+                            const cycleWeeks = semestersList.filter(s => s.name.includes(cyclePrefix));
+                            weekCount = Math.max(cycleWeeks.length, 1);
+                        }
+
+                        // 1. GAS에 저장된 리포트 텍스트 템플릿 로드 (range 파라미터 추가)
                         let templateText = "";
                         try {
-                            const resTemp = await fetch(`${GAS_URL}?action=getWeeklyReportTemplate`);
+                            const resTemp = await fetch(`${GAS_URL}?action=getWeeklyReportTemplate&range=${currentDashRange}`);
                             const tempData = await resTemp.json();
                             if (tempData.result === 'success') {
                                 templateText = tempData.template;
@@ -3542,18 +3557,46 @@
                         }
 
                         if (!templateText) {
-                            templateText =
-                                "📢 [주간 활동 리포트]\n" +
-                                "기간: {start_date} ~ {end_date}\n\n" +
-                                "📈 활동 결과 비중:\n" +
-                                "- 찾기(오프): {find_off}건\n" +
-                                "- 찾기(온): {find_on}건\n" +
-                                "- 매칭: {match}건\n" +
-                                "- 잎사귀: {leaf}건\n" +
-                                "- 복방: {book}건\n\n" +
-                                "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
-                                "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
-                                "🔥 이번 주도 수고하셨습니다!";
+                            if (currentDashRange === 'today') {
+                                templateText =
+                                    "📢 [일일 활동 리포트]\n" +
+                                    "일자: {start_date}\n\n" +
+                                    "📈 활동 결과 비중:\n" +
+                                    "- 찾기(오프): {find_off}건\n" +
+                                    "- 찾기(온): {find_on}건\n" +
+                                    "- 매칭: {match}건\n" +
+                                    "- 잎사귀: {leaf}건\n" +
+                                    "- 복방: {book}건\n\n" +
+                                    "📊 일일 활동 현황:\n" +
+                                    "{weekly_regions_summary}\n\n" +
+                                    "🔥 오늘도 수고하셨습니다!";
+                            } else if (currentDashRange === 'month') {
+                                templateText =
+                                    `📢 [${monthLabel} 활동 리포트]\n` +
+                                    "기간: {start_date} ~ {end_date}\n\n" +
+                                    "📈 활동 결과 비중:\n" +
+                                    "- 찾기(오프): {find_off}건\n" +
+                                    "- 찾기(온): {find_on}건\n" +
+                                    "- 매칭: {match}건\n" +
+                                    "- 잎사귀: {leaf}건\n" +
+                                    "- 복방: {book}건\n\n" +
+                                    `📊 ${monthLabel} 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n` +
+                                    `🍎 ${monthLabel} 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n` +
+                                    "🔥 이번 개강 사이클도 수고하셨습니다!";
+                            } else {
+                                templateText =
+                                    "📢 [주간 활동 리포트]\n" +
+                                    "기간: {start_date} ~ {end_date}\n\n" +
+                                    "📈 활동 결과 비중:\n" +
+                                    "- 찾기(오프): {find_off}건\n" +
+                                    "- 찾기(온): {find_on}건\n" +
+                                    "- 매칭: {match}건\n" +
+                                    "- 잎사귀: {leaf}건\n" +
+                                    "- 복방: {book}건\n\n" +
+                                    "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
+                                    "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
+                                    "🔥 이번 주도 수고하셨습니다!";
+                            }
                         }
 
                         // 2. 현재 화면에 표기된 수치 추출 및 정제
@@ -3590,7 +3633,7 @@
                             "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
                         ];
 
-                        // 지역별 찾기(오프만찾+온만찾) 집계
+                        // 지역별 찾기(합자찾(오프)+합자찾(온)) 집계
                         const regionFindResult = {};
                         (cachedDashboardList || []).forEach(item => {
                             if (!item.resultData) return;
@@ -3606,36 +3649,62 @@
                             } catch (e) { }
                         });
 
-                        // 지역별 찾기 목표 계산
+                        // 지역별 찾기 목표 계산 (일일, 주간, 월간 분기 적용)
                         const regionTargets = {};
                         (cachedAllUsers || []).forEach(u => {
-                            if ((u.bookCount || 0) === 0 && !u.isExempt) {
-                                regionTargets[u.region] = (regionTargets[u.region] || 0) + 6;
+                            if (!u.isExempt) {
+                                if (currentDashRange === 'today') {
+                                    regionTargets[u.region] = 0;
+                                } else if (currentDashRange === 'month') {
+                                    if ((u.bookCount || 0) === 0) {
+                                        regionTargets[u.region] = (regionTargets[u.region] || 0) + (6 * weekCount);
+                                    }
+                                } else { // week
+                                    if ((u.bookCount || 0) === 0) {
+                                        regionTargets[u.region] = (regionTargets[u.region] || 0) + 6;
+                                    }
+                                }
                             }
                         });
 
                         const weeklyRegionsSummary = FIXED_REGIONS.map(r => {
                             const t = regionTargets[r] || 0;
                             const a = regionFindResult[r] || 0;
-                            const p = t > 0 ? Math.round((a / t) * 100) : 0;
-                            return `- ${r}: ${a}/${t}개 (${p}%)`;
+                            if (currentDashRange === 'today') {
+                                return `- ${r}: ${a}건`;
+                            } else {
+                                const p = t > 0 ? Math.round((a / t) * 100) : 0;
+                                return `- ${r}: ${a}/${t}개 (${p}%)`;
+                            }
                         }).join('\n');
 
-                        // 지역별 복음방 목표/달성 계산
+                        // 지역별 복음방 목표/달성 계산 (일일, 주간, 월간 분기 적용)
                         const bookTargets = {};
                         const bookAchieved = {};
                         (cachedAllUsers || []).forEach(u => {
                             if (!u.isExempt) {
-                                bookTargets[u.region] = (bookTargets[u.region] || 0) + 1;
-                                bookAchieved[u.region] = (bookAchieved[u.region] || 0) + (u.bookCount || 0);
+                                if (currentDashRange === 'today') {
+                                    bookTargets[u.region] = 0;
+                                    bookAchieved[u.region] = (bookAchieved[u.region] || 0) + (u.bookCount || 0);
+                                } else if (currentDashRange === 'month') {
+                                    bookTargets[u.region] = (bookTargets[u.region] || 0) + weekCount;
+                                    bookAchieved[u.region] = (bookAchieved[u.region] || 0) + (u.bookCount || 0);
+                                } else { // week
+                                    bookTargets[u.region] = (bookTargets[u.region] || 0) + 1;
+                                    bookAchieved[u.region] = (bookAchieved[u.region] || 0) + (u.bookCount || 0);
+                                }
                             }
                         });
 
                         const bookRegionsSummary = FIXED_REGIONS.map(r => {
                             const t = bookTargets[r] || 0;
                             const a = bookAchieved[r] || 0;
-                            const p = t > 0 ? Math.round((a / t) * 100) : 0;
-                            return `- ${r}: ${a}/${t}개 (${p}%)`;
+                            if (currentDashRange === 'today') {
+                                return `- ${r}: ${a}개`;
+                            } else {
+                                const p = t > 0 ? Math.round((a / t) * 100) : 0;
+                                return `- ${r}: ${a}/${t}개 (${p}%)`;
+                            }
                         }).join('\n');
 
                         // 오늘 날짜 (yyyy.MM.dd 포맷)

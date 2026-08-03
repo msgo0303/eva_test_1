@@ -111,31 +111,74 @@ function doGet(e) {
     }
 
     if (action === "getWeeklyReportTemplate") {
+      const range = e.parameter.range || "week";
+      let templateKey = "weekly_report";
+      if (range === "today") templateKey = "daily_report";
+      if (range === "month") templateKey = "monthly_report";
+
       let templateSheet = ss.getSheetByName("MessageTemplates");
       let templateText = "";
       if (templateSheet) {
         const data = templateSheet.getDataRange().getValues();
+        // 1. 요청된 특정 키로 검색
         for (let i = 1; i < data.length; i++) {
-          if (data[i][0] === "weekly_report") {
+          if (data[i][0] === templateKey) {
             templateText = data[i][1].toString();
             break;
+          }
+        }
+        // 2. 만약 해당 키가 시트에 없으면 기본 weekly_report로 폴백
+        if (!templateText && templateKey !== "weekly_report") {
+          for (let i = 1; i < data.length; i++) {
+            if (data[i][0] === "weekly_report") {
+              templateText = data[i][1].toString();
+              break;
+            }
           }
         }
       }
       
       if (!templateText) {
-        templateText = 
-          "📢 [주간 활동 리포트]\n" +
-          "기간: {start_date} ~ {end_date}\n\n" +
-          "📈 활동 결과 비중:\n" +
-          "- 찾기(오프): {find_off}건\n" +
-          "- 찾기(온): {find_on}건\n" +
-          "- 매칭: {match}건\n" +
-          "- 잎사귀: {leaf}건\n" +
-          "- 복방: {book}건\n\n" +
-          "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
-          "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
-          "🔥 이번 주도 수고하셨습니다!";
+        if (range === "today") {
+          templateText = 
+            "📢 [일일 활동 리포트]\n" +
+            "일자: {start_date}\n\n" +
+            "📈 활동 결과 비중:\n" +
+            "- 찾기(오프): {find_off}건\n" +
+            "- 찾기(온): {find_on}건\n" +
+            "- 매칭: {match}건\n" +
+            "- 잎사귀: {leaf}건\n" +
+            "- 복방: {book}건\n\n" +
+            "📊 일일 활동 현황:\n" +
+            "{weekly_regions_summary}\n\n" +
+            "🔥 오늘도 수고하셨습니다!";
+        } else if (range === "month") {
+          templateText = 
+            "📢 [월간 활동 리포트]\n" +
+            "기간: {start_date} ~ {end_date}\n\n" +
+            "📈 활동 결과 비중:\n" +
+            "- 찾기(오프): {find_off}건\n" +
+            "- 찾기(온): {find_on}건\n" +
+            "- 매칭: {match}건\n" +
+            "- 잎사귀: {leaf}건\n" +
+            "- 복방: {book}건\n\n" +
+            "📊 월간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
+            "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
+            "🔥 이번 개강 사이클도 수고하셨습니다!";
+        } else {
+          templateText = 
+            "📢 [주간 활동 리포트]\n" +
+            "기간: {start_date} ~ {end_date}\n\n" +
+            "📈 활동 결과 비중:\n" +
+            "- 찾기(오프): {find_off}건\n" +
+            "- 찾기(온): {find_on}건\n" +
+            "- 매칭: {match}건\n" +
+            "- 잎사귀: {leaf}건\n" +
+            "- 복방: {book}건\n\n" +
+            "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
+            "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
+            "🔥 이번 주도 수고하셨습니다!";
+        }
       }
       
       return makeJsonResponse({ result: "success", template: templateText });
