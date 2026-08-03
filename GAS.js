@@ -128,8 +128,8 @@ function doGet(e) {
           "📢 [주간 활동 리포트]\n" +
           "기간: {start_date} ~ {end_date}\n\n" +
           "📈 활동 결과 비중:\n" +
-          "- 합자찾기(오프): {find_off}건\n" +
-          "- 합자찾기(온): {find_on}건\n" +
+          "- 찾기(오프): {find_off}건\n" +
+          "- 찾기(온): {find_on}건\n" +
           "- 매칭: {match}건\n" +
           "- 잎사귀: {leaf}건\n" +
           "- 복방: {book}건\n\n" +
@@ -516,7 +516,7 @@ function sendWeeklyTelegramReport() {
   const weeklyActs = JSON.parse(actsRes.getContentText()) || [];
 
   // 4. 활동 결과 집계
-  const resultCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+  const resultCounts = { '찾기(오프)': 0, '찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
   const regionFindResult = {};
   
   weeklyActs.forEach(item => {
@@ -530,11 +530,11 @@ function sendWeeklyTelegramReport() {
         parsed.forEach(r => {
           const countVal = (r.count !== undefined ? parseInt(r.count, 10) : 1);
           
-          if (r.type === '오프만찾') {
-            resultCounts['합자찾기(오프)'] += countVal;
+          if (r.type === '합자찾(오프)') {
+            resultCounts['찾기(오프)'] += countVal;
           }
-          if (r.type === '온만찾') {
-            resultCounts['합자찾기(온)'] += countVal;
+          if (r.type === '합자찾(온)') {
+            resultCounts['찾기(온)'] += countVal;
           }
           if (r.category === '매칭' && r.type !== '취소') {
             resultCounts['매칭'] += (countVal || 1);
@@ -546,7 +546,7 @@ function sendWeeklyTelegramReport() {
             resultCounts['복방'] += (countVal || 1);
           }
           
-          if (r.type === '오프만찾' || r.type === '온만찾') {
+          if (r.type === '합자찾(오프)' || r.type === '합자찾(온)') {
             const reg = item.region || '미정';
             regionFindResult[reg] = (regionFindResult[reg] || 0) + countVal;
           }
@@ -587,11 +587,11 @@ function sendWeeklyTelegramReport() {
   const doughnutConfig = {
     type: 'doughnut',
     data: {
-      labels: ['합자(오프)', '합자(온)', '매칭', '잎사귀', '복방'],
+      labels: ['찾기(오프)', '찾기(온)', '매칭', '잎사귀', '복방'],
       datasets: [{
         data: [
-          resultCounts['합자찾기(오프)'] || 0,
-          resultCounts['합자찾기(온)'] || 0,
+          resultCounts['찾기(오프)'] || 0,
+          resultCounts['찾기(온)'] || 0,
           resultCounts['매칭'] || 0,
           resultCounts['잎사귀'] || 0,
           resultCounts['복방'] || 0
@@ -803,8 +803,8 @@ function sendWeeklyTelegramReport() {
       "📢 [주간 활동 리포트]\n" +
       "기간: {start_date} ~ {end_date}\n\n" +
       "📈 활동 결과 비중:\n" +
-      "- 합자찾기(오프): {find_off}건\n" +
-      "- 합자찾기(온): {find_on}건\n" +
+      "- 찾기(오프): {find_off}건\n" +
+      "- 찾기(온): {find_on}건\n" +
       "- 매칭: {match}건\n" +
       "- 잎사귀: {leaf}건\n" +
       "- 복방: {book}건\n\n" +
@@ -833,8 +833,8 @@ function sendWeeklyTelegramReport() {
       "📢 [주간 활동 리포트]\n" +
       "기간: {start_date} ~ {end_date}\n\n" +
       "📈 활동 결과:\n" +
-      "- 합자찾기(오프): {find_off}건\n" +
-      "- 합자찾기(온): {find_on}건\n" +
+      "- 찾기(오프): {find_off}건\n" +
+      "- 찾기(온): {find_on}건\n" +
       "- 매칭: {match}건\n" +
       "- 잎사귀: {leaf}건\n" +
       "- 복방: {book}건\n\n" +
@@ -866,8 +866,8 @@ function sendWeeklyTelegramReport() {
     .replace(/{report_date}/g, reportDateStr)
     .replace(/{weekly_regions_summary}/g, weeklyRegionsSummary)
     .replace(/{book_regions_summary}/g, bookRegionsSummary)
-    .replace(/{find_off}/g, (resultCounts['합자찾기(오프)'] || 0).toString())
-    .replace(/{find_on}/g, (resultCounts['합자찾기(온)'] || 0).toString())
+    .replace(/{find_off}/g, (resultCounts['찾기(오프)'] || 0).toString())
+    .replace(/{find_on}/g, (resultCounts['찾기(온)'] || 0).toString())
     .replace(/{match}/g, (resultCounts['매칭'] || 0).toString())
     .replace(/{leaf}/g, (resultCounts['잎사귀'] || 0).toString())
     .replace(/{book}/g, (resultCounts['복방'] || 0).toString())

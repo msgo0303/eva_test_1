@@ -868,8 +868,8 @@
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 내용 선택 (1개)</label>
                     <select id="f-content-category"
                         class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm font-bold text-tg-text focus:outline-none focus:border-tg-blue">
-                        <option value="합자찾기(오프)">합자찾기(오프)</option>
-                        <option value="합자찾기(온)">합자찾기(온)</option>
+                        <option value="찾기(오프)">찾기(오프)</option>
+                        <option value="찾기(온)">찾기(온)</option>
                         <option value="매칭">매칭</option>
                         <option value="잎사귀">잎사귀</option>
                         <option value="복방">복방</option>
@@ -1016,11 +1016,11 @@
                             <p class="text-[10px] font-bold text-tg-muted mb-1">📋 계획한 활동 분류별 총합</p>
                             <div class="grid grid-cols-5 gap-1">
                                 <div class="bg-blue-50 border border-blue-100 rounded-xl p-1.5 text-center shadow-sm">
-                                    <p class="text-[9px] text-blue-600 font-bold">합자찾기(오프)</p>
+                                    <p class="text-[9px] text-blue-600 font-bold">찾기(오프)</p>
                                     <p id="db-plan-find-off" class="text-xs font-bold text-blue-800">0건</p>
                                 </div>
                                 <div class="bg-sky-50 border border-sky-100 rounded-xl p-1.5 text-center shadow-sm">
-                                    <p class="text-[9px] text-sky-600 font-bold">합자찾기(온)</p>
+                                    <p class="text-[9px] text-sky-600 font-bold">찾기(온)</p>
                                     <p id="db-plan-find-on" class="text-xs font-bold text-sky-800">0건</p>
                                 </div>
                                 <div
@@ -1047,7 +1047,7 @@
                             <div class="grid grid-cols-5 gap-1">
                                 <div id="btn-find-completed-chip"
                                     class="bg-green-50 border border-green-200 hover:border-green-400 rounded-xl p-1.5 text-center cursor-pointer transition-all active:scale-95 shadow-sm">
-                                    <p class="text-[9px] text-green-700 font-bold">합자찾기(오프)</p>
+                                    <p class="text-[9px] text-green-700 font-bold">찾기(오프)</p>
                                     <p id="db-done-find-off" class="text-xs font-bold text-green-800">0건</p>
                                 </div>
 
@@ -1059,7 +1059,7 @@
                                     </div>
                                     <div class="grid grid-cols-2 gap-1.5 text-xs">
                                         <div class="bg-zinc-800 p-2 rounded-lg flex justify-between">
-                                            <span class="text-zinc-400">오프만찾</span>
+                                            <span class="text-zinc-400">합자찾(오프)</span>
                                             <span id="pop-find-off-only" class="font-bold text-green-400">0건</span>
                                         </div>
                                         <div class="bg-zinc-800 p-2 rounded-lg flex justify-between">
@@ -1071,7 +1071,7 @@
 
                                 <div
                                     class="bg-green-50/60 border border-green-100 rounded-xl p-1.5 text-center shadow-sm">
-                                    <p class="text-[9px] text-green-700 font-bold">합자찾기(온)</p>
+                                    <p class="text-[9px] text-green-700 font-bold">찾기(온)</p>
                                     <p id="db-done-find-on" class="text-xs font-bold text-green-800">0건</p>
                                 </div>
                                 <div
@@ -1459,8 +1459,8 @@
         let bookChartInstance = null;
 
         const RESULT_SCHEMA = {
-            '합자찾기(오프)': { types: ['오프만찾', '오프번찾'], hasCount: true },
-            '합자찾기(온)': { types: ['온만찾'], hasCount: true },
+            '찾기(오프)': { types: ['합자찾(오프)', '오프번찾'], hasCount: true },
+            '찾기(온)': { types: ['합자찾(온)'], hasCount: true },
             '매칭': { types: ['취소', '2차', '비합', '따기'], hasCount: false },
             '잎사귀': { types: ['간증잎', '생노잎', '서류잎', '풍문잎', '기타'], hasCount: false },
             '복방': { types: ['진행', '취소'], hasCount: false }
@@ -1795,8 +1795,8 @@
                                 const parsed = typeof w.result_data === 'string' ? JSON.parse(w.result_data) : w.result_data;
                                 if (Array.isArray(parsed)) {
                                     parsed.forEach(r => {
-                                        if ((r.category === "찾기" || r.category === "합자찾기(오프)" || r.category === "합자찾기(온)") &&
-                                            (r.type === "온만찾" || r.type === "오프만찾")) { // ✅ 온만찾, 오프만찾 2개만 허용
+                                        if ((r.category === "찾기" || r.category === "찾기(오프)" || r.category === "찾기(온)") &&
+                                            (r.type === "합자찾(온)" || r.type === "합자찾(오프)")) { // ✅ 합자찾(온), 합자찾(오프) 2개만 허용
                                             weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                         }
                                     });
@@ -2230,7 +2230,7 @@
                                 const parsed = typeof a.result_data === 'string' ? JSON.parse(a.result_data) : a.result_data;
                                 if (Array.isArray(parsed)) {
                                     parsed.forEach(r => {
-                                        if ((r.category === '찾기' || r.category === '합자찾기(오프)' || r.category === '합자찾기(온)') && (r.type === '온만찾' || r.type === '오프만찾')) {
+                                        if ((r.category === '찾기' || r.category === '찾기(오프)' || r.category === '찾기(온)') && (r.type === '합자찾(온)' || r.type === '합자찾(오프)')) {
                                             userMap[a.name].weeklyFindCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                         }
                                     });
@@ -2913,7 +2913,7 @@
                                     const key = `${r.category}:${r.type}`;
                                     detailMap[key] = (detailMap[key] || 0) + cnt;
 
-                                    if (r.type === '오프만찾' || r.type === '온만찾') {
+                                    if (r.type === '합자찾(오프)' || r.type === '합자찾(온)') {
                                         findCount += cnt;
                                     }
                                     if (r.category === '매칭' && r.type !== '취소') {
@@ -2931,7 +2931,7 @@
                     }
 
                     if (!hasResultData) {
-                        if (a.content === '합자찾기(오프)' || a.content === '합자찾기(온)') {
+                        if (a.content === '찾기(오프)' || a.content === '찾기(온)') {
                             findCount += 1;
                         } else if (a.content === '매칭') {
                             matchCount += 1;
@@ -3546,8 +3546,8 @@
                                 "📢 [주간 활동 리포트]\n" +
                                 "기간: {start_date} ~ {end_date}\n\n" +
                                 "📈 활동 결과 비중:\n" +
-                                "- 합자찾기(오프): {find_off}건\n" +
-                                "- 합자찾기(온): {find_on}건\n" +
+                                "- 찾기(오프): {find_off}건\n" +
+                                "- 찾기(온): {find_on}건\n" +
                                 "- 매칭: {match}건\n" +
                                 "- 잎사귀: {leaf}건\n" +
                                 "- 복방: {book}건\n\n" +
@@ -3598,7 +3598,7 @@
                                 const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
                                 if (!Array.isArray(parsed)) return;
                                 parsed.forEach(r => {
-                                    if (r.type === '오프만찾' || r.type === '온만찾') {
+                                    if (r.type === '합자찾(오프)' || r.type === '합자찾(온)') {
                                         const cnt = parseInt(r.count || 1, 10);
                                         regionFindResult[item.region] = (regionFindResult[item.region] || 0) + cnt;
                                     }
@@ -4102,19 +4102,19 @@
             $('db-kpi-rate').textContent = rate + '%';
 
             // 1) 계획 기준 카테고리 집계
-            const planCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            const planCounts = { '찾기(오프)': 0, '찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
             // 2) 완료 기준 카테고리 집계
-            const doneCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            const doneCounts = { '찾기(오프)': 0, '찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
             // 3) 실제 입력된 결과 건수 집계 (resultData 기준)
-            const resultCounts = { '합자찾기(오프)': 0, '합자찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
-            // 4) 완료 오프라인 찾기 세부 수량 ('오프만찾', '오프번찾')
-            const findSubDone = { '오프만찾': 0, '오프번찾': 0 };
+            const resultCounts = { '찾기(오프)': 0, '찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
+            // 4) 완료 오프라인 찾기 세부 수량 ('합자찾(오프)', '오프번찾')
+            const findSubDone = { '합자찾(오프)': 0, '오프번찾': 0 };
 
             const regionTotalCounts = {};
             const detailedResultsMap = {};
 
             list.forEach(item => {
-                const cat = item.content || '합자찾기(오프)';
+                const cat = item.content || '찾기(오프)';
                 const region = item.region || '미정';
 
                 // 계획 수량 합산
@@ -4137,17 +4137,17 @@
                                     const countVal = (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                     detailedResultsMap[key] += countVal;
 
-                                    // 합자찾기(오프) 세부 유형 집계 ('오프만찾', '오프번찾')
-                                    if (r.type === '오프만찾') {
-                                        findSubDone['오프만찾'] += countVal;
-                                        resultCounts['합자찾기(오프)'] += countVal;  // 실제 결과
+                                    // 찾기(오프) 세부 유형 집계 ('합자찾(오프)', '오프번찾')
+                                    if (r.type === '합자찾(오프)') {
+                                        findSubDone['합자찾(오프)'] += countVal;
+                                        resultCounts['찾기(오프)'] += countVal;  // 실제 결과
                                     } else if (r.type === '오프번찾' || r.type === '구두만픽') {
                                         findSubDone['오프번찾'] += countVal;
                                     }
 
-                                    // 합자찾기(온) 결과
-                                    if (r.type === '온만찾') {
-                                        resultCounts['합자찾기(온)'] += countVal;
+                                    // 찾기(온) 결과
+                                    if (r.type === '합자찾(온)') {
+                                        resultCounts['찾기(온)'] += countVal;
                                     }
 
                                     // 매칭 결과 (취소 제외)
@@ -4172,21 +4172,21 @@
             });
 
             // 1) 계획 기준 칩 출력
-            $('db-plan-find-off').textContent = (planCounts['합자찾기(오프)'] || 0) + '건';
-            $('db-plan-find-on').textContent = (planCounts['합자찾기(온)'] || 0) + '건';
+            $('db-plan-find-off').textContent = (planCounts['찾기(오프)'] || 0) + '건';
+            $('db-plan-find-on').textContent = (planCounts['찾기(온)'] || 0) + '건';
             $('db-plan-match').textContent = (planCounts['매칭'] || 0) + '건';
             $('db-plan-leaf').textContent = (planCounts['잎사귀'] || 0) + '건';
             $('db-plan-book').textContent = (planCounts['복방'] || 0) + '건';
 
             // 2) 완료 기준 칩 출력
-            $('db-done-find-off').textContent = (doneCounts['합자찾기(오프)'] || 0) + '건';
-            $('db-done-find-on').textContent = (doneCounts['합자찾기(온)'] || 0) + '건';
+            $('db-done-find-off').textContent = (doneCounts['찾기(오프)'] || 0) + '건';
+            $('db-done-find-on').textContent = (doneCounts['찾기(온)'] || 0) + '건';
             $('db-done-match').textContent = (doneCounts['매칭'] || 0) + '건';
             $('db-done-leaf').textContent = (doneCounts['잎사귀'] || 0) + '건';
             $('db-done-book').textContent = (doneCounts['복방'] || 0) + '건';
 
             // 3) 완료 오프라인 찾기 세부 팝업 출력
-            $('pop-find-off-only').textContent = findSubDone['오프만찾'] + '건';
+            $('pop-find-off-only').textContent = findSubDone['합자찾(오프)'] + '건';
             $('pop-find-num').textContent = findSubDone['오프번찾'] + '건';
 
             // 세부 성과 집계 칩 및 차트 렌더링
@@ -4208,10 +4208,10 @@
             const ctxCat = $('chart-category').getContext('2d');
             if (catChartInstance) catChartInstance.destroy();
 
-            const catLabels = ['합자찾기(오프)', '합자찾기(온)', '매칭', '잎사귀', '복방'];
+            const catLabels = ['찾기(오프)', '찾기(온)', '매칭', '잎사귀', '복방'];
             const catData = [
-                (resultCounts || planCounts)['합자찾기(오프)'] || 0,
-                (resultCounts || planCounts)['합자찾기(온)'] || 0,
+                (resultCounts || planCounts)['찾기(오프)'] || 0,
+                (resultCounts || planCounts)['찾기(온)'] || 0,
                 (resultCounts || planCounts)['매칭'] || 0,
                 (resultCounts || planCounts)['잎사귀'] || 0,
                 (resultCounts || planCounts)['복방'] || 0
@@ -4282,7 +4282,7 @@
                 if (bookContainer) { bookContainer.style.height = '320px'; bookContainer.classList.add('h-80'); }
             }
 
-            // 지역별 찾기 결과(오프만찾+온만찾) 집계
+            // 지역별 찾기 결과(합자찾(오프)+합자찾(온)) 집계
             const regionFindResult = {};
             (activityList || []).forEach(item => {
                 if (!item.resultData) return;
@@ -4290,7 +4290,7 @@
                     const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
                     if (!Array.isArray(parsed)) return;
                     parsed.forEach(r => {
-                        if (r.type === '오프만찾' || r.type === '온만찾') {
+                        if (r.type === '합자찾(오프)' || r.type === '합자찾(온)') {
                             const cnt = parseInt(r.count || 1, 10);
                             regionFindResult[item.region] = (regionFindResult[item.region] || 0) + cnt;
                         }
@@ -4303,7 +4303,7 @@
 
             if (dashRange === 'today') {
                 // ── 일일: 결과 건수만 표시 ──
-                if (titleEl) titleEl.textContent = '📊 일일 찾기 갯수(오프만찾+온만찾)';
+                if (titleEl) titleEl.textContent = '📊 일일 찾기 갯수(합자찾(오프)+합자찾(온))';
                 if (summaryEl) summaryEl.textContent = '';
 
                 groupChartInstance = new Chart(ctxGroup, {
@@ -4852,7 +4852,7 @@
 
             $('f-starttime').value = `${String(startH).padStart(2, '0')}:${startM}`;
             updateEndTimeOptions();
-            $('f-content-category').value = '합자찾기(오프)';
+            $('f-content-category').value = '찾기(오프)';
             $('f-location').value = '';
             $('f-result-text').value = '';
             $('result-rows-container').innerHTML = '';
@@ -4870,7 +4870,7 @@
             if (item.startTime) $('f-starttime').value = item.startTime;
             updateEndTimeOptions(item.endTime);
 
-            $('f-content-category').value = item.content || '합자찾기(오프)';
+            $('f-content-category').value = item.content || '찾기(오프)';
             $('f-location').value = item.location || '';
             $('f-result-text').value = item.resultText || '';
 
@@ -5220,7 +5220,7 @@
             return dates;
         }
 
-        // 2) 나의 활동 추적 데이터 렌더링 (찾기는 오직 '오프만찾', '온만찾'만 계수)
+        // 2) 나의 활동 추적 데이터 렌더링 (찾기는 오직 '합자찾(오프)', '합자찾(온)'만 계수)
         function renderTrackerData(list, startDate, endDate) {
             let countFind = 0; let countMatch = 0; let countLeaf = 0; let countBook = 0;
 
@@ -5232,9 +5232,9 @@
                             parsed.forEach(r => {
                                 const cVal = r.count !== undefined ? parseInt(r.count, 10) : 1;
 
-                                // 💡 찾기 계수 조건: '오프만찾' 또는 '온만찾'만 수량 합산 ('오프번찾' 제외)
-                                if ((r.category === '합자찾기(오프)' || r.category === '합자찾기(온)' || r.category === '찾기') &&
-                                    (r.type === '오프만찾' || r.type === '온만찾')) {
+                                // 💡 찾기 계수 조건: '합자찾(오프)' 또는 '합자찾(온)'만 수량 합산 ('오프번찾' 제외)
+                                if ((r.category === '찾기(오프)' || r.category === '찾기(온)' || r.category === '찾기') &&
+                                    (r.type === '합자찾(오프)' || r.type === '합자찾(온)')) {
                                     countFind += cVal;
                                 } else if (r.category === '매칭') countMatch += cVal;
                                 else if (r.category === '잎사귀') countLeaf += cVal;
