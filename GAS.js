@@ -1038,15 +1038,14 @@ function verifyTelegramInitData(initDataStr, botToken) {
     const secretKeyBytes = Utilities.computeHmacSignature(
       Utilities.MacAlgorithm.HMAC_SHA_256,
       botToken,
-      "WebAppData",
-      Utilities.Charset.UTF_8
+      "WebAppData"
     );
 
+    const dataCheckBytes = Utilities.newBlob(dataCheckString).getBytes();
     const computedHashBytes = Utilities.computeHmacSignature(
       Utilities.MacAlgorithm.HMAC_SHA_256,
-      dataCheckString,
-      secretKeyBytes,
-      Utilities.Charset.UTF_8
+      dataCheckBytes,
+      secretKeyBytes
     );
 
     let computedHashHex = "";
