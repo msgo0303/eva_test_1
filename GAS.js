@@ -185,9 +185,22 @@ function doGet(e) {
     }
 
     if (action === "registerUser") {
-      const tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
-      const selectedUserId = e.parameter.selectedRow;
       const config = getConfig();
+      let tgUserId = "GUEST_USER";
+
+      if (!config.botToken) {
+        Logger.log("⚠️ WARNING: botToken is not configured in AlarmSchedules sheet (X1). Skipping security verification.");
+        tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
+      } else {
+        const validatedUser = safeParseTelegramUser(e.parameter.initData || "", config.botToken);
+        if (validatedUser) {
+          tgUserId = validatedUser.id;
+        } else {
+          return makeJsonResponse({ result: "fail", message: "유효하지 않은 요청입니다. (인증 실패)" });
+        }
+      }
+
+      const selectedUserId = e.parameter.selectedRow;
 
       const headers = {
         "apikey": config.supabaseKey,
@@ -217,9 +230,22 @@ function doGet(e) {
     }
 
     if (action === "registerCustomUser") {
-      const tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
-      const name = e.parameter.name;
       const config = getConfig();
+      let tgUserId = "GUEST_USER";
+
+      if (!config.botToken) {
+        Logger.log("⚠️ WARNING: botToken is not configured in AlarmSchedules sheet (X1). Skipping security verification.");
+        tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
+      } else {
+        const validatedUser = safeParseTelegramUser(e.parameter.initData || "", config.botToken);
+        if (validatedUser) {
+          tgUserId = validatedUser.id;
+        } else {
+          return makeJsonResponse({ result: "fail", message: "유효하지 않은 요청입니다. (인증 실패)" });
+        }
+      }
+
+      const name = e.parameter.name;
 
       const headers = {
         "apikey": config.supabaseKey,
@@ -970,4 +996,101 @@ function parseTelegramUserIdFromInitData(initDataStr) {
     }
   } catch (e) { }
   return "GUEST_USER";
+}
+
+function verifyTelegramInitData(initDataStr, botToken) {
+  if (!initDataStr || !botToken) return false;
+
+  try {
+    const params = {};
+    const pairs = initDataStr.split('&');
+    let providedHash = "";
+
+    for (let i = 0; i < pairs.length; i++) {
+      const pair = pairs[i].split('=');
+      if (pair.length < 2) continue;
+      const key = decodeURIComponent(pair[0]);
+      const val = decodeURIComponent(pair.slice(1).join('='));
+
+      if (key === 'hash') {
+        providedHash = val;
+      } else {
+        params[key] = val;
+      }
+    }
+
+    if (!providedHash) {
+      Logger.log("No hash found in initData");
+      return false;
+    }
+
+    const sortedKeys = Object.keys(params).sort();
+    const dataCheckArr = [];
+    for (let i = 0; i < sortedKeys.length; i++) {
+      dataCheckArr.push(sortedKeys[i] + '=' + params[sortedKeys[i]]);
+    }
+    const dataCheckString = dataCheckArr.join('\n');
+
+    const secretKeyBytes = Utilities.computeHmacSignature(
+      Utilities.MacAlgorithm.HMAC_SHA_256,
+      botToken,
+      "WebAppData",
+      Utilities.Charset.UTF_8
+    );
+
+    const computedHashBytes = Utilities.computeHmacSignature(
+      Utilities.MacAlgorithm.HMAC_SHA_256,
+      dataCheckString,
+      secretKeyBytes,
+      Utilities.Charset.UTF_8
+    );
+
+    let computedHashHex = "";
+    for (let i = 0; i < computedHashBytes.length; i++) {
+      let byteVal = computedHashBytes[i];
+      if (byteVal < 0) byteVal += 256;
+      let hexByte = byteVal.toString(16);
+      if (hexByte.length === 1) hexByte = "0" + hexByte;
+      computedHashHex += hexByte;
+    }
+
+    return computedHashHex === providedHash;
+  } catch (e) {
+    Logger.log("verifyTelegramInitData error: " + e.message);
+    return false;
+  }
+}
+
+function safeParseTelegramUser(initDataStr, botToken) {
+  if (!initDataStr) {
+    Logger.log("initDataStr is empty");
+    return null;
+  }
+  
+  const isValid = verifyTelegramInitData(initDataStr, botToken);
+  if (!isValid) {
+    Logger.log("Telegram initData verification failed");
+    return null;
+  }
+  
+  try {
+    const decoded = decodeURIComponent(initDataStr);
+    const pairs = decoded.split('&');
+    for (let i = 0; i < pairs.length; i++) {
+      const pair = pairs[i].split('=');
+      if (pair.length < 2) continue;
+      const key = pair[0];
+      const value = pair.slice(1).join('=');
+      if (key === 'user') {
+        const userObj = JSON.parse(value);
+        return {
+          id: userObj.id ? userObj.id.toString() : "",
+          name: userObj.first_name || userObj.username || ""
+        };
+      }
+    }
+  } catch (e) {
+    Logger.log("Failed to parse user from initData: " + e.message);
+  }
+  return null;
 }
