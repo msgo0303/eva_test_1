@@ -293,6 +293,15 @@ function doGet(e) {
         "Prefer": "return=minimal"
       };
 
+      let parsedResultData = null;
+      if (e.parameter.resultData) {
+        try {
+          parsedResultData = JSON.parse(e.parameter.resultData);
+        } catch (jsonErr) {
+          Logger.log("⚠️ resultData JSON parsing failed: " + jsonErr.message);
+        }
+      }
+
       const payload = {
         user_id: verifiedTgUserId,
         name: dbUser.name,
@@ -305,7 +314,7 @@ function doGet(e) {
         location: e.parameter.location || "",
         content: e.parameter.content || "찾기",
         status: e.parameter.status,
-        result_data: e.parameter.resultData || "",
+        result_data: parsedResultData,
         result_text: e.parameter.resultText || ""
       };
 
@@ -322,6 +331,9 @@ function doGet(e) {
           url += `&user_id=eq.${verifiedTgUserId}`;
         }
         method = "patch";
+      } else {
+        // 신규 추가 시에는 필수 Primary Key인 id를 생성/지정하여 payload에 포함
+        payload.id = actId || ("ACT_" + new Date().getTime());
       }
 
       const response = UrlFetchApp.fetch(url, {
