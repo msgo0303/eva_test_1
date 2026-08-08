@@ -201,7 +201,7 @@ serve(async (req) => {
       const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
       if (!dbUsers || dbUsers.length === 0) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -211,7 +211,7 @@ serve(async (req) => {
       const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
       if (!isSuper && !isLeader) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -229,7 +229,7 @@ serve(async (req) => {
       // 조장/부조장은 본인 지역 소속의 유저만 관리 가능
       if (!isSuper && targetUser.region !== dbUser.region) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "본인 지역 소속의 유저만 관리할 수 있습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -263,7 +263,7 @@ serve(async (req) => {
       const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
       if (!dbUsers || dbUsers.length === 0) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -273,7 +273,7 @@ serve(async (req) => {
       const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
       if (!isSuper && !isLeader) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -289,7 +289,7 @@ serve(async (req) => {
 
       if (!isSuper && targetUser.region !== dbUser.region) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "본인 지역 소속의 유저만 관리할 수 있습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -315,7 +315,7 @@ serve(async (req) => {
       const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
       if (!dbUsers || dbUsers.length === 0) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -324,7 +324,7 @@ serve(async (req) => {
       const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
       if (!isSuper) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "관리자 권한이 필요합니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -395,7 +395,7 @@ serve(async (req) => {
       const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
       if (!dbUsers || dbUsers.length === 0) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -405,7 +405,7 @@ serve(async (req) => {
       const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
       if (!isSuper && !isLeader) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -448,7 +448,7 @@ serve(async (req) => {
       const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
       if (!dbUsers || dbUsers.length === 0) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -467,7 +467,7 @@ serve(async (req) => {
       const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
       if (!isSuper && (!isLeader || notice.region !== dbUser.region)) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -496,7 +496,7 @@ serve(async (req) => {
       const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
       if (!dbUsers || dbUsers.length === 0) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -515,7 +515,7 @@ serve(async (req) => {
       const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
       if (!isSuper && (!isLeader || notice.region !== dbUser.region)) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
