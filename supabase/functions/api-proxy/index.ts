@@ -1,0 +1,549 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function parseTelegramUser(initDataStr: string) {
+  if (!initDataStr) return null;
+  try {
+    const params = new URLSearchParams(initDataStr);
+    const userStr = params.get("user");
+    if (userStr) {
+      return JSON.parse(userStr);
+    }
+  } catch (e) {
+    console.error("⚠️ parseTelegramUser error:", e);
+  }
+  return null;
+}
+
+async function verifyTelegramInitData(initDataStr: string, botToken: string): Promise<boolean> {
+  try {
+    const params = new URLSearchParams(initDataStr);
+    const providedHash = params.get("hash");
+    if (!providedHash) return false;
+
+    // hash 파라미터 제외
+    params.delete("hash");
+
+    // 알파벳 순서대로 정렬 후 key=value\n 조립
+    const keys = Array.from(params.keys()).sort();
+    const dataCheckArr: string[] = [];
+    for (const key of keys) {
+      const val = params.get(key);
+      if (val !== null) {
+        dataCheckArr.push(`${key}=${val}`);
+      }
+    }
+    const dataCheckString = dataCheckArr.join("\n");
+
+    const encoder = new TextEncoder();
+    
+    // WebAppData 시크릿 키 생성 (HMAC-SHA256)
+    const secretKeyMaterial = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode("WebAppData"),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const secretKeyBytes = await crypto.subtle.sign(
+      "HMAC",
+      secretKeyMaterial,
+      encoder.encode(botToken)
+    );
+
+    // data_check_string 서명용 hmacKey 로드
+    const hmacKey = await crypto.subtle.importKey(
+      "raw",
+      secretKeyBytes,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      hmacKey,
+      encoder.encode(dataCheckString)
+    );
+
+    const signatureHex = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    return signatureHex === providedHash;
+  } catch (e) {
+    console.error("⚠️ verifyTelegramInitData error:", e);
+    return false;
+  }
+}
+
+serve(async (req) => {
+  // CORS preflight 요청 처리
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const { action, initData, params } = await req.json();
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+
+    if (!botToken) {
+      return new Response(
+        JSON.stringify({ result: "fail", message: "서버 설정 에러: TELEGRAM_BOT_TOKEN 비밀값이 누락되었습니다." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 1. 보안 검증 파이프라인
+    const isValid = await verifyTelegramInitData(initData || "", botToken);
+    if (!isValid) {
+      return new Response(
+        JSON.stringify({ result: "fail", message: "유효하지 않은 텔레그램 인증 정보입니다." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const tgUser = parseTelegramUser(initData || "");
+    if (!tgUser || !tgUser.id) {
+      return new Response(
+        JSON.stringify({ result: "fail", message: "텔레그램 유저 정보를 추출할 수 없습니다." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const verifiedTgUserId = tgUser.id.toString();
+
+    // Supabase Service Role Client 생성 (서버 측에서 RLS를 우회하고 권한 검증 및 제어 진행)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // [보안 CUD 위임 API] 1. 활동 저장 및 취소 (saveActivity)
+    if (action === "saveActivity") {
+      const { mode, actId, date, startTime, endTime, location, content, status, resultData, resultText } = params;
+
+      // 요청한 유저의 DB 프로필 조회 (F12 권한 위조 원천 차단)
+      const { data: dbUsers, error: userErr } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", verifiedTgUserId);
+
+      if (userErr || !dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "등록되지 않은 사용자입니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const payload: any = {
+        user_id: verifiedTgUserId,
+        name: dbUser.name,
+        group_name: dbUser.group_name || "",
+        region: dbUser.region || "",
+        role: dbUser.role || "",
+        activity_date: date,
+        start_time: startTime || "09:00",
+        end_time: endTime || "10:00",
+        location: location || "",
+        content: content || "찾기",
+        status: status,
+        result_data: resultData ? (typeof resultData === 'string' ? JSON.parse(resultData) : resultData) : null,
+        result_text: resultText || ""
+      };
+
+      if (mode === "edit") {
+        const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+        const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+
+        let query = supabase.from("activities").update(payload).eq("id", actId);
+        // 일반 관리자나 조장이 아니면 본인 활동만 수정 가능하도록 보안 잠금
+        if (!isSuper && !isLeader) {
+          query = query.eq("user_id", verifiedTgUserId);
+        }
+        const { error } = await query;
+        if (error) {
+          return new Response(
+            JSON.stringify({ result: "fail", message: "활동 수정 실패: " + error.message }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        // 신규 추가 시에는 필수 Primary Key인 id 지정
+        const { error } = await supabase.from("activities").insert([{
+          ...payload,
+          id: actId || ("ACT_" + Date.now())
+        }]);
+        if (error) {
+          return new Response(
+            JSON.stringify({ result: "fail", message: "활동 추가 실패: " + error.message }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "활동이 성공적으로 저장되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 2. 사용자 정보 변경 (updateUserStatus: 복방 개수 / 면제 상태)
+    if (action === "updateUserStatus") {
+      const { targetName, bookCount, isExempt } = params;
+
+      const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
+      if (!dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && !isLeader) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 대상 사용자 조회
+      const { data: targets } = await supabase.from("users").select("*").eq("name", targetName);
+      if (!targets || targets.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "대상 사용자를 찾을 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const targetUser = targets[0];
+
+      // 조장/부조장은 본인 지역 소속의 유저만 관리 가능
+      if (!isSuper && targetUser.region !== dbUser.region) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "본인 지역 소속의 유저만 관리할 수 있습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const updatePayload: any = {};
+      if (bookCount !== undefined) {
+        updatePayload.book_count = parseInt(bookCount, 10);
+      }
+      if (isExempt !== undefined) {
+        updatePayload.is_exempt = isExempt === true || isExempt === "true";
+      }
+
+      const { error } = await supabase.from("users").update(updatePayload).eq("id", targetUser.id);
+      if (error) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "상태 변경 실패: " + error.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "정보가 성공적으로 변경되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 3. 사용자 권한 수정 (updateUserRole)
+    if (action === "updateUserRole") {
+      const { targetName, role } = params;
+
+      const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
+      if (!dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && !isLeader) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: targets } = await supabase.from("users").select("*").eq("name", targetName);
+      if (!targets || targets.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "대상 사용자를 찾을 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const targetUser = targets[0];
+
+      if (!isSuper && targetUser.region !== dbUser.region) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "본인 지역 소속의 유저만 관리할 수 있습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error } = await supabase.from("users").update({ role }).eq("id", targetUser.id);
+      if (error) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한 변경 실패: " + error.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "권한이 성공적으로 변경되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 4. 개강 사이클 관리 (saveSemester)
+    if (action === "saveSemester") {
+      const { mode, id, name, startDate, endDate, isActive } = params;
+
+      const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
+      if (!dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      if (!isSuper) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "관리자 권한이 필요합니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (mode === "delete") {
+        const { error } = await supabase.from("semesters").delete().eq("id", id);
+        if (error) {
+          return new Response(
+            JSON.stringify({ result: "fail", message: "사이클 삭제 실패: " + error.message }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        return new Response(
+          JSON.stringify({ result: "success", message: "사이클이 삭제되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (mode === "add") {
+        await supabase.from("semesters").update({ is_active: false }).neq("id", 0);
+
+        const { error } = await supabase.from("semesters").insert([{
+          name,
+          start_date: startDate,
+          end_date: endDate,
+          is_active: true
+        }]);
+        if (error) {
+          return new Response(
+            JSON.stringify({ result: "fail", message: "사이클 추가 실패: " + error.message }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        return new Response(
+          JSON.stringify({ result: "success", message: "새 사이클이 등록되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (mode === "edit") {
+        if (isActive === true || isActive === "true") {
+          await supabase.from("semesters").update({ is_active: false }).neq("id", id);
+        }
+
+        const { error } = await supabase.from("semesters").update({
+          name,
+          start_date: startDate,
+          end_date: endDate,
+          is_active: isActive === true || isActive === "true"
+        }).eq("id", id);
+        if (error) {
+          return new Response(
+            JSON.stringify({ result: "fail", message: "사이클 수정 실패: " + error.message }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        return new Response(
+          JSON.stringify({ result: "success", message: "사이클이 수정되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // [보안 CUD 위임 API] 5. 공지사항 등록 (saveNotice)
+    if (action === "saveNotice") {
+      const { title, content, type, region, visible, isImportant } = params;
+
+      const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
+      if (!dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && !isLeader) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let finalRegion = region || "ALL";
+      if (!isSuper) {
+        finalRegion = dbUser.region;
+      }
+
+      const { error } = await supabase.from("notices").insert([{
+        type,
+        author_id: verifiedTgUserId,
+        author_name: dbUser.name,
+        author_role: dbUser.role,
+        group_name: dbUser.group_name || "",
+        title,
+        content,
+        region: finalRegion,
+        visible: visible === true || visible === "Y" || visible === "true",
+        is_important: isImportant === true || isImportant === "Y" || isImportant === "true"
+      }]);
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "공지사항 저장 실패: " + error.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "공지사항이 등록되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 6. 공지사항 상태 수정 (toggleNoticeVisibility)
+    if (action === "toggleNoticeVisibility") {
+      const { noticeId, visible } = params;
+
+      const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
+      if (!dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const { data: notices } = await supabase.from("notices").select("*").eq("id", noticeId);
+      if (!notices || notices.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "공지사항을 찾을 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const notice = notices[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && (!isLeader || notice.region !== dbUser.region)) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error } = await supabase.from("notices").update({
+        visible: visible === true || visible === "Y" || visible === "true"
+      }).eq("id", noticeId);
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "공지 상태 변경 실패: " + error.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "공지 상태가 수정되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 7. 공지사항 삭제 (deleteNotice)
+    if (action === "deleteNotice") {
+      const { noticeId } = params;
+
+      const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
+      if (!dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const { data: notices } = await supabase.from("notices").select("*").eq("id", noticeId);
+      if (!notices || notices.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "공지사항을 찾을 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const notice = notices[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && (!isLeader || notice.region !== dbUser.region)) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error } = await supabase.from("notices").delete().eq("id", noticeId);
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "공지사항 삭제 실패: " + error.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "공지사항이 삭제되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ result: "fail", message: "지원하지 않는 action입니다." }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({ result: "fail", message: err.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

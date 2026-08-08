@@ -1430,6 +1430,26 @@
 
         const tg = window.Telegram ? window.Telegram.WebApp : null;
 
+        async function callApiProxy(action, params = {}) {
+            const initData = tg ? tg.initData : "";
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/api-proxy`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action, initData, params })
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                let errObj;
+                try {
+                    errObj = JSON.parse(text);
+                } catch(e) {}
+                throw new Error(errObj && errObj.message ? errObj.message : `HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        }
+
         let profile = { region: '', role: '', name: '', group: '', id: '' };
         let currentDate = new Date();
         let activities = [];
@@ -2293,8 +2313,7 @@
             showToast(`${targetName}님 복방 수량 변경 (${newCount}개)`, 'success');
 
             try {
-                const res = await fetch(`${GAS_URL}?action=updateUserStatus&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&bookCount=${newCount}`);
-                const data = await res.json();
+                const data = await callApiProxy('updateUserStatus', { targetName, bookCount: newCount });
                 if (data.result !== 'success') throw new Error(data.message);
             } catch (err) {
                 showToast('수정 실패: ' + err.message, 'error');
@@ -2314,8 +2333,7 @@
             showToast(`${targetName}님 예외 상태 변경 완료`, 'success');
 
             try {
-                const res = await fetch(`${GAS_URL}?action=updateUserStatus&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&isExempt=${newExemptState}`);
-                const data = await res.json();
+                const data = await callApiProxy('updateUserStatus', { targetName, isExempt: newExemptState });
                 if (data.result !== 'success') throw new Error(data.message);
             } catch (err) {
                 showToast('수정 실패: ' + err.message, 'error');
@@ -2519,8 +2537,7 @@
 
         async function toggleNoticeVisibility(id, newVisible) {
             try {
-                const res = await fetch(`${GAS_URL}?action=toggleNoticeVisibility&initData=${encodeURIComponent(tg ? tg.initData : '')}&noticeId=${id}&visible=${newVisible}`);
-                const data = await res.json();
+                const data = await callApiProxy('toggleNoticeVisibility', { noticeId: id, visible: newVisible });
                 if (data.result !== 'success') throw new Error(data.message);
                 showToast(data.message || '공지 상태가 수정되었습니다.', 'success');
                 await fetchAppData();
@@ -2531,8 +2548,7 @@
         async function deleteNotice(id) {
             if (!confirm('정말 이 공지사항을 삭제하시겠습니까?')) return;
             try {
-                const res = await fetch(`${GAS_URL}?action=deleteNotice&initData=${encodeURIComponent(tg ? tg.initData : '')}&noticeId=${id}`);
-                const data = await res.json();
+                const data = await callApiProxy('deleteNotice', { noticeId: id });
                 if (data.result !== 'success') throw new Error(data.message);
                 showToast(data.message || '공지사항이 삭제되었습니다.', 'success');
                 await fetchAppData();
@@ -2648,8 +2664,15 @@
             const btn = $('btn-save-notice'); btn.disabled = true; btn.textContent = '저장 중...';
 
             try {
-                const res = await fetch(`${GAS_URL}?action=saveNotice&initData=${encodeURIComponent(tg ? tg.initData : '')}&title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}&type=${type}&region=${encodeURIComponent(region)}&visible=${visible ? 'Y' : 'N'}&isImportant=${isImportant ? 'Y' : 'N'}`);
-                const data = await res.json();
+                const params = {
+                    title: title,
+                    content: content,
+                    type: type,
+                    region: region,
+                    visible: visible,
+                    isImportant: isImportant
+                };
+                const data = await callApiProxy('saveNotice', params);
                 if (data.result !== 'success') throw new Error(data.message);
                 showToast('공지사항이 등록되었습니다.', 'success');
                 closeNoticeSheet();
@@ -3053,8 +3076,7 @@
             btn.disabled = true; btn.textContent = '저장 중...';
 
             try {
-                const res = await fetch(`${GAS_URL}?action=updateUserRole&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&role=${encodeURIComponent(newRole)}`);
-                const data = await res.json();
+                const data = await callApiProxy('updateUserRole', { targetName, role: newRole });
                 if (data.result !== 'success') throw new Error(data.message);
 
                 // 로컬 캐시 업데이트
@@ -3190,8 +3212,8 @@
             if (!name || !startDate || !endDate) return showToast('⚠️ 모든 항목을 입력해 주세요.', 'error');
 
             try {
-                const res = await fetch(`${GAS_URL}?action=saveSemester&initData=${encodeURIComponent(tg ? tg.initData : '')}&mode=edit&id=${id}&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}&isActive=${isActive}`);
-                const data = await res.json();
+                const params = { mode: 'edit', id, name, startDate, endDate, isActive };
+                const data = await callApiProxy('saveSemester', params);
                 if (data.result !== 'success') throw new Error(data.message);
 
                 const overlay = document.getElementById('sem-edit-overlay');
@@ -3223,8 +3245,8 @@
             if (!confirm(`'${name}' 사이클을 삭제하시겠습니까?\n\n삭제 후 복구가 불가능합니다.`)) return;
 
             try {
-                const res = await fetch(`${GAS_URL}?action=saveSemester&initData=${encodeURIComponent(tg ? tg.initData : '')}&mode=delete&id=${id}`);
-                const data = await res.json();
+                const params = { mode: 'delete', id };
+                const data = await callApiProxy('saveSemester', params);
                 if (data.result !== 'success') throw new Error(data.message);
 
                 semestersList = semestersList.filter(s => s.id !== id);
@@ -3253,8 +3275,8 @@
             if (!startDate || !endDate) return showToast('⚠️ 시작일과 종료일을 입력해 주세요.', 'error');
 
             try {
-                const res = await fetch(`${GAS_URL}?action=saveSemester&initData=${encodeURIComponent(tg ? tg.initData : '')}&mode=add&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}`);
-                const data = await res.json();
+                const params = { mode: 'add', name, startDate, endDate };
+                const data = await callApiProxy('saveSemester', params);
                 if (data.result !== 'success') throw new Error(data.message);
                 showToast('새 사이클이 등록되었습니다!', 'success');
                 $('sem-start').value = '';
@@ -3902,9 +3924,7 @@
             $('save-spinner').classList.remove('hidden'); $('btn-save').disabled = true;
             const actId = modalMode === 'add' ? ("ACT_" + Date.now()) : editId;
 
-            const payload = {
-                action: 'saveActivity',
-                initData: tg ? tg.initData : "",
+            const params = {
                 mode: modalMode,
                 actId: actId,
                 date: targetDate,
@@ -3918,9 +3938,7 @@
             };
 
             try {
-                const queryParams = new URLSearchParams(payload).toString();
-                const res = await fetch(`${GAS_URL}?${queryParams}`);
-                const data = await res.json();
+                const data = await callApiProxy('saveActivity', params);
                 if (data.result !== 'success') throw new Error(data.message);
                 closeModal();
                 showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
@@ -3936,9 +3954,7 @@
             const idx = activities.findIndex(a => a.id == editId);
             if (idx === -1) return;
 
-            const payload = {
-                action: 'saveActivity',
-                initData: tg ? tg.initData : "",
+            const params = {
                 mode: 'edit',
                 actId: editId,
                 date: activities[idx].date || dateKey(currentDate),
@@ -3952,9 +3968,7 @@
             };
 
             try {
-                const queryParams = new URLSearchParams(payload).toString();
-                const res = await fetch(`${GAS_URL}?${queryParams}`);
-                const data = await res.json();
+                const data = await callApiProxy('saveActivity', params);
                 if (data.result !== 'success') throw new Error(data.message);
                 closeModal();
                 showToast('활동이 취소 처리되었습니다.', 'success');
