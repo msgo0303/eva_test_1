@@ -29,6 +29,22 @@ function getConfig() {
 function doGet(e) {
   try {
     const action = e ? e.parameter.action : "";
+    const initDataStr = e ? e.parameter.initData : "";
+    const config = getConfig();
+
+    // 1. 보안 검증 파이프라인
+    let verifiedTgUserId = "GUEST_USER";
+    if (config.botToken) {
+      const validatedUser = safeParseTelegramUser(initDataStr || "", config.botToken);
+      if (!validatedUser) {
+        return makeJsonResponse({ result: "fail", message: "유효하지 않은 텔레그램 인증 정보입니다." });
+      }
+      verifiedTgUserId = validatedUser.id;
+    } else {
+      Logger.log("⚠️ WARNING: botToken is not configured in AlarmSchedules sheet (X1). Skipping security verification.");
+      verifiedTgUserId = parseTelegramUserIdFromInitData(initDataStr || "");
+    }
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     if (action === "addAlarmSchedule") {
@@ -185,21 +201,6 @@ function doGet(e) {
     }
 
     if (action === "registerUser") {
-      const config = getConfig();
-      let tgUserId = "GUEST_USER";
-
-      if (!config.botToken) {
-        Logger.log("⚠️ WARNING: botToken is not configured in AlarmSchedules sheet (X1). Skipping security verification.");
-        tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
-      } else {
-        const validatedUser = safeParseTelegramUser(e.parameter.initData || "", config.botToken);
-        if (validatedUser) {
-          tgUserId = validatedUser.id;
-        } else {
-          return makeJsonResponse({ result: "fail", message: "유효하지 않은 요청입니다. (인증 실패)" });
-        }
-      }
-
       const selectedUserId = e.parameter.selectedRow;
 
       const headers = {
@@ -210,7 +211,7 @@ function doGet(e) {
       };
 
       const payload = {
-        id: tgUserId
+        id: verifiedTgUserId
       };
 
       const url = `${config.supabaseUrl}/rest/v1/users?id=eq.${encodeURIComponent(selectedUserId)}`;
@@ -230,21 +231,6 @@ function doGet(e) {
     }
 
     if (action === "registerCustomUser") {
-      const config = getConfig();
-      let tgUserId = "GUEST_USER";
-
-      if (!config.botToken) {
-        Logger.log("⚠️ WARNING: botToken is not configured in AlarmSchedules sheet (X1). Skipping security verification.");
-        tgUserId = parseTelegramUserIdFromInitData(e.parameter.initData || "");
-      } else {
-        const validatedUser = safeParseTelegramUser(e.parameter.initData || "", config.botToken);
-        if (validatedUser) {
-          tgUserId = validatedUser.id;
-        } else {
-          return makeJsonResponse({ result: "fail", message: "유효하지 않은 요청입니다. (인증 실패)" });
-        }
-      }
-
       const name = e.parameter.name;
 
       const headers = {
@@ -255,7 +241,7 @@ function doGet(e) {
       };
 
       const payload = {
-        id: tgUserId,
+        id: verifiedTgUserId,
         name: name,
         role: "부원",
         region: "",
@@ -482,6 +468,14 @@ function makeJsonResponse(obj) {
 /*
 function doPost(e) {
   try {
+    const initDataStr = e ? e.parameter.initData : "";
+    if (initDataStr) {
+      const config = getConfig();
+      if (config.botToken && !verifyTelegramInitData(initDataStr, config.botToken)) {
+        return makeJsonResponse({ result: "fail", message: "유효하지 않은 텔레그램 인증 정보입니다." });
+      }
+    }
+
     if (!e || !e.postData || !e.postData.contents) {
       return makeJsonResponse({ result: "fail", message: "데이터가 없습니다." });
     }

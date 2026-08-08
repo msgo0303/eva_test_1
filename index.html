@@ -1538,17 +1538,22 @@
                 .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
-        function parseTelegramUserId(initDataStr) {
-            if (!initDataStr) return "GUEST_USER";
-            try {
-                const decoded = decodeURIComponent(initDataStr);
-                const userParam = decoded.split('&').find(p => p.startsWith('user='));
-                if (userParam) {
-                    return JSON.parse(userParam.split('user=')[1]).id.toString();
-                }
-            } catch (e) { }
-            return "GUEST_USER";
-        }
+        // 🔒 F12 콘솔에서의 조작 및 변조를 방지하기 위해 parseTelegramUserId 함수를 읽기 전용으로 잠금
+        Object.defineProperty(window, 'parseTelegramUserId', {
+            value: function(initDataStr) {
+                if (!initDataStr) return "GUEST_USER";
+                try {
+                    const decoded = decodeURIComponent(initDataStr);
+                    const userParam = decoded.split('&').find(p => p.startsWith('user='));
+                    if (userParam) {
+                        return JSON.parse(userParam.split('user=')[1]).id.toString();
+                    }
+                } catch (e) { }
+                return "GUEST_USER";
+            },
+            writable: false,
+            configurable: false
+        });
 
         function renderWeeklyMissionUI() {
             const card = $('weekly-mission-card');
@@ -2297,7 +2302,7 @@
                 }
             } else {
                 try {
-                    await fetch(`${GAS_URL}?action=updateUserStatus&targetName=${encodeURIComponent(targetName)}&bookCount=${newCount}`);
+                    await fetch(`${GAS_URL}?action=updateUserStatus&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&bookCount=${newCount}`);
                 } catch (err) {
                     showToast('수정 실패: ' + err.message, 'error');
                 }
@@ -2325,7 +2330,7 @@
                 }
             } else {
                 try {
-                    await fetch(`${GAS_URL}?action=updateUserStatus&targetName=${encodeURIComponent(targetName)}&isExempt=${newExemptState}`);
+                    await fetch(`${GAS_URL}?action=updateUserStatus&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&isExempt=${newExemptState}`);
                 } catch (err) {
                     showToast('수정 실패: ' + err.message, 'error');
                 }
@@ -3347,7 +3352,7 @@
             }
 
             try {
-                await fetch(`${GAS_URL}?action=updateSemester&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}`);
+                await fetch(`${GAS_URL}?action=updateSemester&initData=${encodeURIComponent(tg ? tg.initData : '')}&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}`);
                 showToast('개강 사이클 설정 완료!', 'success');
             } catch (err) { showToast('저장 실패: ' + err.message, 'error'); }
         }
@@ -3569,7 +3574,7 @@
                         // 1. GAS에 저장된 리포트 텍스트 템플릿 로드 (range 파라미터 추가)
                         let templateText = "";
                         try {
-                            const resTemp = await fetch(`${GAS_URL}?action=getWeeklyReportTemplate&range=${currentDashRange}`);
+                            const resTemp = await fetch(`${GAS_URL}?action=getWeeklyReportTemplate&initData=${encodeURIComponent(tg ? tg.initData : '')}&range=${currentDashRange}`);
                             const tempData = await resTemp.json();
                             if (tempData.result === 'success') {
                                 templateText = tempData.template;
@@ -5258,7 +5263,7 @@
 
             // 2. 구글 시트(AlarmSchedules 탭) 동기화 호출
             try {
-                const gasApiUrl = `${GAS_URL}?action=addAlarmSchedule&category=${currentSendCategory}&alarmTime=${timeVal}&isActive=true`;
+                const gasApiUrl = `${GAS_URL}?action=addAlarmSchedule&initData=${encodeURIComponent(tg ? tg.initData : '')}&category=${currentSendCategory}&alarmTime=${timeVal}&isActive=true`;
                 fetch(gasApiUrl, { mode: 'no-cors' }); // 비동기로 시트에 추가
             } catch (e) {
                 console.warn("구글 시트 동기화 중 오류 (Supabase에는 저장됨):", e);
@@ -5277,7 +5282,7 @@
                     await supabaseClient.from('alarm_schedules').update({ is_active: newState }).eq('id', id);
 
                     // 구글 시트 상태 동기화 호출
-                    const gasApiUrl = `${GAS_URL}?action=toggleAlarmActive&category=${category}&alarmTime=${alarmTime}&isActive=${newState}`;
+                    const gasApiUrl = `${GAS_URL}?action=toggleAlarmActive&initData=${encodeURIComponent(tg ? tg.initData : '')}&category=${category}&alarmTime=${alarmTime}&isActive=${newState}`;
                     fetch(gasApiUrl, { mode: 'no-cors' });
 
                     loadAlarmSchedules();
@@ -5295,7 +5300,7 @@
                     await supabaseClient.from('alarm_schedules').delete().eq('id', id);
 
                     // 구글 시트 알람 삭제 동기화 호출
-                    const gasApiUrl = `${GAS_URL}?action=deleteAlarmSchedule&category=${category}&alarmTime=${alarmTime}`;
+                    const gasApiUrl = `${GAS_URL}?action=deleteAlarmSchedule&initData=${encodeURIComponent(tg ? tg.initData : '')}&category=${category}&alarmTime=${alarmTime}`;
                     fetch(gasApiUrl, { mode: 'no-cors' });
 
                     loadAlarmSchedules();
