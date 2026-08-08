@@ -2354,7 +2354,23 @@
             const badge = $('notice-unread-count');
             if (!container) return;
 
-            const visibleNotices = notices.filter(n => n.visible === 'Y');
+            const role = profile.role || "";
+            const isSuper = role.includes("관리자") || role.includes("전체관리자");
+            const userRegion = (profile.region || "").trim();
+
+            const visibleNotices = notices.filter(n => {
+                if (n.visible !== 'Y') return false;
+                if (isSuper) return true; // 전체 관리자는 모든 공지 표시
+
+                const noticeRegion = (n.region || "ALL").trim();
+                if (noticeRegion === "ALL" || noticeRegion === "") return true;
+
+                const targetRegions = noticeRegion.split(',').map(r => r.trim());
+                if (userRegion && userRegion !== '-' && userRegion !== '미정') {
+                    return targetRegions.includes(userRegion);
+                }
+                return false;
+            });
             const totalCount = visibleNotices.length;
             const importantCount = visibleNotices.filter(n => n.isImportant === 'Y').length;
             const normalCount = totalCount - importantCount;
@@ -2462,7 +2478,13 @@
             const groupListEl = $('manage-group-list');
 
             const adminNotices = activeNotices.filter(n => n.type === 'admin');
-            const groupNotices = activeNotices.filter(n => n.type === 'group');
+            const groupNotices = activeNotices.filter(n => {
+                if (n.type !== 'group') return false;
+                if (isSuper) return true; // 전체 관리자는 모든 지역 공지 관리 가능
+                
+                const noticeRegion = n.region || "";
+                return noticeRegion.split(',').map(r => r.trim()).includes(profile.region);
+            });
 
             const buildItemHtml = n => {
                 const isImp = n.isImportant === 'Y';
