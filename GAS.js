@@ -266,6 +266,462 @@ function doGet(e) {
       }
     }
 
+    // [보안 CUD 위임 API] 1. 활동 저장 및 취소 (saveActivity)
+    if (action === "saveActivity") {
+      const mode = e.parameter.mode;
+      const actId = e.parameter.actId;
+      const datePart = e.parameter.date;
+      const startTime = e.parameter.startTime || "09:00";
+      const endTime = e.parameter.endTime || "10:00";
+
+      // 요청한 유저의 DB 프로필 조회 (F12 권한 위조 원천 차단)
+      const userUrl = `${config.supabaseUrl}/rest/v1/users?id=eq.${verifiedTgUserId}`;
+      const userRes = UrlFetchApp.fetch(userUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const users = JSON.parse(userRes.getContentText());
+      if (!users || users.length === 0) {
+        return makeJsonResponse({ result: "fail", message: "등록되지 않은 사용자입니다." });
+      }
+      const dbUser = users[0];
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      const payload = {
+        user_id: verifiedTgUserId,
+        name: dbUser.name,
+        group_name: dbUser.group_name || "",
+        region: dbUser.region || "",
+        role: dbUser.role || "",
+        activity_date: datePart,
+        start_time: startTime,
+        end_time: endTime,
+        location: e.parameter.location || "",
+        content: e.parameter.content || "찾기",
+        status: e.parameter.status,
+        result_data: e.parameter.resultData || "",
+        result_text: e.parameter.resultText || ""
+      };
+
+      let url = `${config.supabaseUrl}/rest/v1/activities`;
+      let method = "post";
+
+      if (mode === "edit") {
+        const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+        const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+
+        url = `${config.supabaseUrl}/rest/v1/activities?id=eq.${actId}`;
+        // 관리자/조장이 아니면 본인 활동만 수정 가능하도록 강제 필터링
+        if (!isSuper && !isLeader) {
+          url += `&user_id=eq.${verifiedTgUserId}`;
+        }
+        method = "patch";
+      }
+
+      const response = UrlFetchApp.fetch(url, {
+        method: method,
+        headers: headers,
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+        return makeJsonResponse({ result: "success", message: "활동이 성공적으로 저장되었습니다." });
+      } else {
+        return makeJsonResponse({ result: "fail", message: "저장 실패: " + response.getContentText() });
+      }
+    }
+
+    // [보안 CUD 위임 API] 2. 사용자 정보 변경 (updateUserStatus: 복방 개수 / 면제 상태)
+    if (action === "updateUserStatus") {
+      // 요청 유저의 DB 프로필 조회 및 권한 확인
+      const userUrl = `${config.supabaseUrl}/rest/v1/users?id=eq.${verifiedTgUserId}`;
+      const userRes = UrlFetchApp.fetch(userUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const users = JSON.parse(userRes.getContentText());
+      if (!users || users.length === 0) return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      const dbUser = users[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && !isLeader) {
+        return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      }
+
+      const targetName = e.parameter.targetName;
+      // 대상 사용자 조회
+      const targetUrl = `${config.supabaseUrl}/rest/v1/users?name=eq.${encodeURIComponent(targetName)}`;
+      const targetRes = UrlFetchApp.fetch(targetUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const targets = JSON.parse(targetRes.getContentText());
+      if (!targets || targets.length === 0) {
+        return makeJsonResponse({ result: "fail", message: "대상 사용자를 찾을 수 없습니다." });
+      }
+      const targetUser = targets[0];
+
+      // 조장/부조장은 본인 지역 소속의 유저만 관리 가능
+      if (!isSuper && targetUser.region !== dbUser.region) {
+        return makeJsonResponse({ result: "fail", message: "본인 지역 소속의 유저만 관리할 수 있습니다." });
+      }
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      const updatePayload = {};
+      if (e.parameter.bookCount !== undefined) {
+        updatePayload.book_count = parseInt(e.parameter.bookCount, 10);
+      }
+      if (e.parameter.isExempt !== undefined) {
+        updatePayload.is_exempt = e.parameter.isExempt === "true";
+      }
+
+      const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${targetUser.id}`, {
+        method: "patch",
+        headers: headers,
+        payload: JSON.stringify(updatePayload),
+        muteHttpExceptions: true
+      });
+
+      if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+        return makeJsonResponse({ result: "success", message: "정보가 성공적으로 변경되었습니다." });
+      } else {
+        return makeJsonResponse({ result: "fail", message: "변경 실패: " + response.getContentText() });
+      }
+    }
+
+    // [보안 CUD 위임 API] 3. 사용자 권한 수정 (updateUserRole)
+    if (action === "updateUserRole") {
+      const userUrl = `${config.supabaseUrl}/rest/v1/users?id=eq.${verifiedTgUserId}`;
+      const userRes = UrlFetchApp.fetch(userUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const users = JSON.parse(userRes.getContentText());
+      if (!users || users.length === 0) return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      const dbUser = users[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && !isLeader) {
+        return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      }
+
+      const targetName = e.parameter.targetName;
+      const newRole = e.parameter.role;
+
+      const targetUrl = `${config.supabaseUrl}/rest/v1/users?name=eq.${encodeURIComponent(targetName)}`;
+      const targetRes = UrlFetchApp.fetch(targetUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const targets = JSON.parse(targetRes.getContentText());
+      if (!targets || targets.length === 0) {
+        return makeJsonResponse({ result: "fail", message: "대상 사용자를 찾을 수 없습니다." });
+      }
+      const targetUser = targets[0];
+
+      if (!isSuper && targetUser.region !== dbUser.region) {
+        return makeJsonResponse({ result: "fail", message: "본인 지역 소속의 유저만 관리할 수 있습니다." });
+      }
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${targetUser.id}`, {
+        method: "patch",
+        headers: headers,
+        payload: JSON.stringify({ role: newRole }),
+        muteHttpExceptions: true
+      });
+
+      if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+        return makeJsonResponse({ result: "success", message: "권한이 성공적으로 변경되었습니다." });
+      } else {
+        return makeJsonResponse({ result: "fail", message: "변경 실패: " + response.getContentText() });
+      }
+    }
+
+    // [보안 CUD 위임 API] 4. 개강 사이클 관리 (saveSemester)
+    if (action === "saveSemester") {
+      const userUrl = `${config.supabaseUrl}/rest/v1/users?id=eq.${verifiedTgUserId}`;
+      const userRes = UrlFetchApp.fetch(userUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const users = JSON.parse(userRes.getContentText());
+      if (!users || users.length === 0) return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      const dbUser = users[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      if (!isSuper) {
+        return makeJsonResponse({ result: "fail", message: "관리자 권한이 필요합니다." });
+      }
+
+      const mode = e.parameter.mode;
+      const semId = e.parameter.id;
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      if (mode === "delete") {
+        const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/semesters?id=eq.${semId}`, {
+          method: "delete",
+          headers: headers,
+          muteHttpExceptions: true
+        });
+        if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+          return makeJsonResponse({ result: "success", message: "사이클이 삭제되었습니다." });
+        } else {
+          return makeJsonResponse({ result: "fail", message: "삭제 실패: " + response.getContentText() });
+        }
+      }
+
+      const name = e.parameter.name;
+      const startDate = e.parameter.startDate;
+      const endDate = e.parameter.endDate;
+      const isActive = e.parameter.isActive === "true";
+
+      if (mode === "add") {
+        UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/semesters?id=neq.0`, {
+          method: "patch",
+          headers: headers,
+          payload: JSON.stringify({ is_active: false }),
+          muteHttpExceptions: true
+        });
+
+        const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/semesters`, {
+          method: "post",
+          headers: headers,
+          payload: JSON.stringify({
+            name: name,
+            start_date: startDate,
+            end_date: endDate,
+            is_active: true
+          }),
+          muteHttpExceptions: true
+        });
+        if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+          return makeJsonResponse({ result: "success", message: "새 사이클이 등록되었습니다." });
+        } else {
+          return makeJsonResponse({ result: "fail", message: "등록 실패: " + response.getContentText() });
+        }
+      }
+
+      if (mode === "edit") {
+        if (isActive) {
+          UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/semesters?id=neq.${semId}`, {
+            method: "patch",
+            headers: headers,
+            payload: JSON.stringify({ is_active: false }),
+            muteHttpExceptions: true
+          });
+        }
+
+        const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/semesters?id=eq.${semId}`, {
+          method: "patch",
+          headers: headers,
+          payload: JSON.stringify({
+            name: name,
+            start_date: startDate,
+            end_date: endDate,
+            is_active: isActive
+          }),
+          muteHttpExceptions: true
+        });
+        if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+          return makeJsonResponse({ result: "success", message: "사이클이 수정되었습니다." });
+        } else {
+          return makeJsonResponse({ result: "fail", message: "수정 실패: " + response.getContentText() });
+        }
+      }
+    }
+
+    // [보안 CUD 위임 API] 5. 공지사항 등록 (saveNotice)
+    if (action === "saveNotice") {
+      const userUrl = `${config.supabaseUrl}/rest/v1/users?id=eq.${verifiedTgUserId}`;
+      const userRes = UrlFetchApp.fetch(userUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const users = JSON.parse(userRes.getContentText());
+      if (!users || users.length === 0) return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      const dbUser = users[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && !isLeader) {
+        return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      }
+
+      const title = e.parameter.title;
+      const content = e.parameter.content;
+      const type = e.parameter.type;
+      const region = e.parameter.region || "ALL";
+      const visible = e.parameter.visible === "Y";
+      const isImportant = e.parameter.isImportant === "Y";
+
+      let finalRegion = region;
+      if (!isSuper) {
+        finalRegion = dbUser.region;
+      }
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      const noticePayload = {
+        type: type,
+        author_id: verifiedTgUserId,
+        author_name: dbUser.name,
+        author_role: dbUser.role,
+        group_name: dbUser.group_name || "",
+        title: title,
+        content: content,
+        region: finalRegion,
+        visible: visible,
+        is_important: isImportant
+      };
+
+      const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/notices`, {
+        method: "post",
+        headers: headers,
+        payload: JSON.stringify(noticePayload),
+        muteHttpExceptions: true
+      });
+
+      if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+        return makeJsonResponse({ result: "success", message: "공지사항이 등록되었습니다." });
+      } else {
+        return makeJsonResponse({ result: "fail", message: "저장 실패: " + response.getContentText() });
+      }
+    }
+
+    // [보안 CUD 위임 API] 6. 공지사항 상태 수정 (toggleNoticeVisibility)
+    if (action === "toggleNoticeVisibility") {
+      const userUrl = `${config.supabaseUrl}/rest/v1/users?id=eq.${verifiedTgUserId}`;
+      const userRes = UrlFetchApp.fetch(userUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const users = JSON.parse(userRes.getContentText());
+      if (!users || users.length === 0) return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      const dbUser = users[0];
+
+      const noticeId = e.parameter.noticeId;
+      const visible = e.parameter.visible === "Y";
+
+      // 원본 공지사항 조회하여 작성 지역과 관리 지역 확인
+      const noticeRes = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/notices?id=eq.${noticeId}`, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const notices = JSON.parse(noticeRes.getContentText());
+      if (!notices || notices.length === 0) {
+        return makeJsonResponse({ result: "fail", message: "공지사항을 찾을 수 없습니다." });
+      }
+      const notice = notices[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && (!isLeader || notice.region !== dbUser.region)) {
+        return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      }
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/notices?id=eq.${noticeId}`, {
+        method: "patch",
+        headers: headers,
+        payload: JSON.stringify({ visible: visible }),
+        muteHttpExceptions: true
+      });
+
+      if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+        return makeJsonResponse({ result: "success", message: "공지 상태가 수정되었습니다." });
+      } else {
+        return makeJsonResponse({ result: "fail", message: "수정 실패: " + response.getContentText() });
+      }
+    }
+
+    // [보안 CUD 위임 API] 7. 공지사항 삭제 (deleteNotice)
+    if (action === "deleteNotice") {
+      const userUrl = `${config.supabaseUrl}/rest/v1/users?id=eq.${verifiedTgUserId}`;
+      const userRes = UrlFetchApp.fetch(userUrl, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const users = JSON.parse(userRes.getContentText());
+      if (!users || users.length === 0) return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      const dbUser = users[0];
+
+      const noticeId = e.parameter.noticeId;
+
+      const noticeRes = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/notices?id=eq.${noticeId}`, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const notices = JSON.parse(noticeRes.getContentText());
+      if (!notices || notices.length === 0) {
+        return makeJsonResponse({ result: "fail", message: "공지사항을 찾을 수 없습니다." });
+      }
+      const notice = notices[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      if (!isSuper && (!isLeader || notice.region !== dbUser.region)) {
+        return makeJsonResponse({ result: "fail", message: "권한이 없습니다." });
+      }
+
+      const headers = {
+        "apikey": config.supabaseKey,
+        "Authorization": `Bearer ${config.supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      };
+
+      const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/notices?id=eq.${noticeId}`, {
+        method: "delete",
+        headers: headers,
+        muteHttpExceptions: true
+      });
+
+      if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+        return makeJsonResponse({ result: "success", message: "공지사항이 삭제되었습니다." });
+      } else {
+        return makeJsonResponse({ result: "fail", message: "삭제 실패: " + response.getContentText() });
+      }
+    }
+
     return makeJsonResponse({ result: "fail", message: "지원하지 않는 action입니다." });
 
   } catch (err) {

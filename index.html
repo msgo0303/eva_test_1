@@ -2292,20 +2292,13 @@
 
             showToast(`${targetName}님 복방 수량 변경 (${newCount}개)`, 'success');
 
-            if (supabase) {
-                try {
-                    const { error } = await supabaseClient.from('users').update({ book_count: newCount }).eq('name', targetName);
-                    if (error) throw error;
-                } catch (err) {
-                    showToast('저장 실패 (원복 중...): ' + err.message, 'error');
-                    fetchRiskAndMemberData();
-                }
-            } else {
-                try {
-                    await fetch(`${GAS_URL}?action=updateUserStatus&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&bookCount=${newCount}`);
-                } catch (err) {
-                    showToast('수정 실패: ' + err.message, 'error');
-                }
+            try {
+                const res = await fetch(`${GAS_URL}?action=updateUserStatus&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&bookCount=${newCount}`);
+                const data = await res.json();
+                if (data.result !== 'success') throw new Error(data.message);
+            } catch (err) {
+                showToast('수정 실패: ' + err.message, 'error');
+                fetchRiskAndMemberData();
             }
         }
 
@@ -2320,20 +2313,13 @@
 
             showToast(`${targetName}님 예외 상태 변경 완료`, 'success');
 
-            if (supabase) {
-                try {
-                    const { error } = await supabaseClient.from('users').update({ is_exempt: newExemptState }).eq('name', targetName);
-                    if (error) throw error;
-                } catch (err) {
-                    showToast('저장 실패 (원복 중...): ' + err.message, 'error');
-                    fetchRiskAndMemberData();
-                }
-            } else {
-                try {
-                    await fetch(`${GAS_URL}?action=updateUserStatus&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&isExempt=${newExemptState}`);
-                } catch (err) {
-                    showToast('수정 실패: ' + err.message, 'error');
-                }
+            try {
+                const res = await fetch(`${GAS_URL}?action=updateUserStatus&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&isExempt=${newExemptState}`);
+                const data = await res.json();
+                if (data.result !== 'success') throw new Error(data.message);
+            } catch (err) {
+                showToast('수정 실패: ' + err.message, 'error');
+                fetchRiskAndMemberData();
             }
         }
 
@@ -2532,48 +2518,26 @@
         }
 
         async function toggleNoticeVisibility(id, newVisible) {
-            if (supabase) {
-                try {
-                    await supabaseClient.from('notices').update({ visible: newVisible === 'Y' }).eq('id', id);
-                    showToast('공지 상태가 수정되었습니다.', 'success');
-                    await fetchAppData();
-                    renderManageNoticeLists();
-                    return;
-                } catch (e) { console.error("Notice Toggle error:", e); }
-            }
-
             try {
                 const res = await fetch(`${GAS_URL}?action=toggleNoticeVisibility&initData=${encodeURIComponent(tg ? tg.initData : '')}&noticeId=${id}&visible=${newVisible}`);
                 const data = await res.json();
-                if (data.result === 'success') {
-                    showToast(data.message || '공지 상태가 수정되었습니다.', 'success');
-                    await fetchAppData();
-                    renderManageNoticeLists();
-                }
-            } catch (err) { showToast('API 오류: ' + err.message, 'error'); }
+                if (data.result !== 'success') throw new Error(data.message);
+                showToast(data.message || '공지 상태가 수정되었습니다.', 'success');
+                await fetchAppData();
+                renderManageNoticeLists();
+            } catch (err) { showToast('오류 발생: ' + err.message, 'error'); }
         }
 
         async function deleteNotice(id) {
             if (!confirm('정말 이 공지사항을 삭제하시겠습니까?')) return;
-            if (supabase) {
-                try {
-                    await supabaseClient.from('notices').delete().eq('id', id);
-                    showToast('공지사항이 삭제되었습니다.', 'success');
-                    await fetchAppData();
-                    renderManageNoticeLists();
-                    return;
-                } catch (e) { console.error("Notice Delete error:", e); }
-            }
-
             try {
                 const res = await fetch(`${GAS_URL}?action=deleteNotice&initData=${encodeURIComponent(tg ? tg.initData : '')}&noticeId=${id}`);
                 const data = await res.json();
-                if (data.result === 'success') {
-                    showToast('공지사항이 삭제되었습니다.', 'success');
-                    await fetchAppData();
-                    renderManageNoticeLists();
-                }
-            } catch (err) { showToast('API 오류: ' + err.message, 'error'); }
+                if (data.result !== 'success') throw new Error(data.message);
+                showToast(data.message || '공지사항이 삭제되었습니다.', 'success');
+                await fetchAppData();
+                renderManageNoticeLists();
+            } catch (err) { showToast('오류 발생: ' + err.message, 'error'); }
         }
 
         function initNoticeSheetTabs() {
@@ -2683,41 +2647,18 @@
 
             const btn = $('btn-save-notice'); btn.disabled = true; btn.textContent = '저장 중...';
 
-            if (supabase) {
-                try {
-                    const payload = {
-                        type: type,
-                        author_id: profile.id,
-                        author_name: profile.name,
-                        author_role: profile.role,
-                        group_name: profile.group,
-                        title: title,
-                        content: content,
-                        region: region,
-                        visible: visible,
-                        is_important: isImportant
-                    };
-                    const { error } = await supabaseClient.from('notices').insert([payload]);
-                    if (error) throw error;
-
-                    showToast('공지사항이 등록되었습니다.', 'success');
-                    closeNoticeSheet();
-                    await fetchAppData();
-                    return;
-                } catch (e) { showToast('저장 실패: ' + e.message, 'error'); }
-                finally { btn.disabled = false; btn.textContent = '공지사항 저장'; }
-            }
-
             try {
                 const res = await fetch(`${GAS_URL}?action=saveNotice&initData=${encodeURIComponent(tg ? tg.initData : '')}&title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}&type=${type}&region=${encodeURIComponent(region)}&visible=${visible ? 'Y' : 'N'}&isImportant=${isImportant ? 'Y' : 'N'}`);
                 const data = await res.json();
-                if (data.result === 'success') {
-                    showToast('공지사항이 등록되었습니다.', 'success');
-                    closeNoticeSheet();
-                    await fetchAppData();
-                }
-            } catch (err) { showToast('등록 오류: ' + err.message, 'error'); }
-            finally { btn.disabled = false; btn.textContent = '공지사항 저장'; }
+                if (data.result !== 'success') throw new Error(data.message);
+                showToast('공지사항이 등록되었습니다.', 'success');
+                closeNoticeSheet();
+                await fetchAppData();
+            } catch (err) { 
+                showToast('등록 오류: ' + err.message, 'error'); 
+            } finally { 
+                btn.disabled = false; btn.textContent = '공지사항 저장'; 
+            }
         }
 
         function renderRiskTab() {
@@ -3112,26 +3053,23 @@
             btn.disabled = true; btn.textContent = '저장 중...';
 
             try {
-                if (supabaseClient) {
-                    const { error } = await supabaseClient.from('users').update({ role: newRole }).eq('name', targetName);
-                    if (error) throw error;
+                const res = await fetch(`${GAS_URL}?action=updateUserRole&initData=${encodeURIComponent(tg ? tg.initData : '')}&targetName=${encodeURIComponent(targetName)}&role=${encodeURIComponent(newRole)}`);
+                const data = await res.json();
+                if (data.result !== 'success') throw new Error(data.message);
 
-                    // 로컬 캐시 업데이트
-                    if (rawRiskData && rawRiskData.allUsers) {
-                        const target = rawRiskData.allUsers.find(u => u.name === targetName);
-                        if (target) target.role = newRole;
-                    }
-                    if (cachedAllUsers) {
-                        const target = cachedAllUsers.find(u => u.name === targetName);
-                        if (target) target.role = newRole;
-                    }
-
-                    $('md-role').textContent = newRole;
-                    showToast(`${targetName}님의 권한이 '${newRole}'으로 변경되었습니다.`, 'success');
-                    renderMemberTab();
-                } else {
-                    showToast('DB가 연결되어 있지 않습니다.', 'error');
+                // 로컬 캐시 업데이트
+                if (rawRiskData && rawRiskData.allUsers) {
+                    const target = rawRiskData.allUsers.find(u => u.name === targetName);
+                    if (target) target.role = newRole;
                 }
+                if (cachedAllUsers) {
+                    const target = cachedAllUsers.find(u => u.name === targetName);
+                    if (target) target.role = newRole;
+                }
+
+                $('md-role').textContent = newRole;
+                showToast(`${targetName}님의 권한이 '${newRole}'으로 변경되었습니다.`, 'success');
+                renderMemberTab();
             } catch (e) {
                 showToast('권한 수정 실패: ' + e.message, 'error');
             } finally {
@@ -3251,18 +3189,10 @@
 
             if (!name || !startDate || !endDate) return showToast('⚠️ 모든 항목을 입력해 주세요.', 'error');
 
-            if (!supabase) return showToast('Supabase가 연결되지 않았습니다.', 'error');
             try {
-                if (isActive) {
-                    await supabaseClient.from('semesters').update({ is_active: false }).neq('id', id);
-                }
-                const { error } = await supabaseClient.from('semesters').update({
-                    name: name,
-                    start_date: startDate,
-                    end_date: endDate,
-                    is_active: isActive
-                }).eq('id', id);
-                if (error) throw error;
+                const res = await fetch(`${GAS_URL}?action=saveSemester&initData=${encodeURIComponent(tg ? tg.initData : '')}&mode=edit&id=${id}&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}&isActive=${isActive}`);
+                const data = await res.json();
+                if (data.result !== 'success') throw new Error(data.message);
 
                 const overlay = document.getElementById('sem-edit-overlay');
                 if (overlay) overlay.remove();
@@ -3292,10 +3222,10 @@
         async function deleteSemester(id, name) {
             if (!confirm(`'${name}' 사이클을 삭제하시겠습니까?\n\n삭제 후 복구가 불가능합니다.`)) return;
 
-            if (!supabase) return showToast('Supabase가 연결되지 않았습니다.', 'error');
             try {
-                const { error } = await supabaseClient.from('semesters').delete().eq('id', id);
-                if (error) throw error;
+                const res = await fetch(`${GAS_URL}?action=saveSemester&initData=${encodeURIComponent(tg ? tg.initData : '')}&mode=delete&id=${id}`);
+                const data = await res.json();
+                if (data.result !== 'success') throw new Error(data.message);
 
                 semestersList = semestersList.filter(s => s.id !== id);
                 showToast('사이클이 삭제되었습니다.', 'success');
@@ -3322,16 +3252,15 @@
 
             if (!startDate || !endDate) return showToast('⚠️ 시작일과 종료일을 입력해 주세요.', 'error');
 
-            if (supabase) {
-                try {
-                    await supabaseClient.from('semesters').update({ is_active: false }).neq('id', 0);
-                    const { error } = await supabaseClient.from('semesters').insert([{ name: name, start_date: startDate, end_date: endDate, is_active: true }]);
-                    if (error) throw error;
-                    showToast('새 사이클이 등록되었습니다!', 'success');
-                    $('sem-start').value = '';
-                    $('sem-end').value = '';
+            try {
+                const res = await fetch(`${GAS_URL}?action=saveSemester&initData=${encodeURIComponent(tg ? tg.initData : '')}&mode=add&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}`);
+                const data = await res.json();
+                if (data.result !== 'success') throw new Error(data.message);
+                showToast('새 사이클이 등록되었습니다!', 'success');
+                $('sem-start').value = '';
+                $('sem-end').value = '';
 
-                    // 목록 새로 불러오기
+                if (supabaseClient) {
                     const { data: semData } = await supabaseClient.from('semesters').select('*').order('id', { ascending: true });
                     semestersList = (semData || []).map(s => ({
                         id: s.id,
@@ -3347,13 +3276,9 @@
                         badgeEl.classList.remove('hidden');
                     }
                     renderSemesterList();
-                    return;
-                } catch (e) { showToast('저장 실패: ' + e.message, 'error'); }
-            }
-
-            try {
-                await fetch(`${GAS_URL}?action=updateSemester&initData=${encodeURIComponent(tg ? tg.initData : '')}&name=${encodeURIComponent(name)}&startDate=${startDate}&endDate=${endDate}`);
-                showToast('개강 사이클 설정 완료!', 'success');
+                } else {
+                    await fetchAppData();
+                }
             } catch (err) { showToast('저장 실패: ' + err.message, 'error'); }
         }
 
@@ -3977,45 +3902,6 @@
             $('save-spinner').classList.remove('hidden'); $('btn-save').disabled = true;
             const actId = modalMode === 'add' ? ("ACT_" + Date.now()) : editId;
 
-            if (supabase) {
-                try {
-                    const parsedResultData = resultData ? JSON.parse(resultData) : null;
-                    const payload = {
-                        id: actId,
-                        user_id: profile.id,
-                        name: profile.name,
-                        group_name: profile.group,
-                        region: profile.region,
-                        role: profile.role,
-                        activity_date: targetDate,
-                        start_time: startTime,
-                        end_time: endTime,
-                        location: location,
-                        content: content,
-                        status: formStatus,
-                        result_data: parsedResultData,
-                        result_text: resultText
-                    };
-
-                    if (modalMode === 'add') {
-                        const { error } = await supabaseClient.from('activities').insert([payload]);
-                        if (error) throw error;
-                    } else {
-                        const { error } = await supabaseClient.from('activities').update(payload).eq('id', actId);
-                        if (error) throw error;
-                    }
-
-                    closeModal();
-                    showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
-                    await fetchAppData();
-                    return;
-                } catch (err) {
-                    showToast('저장 실패: ' + err.message, 'error');
-                } finally {
-                    $('save-spinner').classList.add('hidden'); $('btn-save').disabled = false;
-                }
-            }
-
             const payload = {
                 action: 'saveActivity',
                 initData: tg ? tg.initData : "",
@@ -4033,7 +3919,9 @@
 
             try {
                 const queryParams = new URLSearchParams(payload).toString();
-                await fetch(`${GAS_URL}?${queryParams}`);
+                const res = await fetch(`${GAS_URL}?${queryParams}`);
+                const data = await res.json();
+                if (data.result !== 'success') throw new Error(data.message);
                 closeModal();
                 showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
                 await fetchAppData();
@@ -4047,17 +3935,6 @@
         async function cancelActivity() {
             const idx = activities.findIndex(a => a.id == editId);
             if (idx === -1) return;
-
-            if (supabase) {
-                try {
-                    const { error } = await supabaseClient.from('activities').update({ status: 'canceled' }).eq('id', editId);
-                    if (error) throw error;
-                    closeModal();
-                    showToast('활동이 취소 처리되었습니다.', 'success');
-                    await fetchAppData();
-                    return;
-                } catch (err) { showToast('취소 실패: ' + err.message, 'error'); }
-            }
 
             const payload = {
                 action: 'saveActivity',
@@ -4076,7 +3953,9 @@
 
             try {
                 const queryParams = new URLSearchParams(payload).toString();
-                await fetch(`${GAS_URL}?${queryParams}`);
+                const res = await fetch(`${GAS_URL}?${queryParams}`);
+                const data = await res.json();
+                if (data.result !== 'success') throw new Error(data.message);
                 closeModal();
                 showToast('활동이 취소 처리되었습니다.', 'success');
                 await fetchAppData();
