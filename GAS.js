@@ -476,7 +476,10 @@ function makeJsonResponse(obj) {
 
 // ============================================================
 // [3] doPost — 텔레그램 웹훅 업데이트 처리 (callback_query 수집)
+// ⚠️ 주의: 기존 출결 시스템의 doPost와 병합하여 사용하는 경우, 
+// 아래 코드는 중복 선언 방지를 위해 주석 처리되었습니다. 병합본을 사용해 주세요.
 // ============================================================
+/*
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
@@ -532,6 +535,7 @@ function doPost(e) {
     return makeJsonResponse({ error: err.message });
   }
 }
+*/
 
 
 // ============================================================
