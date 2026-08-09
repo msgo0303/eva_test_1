@@ -948,10 +948,14 @@
         </div>
 
         <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
-            <div>
-                <h2 class="text-base font-bold text-tg-text">📊 관리자 대시보드</h2>
-                <p id="db-range-dates-text" class="text-[11px] text-tg-blue font-semibold mt-0.5">2026.07.26 ~
-                    2026.07.26</p>
+            <div class="flex items-center gap-3">
+                <div>
+                    <h2 class="text-base font-bold text-tg-text">📊 관리자 대시보드</h2>
+                    <p id="db-range-dates-text" class="text-[11px] text-tg-blue font-semibold mt-0.5">2026.07.26 ~ 2026.07.26</p>
+                </div>
+                <div>
+                    <input type="date" id="db-date-picker" class="bg-white border border-tg-border text-tg-text text-[11px] font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tg-blue cursor-pointer" />
+                </div>
             </div>
             <button id="btn-close-dash"
                 class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
@@ -1454,6 +1458,7 @@
 
         let profile = { region: '', role: '', name: '', group: '', id: '' };
         let currentDate = new Date();
+        let adminSelectedDate = new Date();
         let activities = [];
         let activeFilter = 'all';
         let activeTimeFilter = 'all';
@@ -2016,7 +2021,7 @@
 
         async function fetchDashboardData(range = 'today') {
             currentDashRange = range;
-            $('db-range-dates-text').textContent = getRangeDateText(dateKey(currentDate), range);
+            $('db-range-dates-text').textContent = getRangeDateText(dateKey(adminSelectedDate), range);
 
             document.querySelectorAll('.dash-range-btn').forEach(btn => {
                 btn.className = (btn.dataset.range === range)
@@ -2024,7 +2029,7 @@
                     : "dash-range-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted";
             });
 
-            const baseDate = dateKey(currentDate);
+            const baseDate = dateKey(adminSelectedDate);
 
             if (supabase) {
                 try {
@@ -2168,7 +2173,7 @@
         }
 
         async function fetchRiskAndMemberData() {
-            const baseDate = dateKey(currentDate);
+            const baseDate = dateKey(adminSelectedDate);
 
             if (supabase) {
                 try {
@@ -4823,6 +4828,12 @@
             const overlay = $('dash-overlay'); const sheet = $('dash-sheet');
             sheet.style.display = 'flex'; sheet.offsetHeight;
             overlay.classList.add('open'); sheet.classList.add('open');
+            
+            // 대시보드 날짜를 오늘로 리셋하고 UI 동기화
+            adminSelectedDate = new Date();
+            const picker = $('db-date-picker');
+            if (picker) picker.value = dateKey(adminSelectedDate);
+
             fetchDashboardData('today');
         }
 
@@ -5630,6 +5641,25 @@
 
             $('btn-close-dash').addEventListener('click', closeDashModal);
             $('dash-overlay').addEventListener('click', closeDashModal);
+
+            const dbDatePicker = $('db-date-picker');
+            if (dbDatePicker) {
+                dbDatePicker.addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        adminSelectedDate = new Date(e.target.value);
+                        
+                        // 현재 활성화된 탭에 맞게 데이터 리로드
+                        const activeTabBtn = document.querySelector('.dash-main-tab.active');
+                        const targetTab = activeTabBtn ? activeTabBtn.dataset.tab : 'summary';
+                        
+                        if (targetTab === 'summary') {
+                            fetchDashboardData(currentDashRange);
+                        } else if (targetTab === 'risk' || targetTab === 'members') {
+                            fetchRiskAndMemberData();
+                        }
+                    }
+                });
+            }
 
             document.querySelectorAll('.dash-range-btn').forEach(btn => {
                 btn.addEventListener('click', () => { fetchDashboardData(btn.dataset.range); });
