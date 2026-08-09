@@ -953,8 +953,9 @@
                     <h2 class="text-base font-bold text-tg-text">📊 관리자 대시보드</h2>
                     <p id="db-range-dates-text" class="text-[11px] text-tg-blue font-semibold mt-0.5">2026.07.26 ~ 2026.07.26</p>
                 </div>
-                <div>
-                    <input type="date" id="db-date-picker" class="bg-white border border-tg-border text-tg-text text-[11px] font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tg-blue cursor-pointer" />
+                <div class="flex items-center gap-1.5 bg-tg-surface border border-tg-border rounded-xl px-2.5 py-1">
+                    <span class="text-[10px] text-tg-muted font-extrabold select-none">날짜 변경</span>
+                    <input type="date" id="db-date-picker" class="bg-white border border-tg-border text-tg-text text-[11px] font-bold rounded-lg px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-tg-blue cursor-pointer" />
                 </div>
             </div>
             <button id="btn-close-dash"
@@ -1721,7 +1722,7 @@
         function getRangeDateText(baseDateStr, range) {
             const dates = calculateRangeDates(baseDateStr, range);
             if (dates.length === 0) return '';
-            const fmt = str => str.replace(/-/g, '.');
+            const fmt = str => str.replace(/-/g, '/');
             return `${fmt(dates[0])} ~ ${fmt(dates[dates.length - 1])}`;
         }
 
