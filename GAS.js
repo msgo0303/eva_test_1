@@ -14,8 +14,8 @@ const SPREADSHEET_ID = "1gbKtDSrsSbrI4G0YqXEZZ2k0tOfIw_tMZLkAPPsDzCw";
 function getConfig() {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("AlarmSchedules");
   return {
-    botToken   : sheet.getRange("X1").getValue().toString().trim(),
-    chatId     : sheet.getRange("X2").getValue().toString().trim(),
+    botToken: sheet.getRange("X1").getValue().toString().trim(),
+    chatId: sheet.getRange("X2").getValue().toString().trim(),
     supabaseUrl: sheet.getRange("X3").getValue().toString().trim(),
     supabaseKey: sheet.getRange("X4").getValue().toString().trim()
   };
@@ -73,7 +73,7 @@ function doGet(e) {
     if (action === "deleteAlarmSchedule") {
       const category = e.parameter.category;
       const alarmTime = e.parameter.alarmTime;
-      
+
       let alarmSheet = ss.getSheetByName("AlarmSchedules");
       if (alarmSheet) {
         const data = alarmSheet.getDataRange().getValues();
@@ -91,7 +91,7 @@ function doGet(e) {
       const category = e.parameter.category;
       const alarmTime = e.parameter.alarmTime;
       const isActive = e.parameter.isActive || "TRUE";
-      
+
       let alarmSheet = ss.getSheetByName("AlarmSchedules");
       if (alarmSheet) {
         const data = alarmSheet.getDataRange().getValues();
@@ -153,10 +153,10 @@ function doGet(e) {
           }
         }
       }
-      
+
       if (!templateText) {
         if (range === "today") {
-          templateText = 
+          templateText =
             "📢 [일일 활동 리포트]\n" +
             "일자: {start_date}\n\n" +
             "📈 활동 결과 비중:\n" +
@@ -169,7 +169,7 @@ function doGet(e) {
             "{weekly_regions_summary}\n\n" +
             "🔥 오늘도 수고하셨습니다!";
         } else if (range === "month") {
-          templateText = 
+          templateText =
             "📢 [월간 활동 리포트]\n" +
             "기간: {start_date} ~ {end_date}\n\n" +
             "📈 활동 결과 비중:\n" +
@@ -182,7 +182,7 @@ function doGet(e) {
             "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
             "🔥 이번 개강 사이클도 수고하셨습니다!";
         } else {
-          templateText = 
+          templateText =
             "📢 [주간 활동 리포트]\n" +
             "기간: {start_date} ~ {end_date}\n\n" +
             "📈 활동 결과 비중:\n" +
@@ -196,7 +196,7 @@ function doGet(e) {
             "🔥 이번 주도 수고하셨습니다!";
         }
       }
-      
+
       return makeJsonResponse({ result: "success", template: templateText });
     }
 
@@ -750,7 +750,7 @@ function doGet(e) {
 // ============================================================
 function checkAndSendTelegramAlarms() {
   const { botToken: TELEGRAM_BOT_TOKEN, chatId: TELEGRAM_CHAT_ID,
-          supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_ANON_KEY } = getConfig();
+    supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_ANON_KEY } = getConfig();
 
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     Logger.log("봇 토큰 또는 챗 ID가 설정되지 않았습니다. AlarmSchedules 시트 X1, X2 셀을 확인하세요.");
@@ -863,14 +863,14 @@ function checkAndSendTelegramAlarms() {
         chunk.forEach(u => {
           const reg = u.region || '미정';
           if (!chunkGrouped[reg]) chunkGrouped[reg] = [];
-          
+
           const cleanName = String(u.name).replace(/[\[\]\(\)\_\*]/g, "").trim();
-          
+
           // 태그 처리: Markdown 파싱 모드에서 [이름](tg://user?id=아이디)
           const mention = (u.id && !isNaN(u.id) && u.id !== "GUEST_USER" && String(u.id).trim() !== "")
             ? `[${cleanName}](tg://user?id=${u.id})`
             : cleanName;
-            
+
           chunkGrouped[reg].push(mention);
         });
 
@@ -1025,13 +1025,13 @@ function sendWeeklyTelegramReport() {
   const kstNow = new Date(kstYear, kstMonth, kstDay);
 
   const day = kstNow.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
-  
+
   const sunday = new Date(kstNow);
   sunday.setDate(kstNow.getDate() - day);
-  
+
   const saturday = new Date(sunday);
   saturday.setDate(sunday.getDate() + 6);
-  
+
   const startStr = Utilities.formatDate(sunday, "Asia/Seoul", "yyyy-MM-dd");
   const endStr = Utilities.formatDate(saturday, "Asia/Seoul", "yyyy-MM-dd");
 
@@ -1053,18 +1053,18 @@ function sendWeeklyTelegramReport() {
   // 4. 활동 결과 집계
   const resultCounts = { '찾기(오프)': 0, '찾기(온)': 0, '매칭': 0, '잎사귀': 0, '복방': 0 };
   const regionFindResult = {};
-  
+
   weeklyActs.forEach(item => {
     if (item.status === 'completed' && item.result_data) {
       let parsed = [];
       try {
         parsed = typeof item.result_data === 'string' ? JSON.parse(item.result_data) : item.result_data;
       } catch (e) { }
-      
+
       if (Array.isArray(parsed)) {
         parsed.forEach(r => {
           const countVal = (r.count !== undefined ? parseInt(r.count, 10) : 1);
-          
+
           if (r.type === '합자찾(오프)') {
             resultCounts['찾기(오프)'] += countVal;
           }
@@ -1080,7 +1080,7 @@ function sendWeeklyTelegramReport() {
           if (r.category === '복방' && r.type !== '취소') {
             resultCounts['복방'] += (countVal || 1);
           }
-          
+
           if (r.type === '합자찾(오프)' || r.type === '합자찾(온)') {
             const reg = item.region || '미정';
             regionFindResult[reg] = (regionFindResult[reg] || 0) + countVal;
@@ -1333,8 +1333,8 @@ function sendWeeklyTelegramReport() {
   if (!templateSheet) {
     templateSheet = ss.insertSheet("MessageTemplates");
     templateSheet.appendRow(["template_key", "template_text", "description"]);
-    
-    const defaultTemplate = 
+
+    const defaultTemplate =
       "📢 [주간 활동 리포트]\n" +
       "기간: {start_date} ~ {end_date}\n\n" +
       "📈 활동 결과 비중:\n" +
@@ -1346,7 +1346,7 @@ function sendWeeklyTelegramReport() {
       "📊 주간 미션 달성률: {mission_achieved}/{mission_target}개 ({mission_pct}%)\n" +
       "🍎 복음방 미션 달성률: {book_achieved}/{book_target}개 ({book_pct}%)\n\n" +
       "🔥 이번 주도 수고하셨습니다!";
-      
+
     templateSheet.appendRow([
       "weekly_report",
       defaultTemplate,
@@ -1364,7 +1364,7 @@ function sendWeeklyTelegramReport() {
   }
 
   if (!templateText) {
-    templateText = 
+    templateText =
       "📢 [주간 활동 리포트]\n" +
       "기간: {start_date} ~ {end_date}\n\n" +
       "📈 활동 결과:\n" +
@@ -1380,7 +1380,7 @@ function sendWeeklyTelegramReport() {
 
   // 8. 템플릿 변수 치환
   const reportDateStr = Utilities.formatDate(kstNow, "Asia/Seoul", "yyyy.MM.dd");
-  
+
   const weeklyRegionsSummary = FIXED_REGIONS.map(r => {
     const t = regionTargets[r] || 0;
     const a = regionFindResult[r] || 0;
@@ -1531,13 +1531,13 @@ function safeParseTelegramUser(initDataStr, botToken) {
     Logger.log("initDataStr is empty");
     return null;
   }
-  
+
   const isValid = verifyTelegramInitData(initDataStr, botToken);
   if (!isValid) {
     Logger.log("Telegram initData verification failed");
     return null;
   }
-  
+
   try {
     const decoded = decodeURIComponent(initDataStr);
     const pairs = decoded.split('&');
@@ -1558,4 +1558,54 @@ function safeParseTelegramUser(initDataStr, botToken) {
     Logger.log("Failed to parse user from initData: " + e.message);
   }
   return null;
+}
+
+/**
+ * 🚀 [GAS 직접 실행용] 그룹챗으로 정보 수집 버튼 메시지 발송 함수
+ */
+function sendInfoCollectButton() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const userDbSheet = ss.getSheetByName("User_DB");
+
+  if (!userDbSheet) {
+    Logger.log("❌ 'User_DB' 시트를 찾을 수 없습니다.");
+    return;
+  }
+
+  // User_DB 시트의 X2(봇 토큰), Y2(그룹챗 ID) 가져오기
+  const botToken = userDbSheet.getRange("X2").getValue().toString().trim();
+  const chatId = userDbSheet.getRange("Y2").getValue().toString().trim();
+
+  if (!botToken || !chatId) {
+    Logger.log("❌ X2(봇 토큰) 또는 Y2(그룹챗 ID) 설정이 비어 있습니다.");
+    return;
+  }
+
+  const msg = "<b>📌 정보 등록 안내</b>\n\n아래 버튼을 클릭하여 본인 정보를 등록해 주세요.";
+  const inlineKeyboard = [
+    [
+      { "text": "🙋‍♂️ 내 정보 등록하기", "callback_data": "collect_user_info_manual" }
+    ]
+  ];
+
+  const payload = {
+    "chat_id": chatId,
+    "text": msg,
+    "parse_mode": "HTML",
+    "reply_markup": JSON.stringify({ "inline_keyboard": inlineKeyboard })
+  };
+
+  const options = {
+    "method": "post",
+    "contentType": "application/json",
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true
+  };
+
+  try {
+    const res = UrlFetchApp.fetch("https://api.telegram.org/bot" + botToken + "/sendMessage", options);
+    Logger.log("📡 발송 결과: " + res.getContentText());
+  } catch (e) {
+    Logger.log("❌ 발송 실패: " + e.toString());
+  }
 }

@@ -2859,7 +2859,7 @@
 
                     const { data: actData } = await supabaseClient.from('activities')
                         .select('*')
-                        .eq('name', userObj.name)
+                        .eq('user_id', userObj.id)
                         .gte('activity_date', allStart)
                         .lte('activity_date', allEnd);
 
