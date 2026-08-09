@@ -2971,8 +2971,8 @@
                     ? '<span class="bg-tg-blue text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">현재</span>'
                     : '<span class="bg-zinc-100 text-zinc-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-zinc-200">이전</span>';
 
-                // 달성 게이지는 주간 찾기 6개 미션 기준 (예외지정 또는 복방 1개 이상 시 100% '복방 달성!' 표시)
-                const isExempted = (userObj.isExempt || false) || bookCount >= 1;
+                // 달성 게이지는 주간 찾기 6개 미션 기준 (예외지정 또는 보유 복방 1개 이상 시 100% '복방 달성!' 표시)
+                const isExempted = (userObj.isExempt || false) || (userObj.bookCount >= 1);
                 const findPct = isExempted ? 100 : Math.min(Math.round((findCount / 6) * 100), 100);
                 const pctColor = isExempted || findPct >= 100 ? 'text-green-600' : findPct >= 60 ? 'text-tg-blue' : 'text-red-500';
                 const achieveText = isExempted ? '복방 달성!' : `${findPct}% 달성`;
