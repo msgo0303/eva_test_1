@@ -143,11 +143,6 @@ serve(async (req) => {
       const dbUser = dbUsers[0];
 
       const payload: any = {
-        user_id: verifiedTgUserId,
-        name: dbUser.name,
-        group_name: dbUser.group_name || "",
-        region: dbUser.region || "",
-        role: dbUser.role || "",
         activity_date: date,
         start_time: startTime || "09:00",
         end_time: endTime || "10:00",
@@ -175,10 +170,15 @@ serve(async (req) => {
           );
         }
       } else {
-        // 신규 추가 시에는 필수 Primary Key인 id 지정
+        // 신규 추가 시에는 필수 Primary Key인 id 지정 및 유저 식별자 바인딩
         const { error } = await supabase.from("activities").insert([{
           ...payload,
-          id: actId || ("ACT_" + Date.now())
+          id: actId || ("ACT_" + Date.now()),
+          user_id: verifiedTgUserId,
+          name: dbUser.name,
+          group_name: dbUser.group_name || "",
+          region: dbUser.region || "",
+          role: dbUser.role || ""
         }]);
         if (error) {
           return new Response(

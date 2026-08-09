@@ -303,11 +303,6 @@ function doGet(e) {
       }
 
       const payload = {
-        user_id: verifiedTgUserId,
-        name: dbUser.name,
-        group_name: dbUser.group_name || "",
-        region: dbUser.region || "",
-        role: dbUser.role || "",
         activity_date: datePart,
         start_time: startTime,
         end_time: endTime,
@@ -332,8 +327,13 @@ function doGet(e) {
         }
         method = "patch";
       } else {
-        // 신규 추가 시에는 필수 Primary Key인 id를 생성/지정하여 payload에 포함
+        // 신규 추가 시에는 필수 Primary Key인 id를 생성/지정하여 payload에 포함 및 유저 정보 바인딩
         payload.id = actId || ("ACT_" + new Date().getTime());
+        payload.user_id = verifiedTgUserId;
+        payload.name = dbUser.name;
+        payload.group_name = dbUser.group_name || "";
+        payload.region = dbUser.region || "";
+        payload.role = dbUser.role || "";
       }
 
       const response = UrlFetchApp.fetch(url, {
