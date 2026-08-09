@@ -2915,13 +2915,13 @@
                                     if (r.type === '합자찾(오프)' || r.type === '합자찾(온)') {
                                         findCount += cnt;
                                     }
-                                    if (r.category === '매칭' && r.type !== '취소') {
+                                    if (r.category === '매칭' && (r.type === '2차' || r.type === '비합' || r.type === '따기')) {
                                         matchCount += cnt;
                                     }
                                     if (r.category === '잎사귀') {
                                         leafCount += cnt;
                                     }
-                                    if (r.category === '복방' && r.type !== '취소') {
+                                    if (r.category === '복방' && r.type === '진행') {
                                         bookCount += cnt;
                                     }
                                 });
@@ -4147,8 +4147,8 @@
                                         resultCounts['찾기(온)'] += countVal;
                                     }
 
-                                    // 매칭 결과 (취소 제외)
-                                    if (r.category === '매칭' && r.type !== '취소') {
+                                    // 매칭 결과 (2차, 비합, 따기 기준)
+                                    if (r.category === '매칭' && (r.type === '2차' || r.type === '비합' || r.type === '따기')) {
                                         resultCounts['매칭'] += (countVal || 1);
                                     }
 
@@ -4157,8 +4157,8 @@
                                         resultCounts['잎사귀'] += (countVal || 1);
                                     }
 
-                                    // 복방 결과 (취소 제외)
-                                    if (r.category === '복방' && r.type !== '취소') {
+                                    // 복방 결과 (진행 기준)
+                                    if (r.category === '복방' && r.type === '진행') {
                                         resultCounts['복방'] += (countVal || 1);
                                     }
                                 });
