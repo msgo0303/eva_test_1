@@ -2901,9 +2901,10 @@
 
                 semActs.filter(a => a.status === 'completed').forEach(a => {
                     let hasResultData = false;
-                    if (a.resultData) {
+                    const rawResData = a.resultData || a.result_data;
+                    if (rawResData) {
                         try {
-                            const parsed = typeof a.resultData === 'string' ? JSON.parse(a.resultData) : a.resultData;
+                            const parsed = typeof rawResData === 'string' ? JSON.parse(rawResData) : rawResData;
                             if (Array.isArray(parsed) && parsed.length > 0) {
                                 hasResultData = true;
                                 parsed.forEach(r => {
