@@ -826,7 +826,7 @@
                     <span id="target-date-display" class="font-bold">2026-07-26</span>
                 </div>
 
-                <div>
+                <div id="time-select-box">
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 시간 (24시간제)</label>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
@@ -873,17 +873,18 @@
                         <option value="매칭">매칭</option>
                         <option value="잎사귀">잎사귀</option>
                         <option value="복방">복방</option>
+                        <option value="금일 활동 불가">금일 활동 불가</option>
                     </select>
                     <p class="text-[11px] text-tg-muted mt-1">※ 2가지 이상 수행 시 카드를 추가로 생성해 주세요.</p>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-tg-muted mb-1.5">장소 (Location)</label>
+                    <label id="f-location-label" class="block text-xs font-semibold text-tg-muted mb-1.5">장소 (Location)</label>
                     <input id="f-location" type="text" placeholder="예: 서울 강남 전도관"
                         class="w-full rounded-xl border border-tg-border bg-tg-surface px-4 py-3 text-sm text-tg-text focus:outline-none focus:border-tg-blue" />
                 </div>
 
-                <div>
+                <div id="status-select-box">
                     <label class="block text-xs font-semibold text-tg-muted mb-1.5">진행 상태 (Status)</label>
                     <div id="status-seg" class="flex gap-1.5 bg-tg-surface rounded-xl p-1 border border-tg-border">
                         <button data-value="planned"
@@ -3914,20 +3915,63 @@
             overlay.classList.remove('hidden');
         }
 
+        function handleContentCategoryChange() {
+            const val = $('f-content-category').value;
+            const timeBox = $('time-select-box');
+            const statusBox = $('status-select-box');
+            const locationLabel = $('f-location-label');
+            const locationInput = $('f-location');
+            const resultBox = $('result-box');
+
+            if (val === '금일 활동 불가') {
+                if (timeBox) timeBox.classList.add('hidden');
+                if (statusBox) statusBox.classList.add('hidden');
+                if (locationLabel) locationLabel.textContent = '활동 불가 사유';
+                if (locationInput) locationInput.placeholder = '예: 개인 일정, 건강 문제 등 사유 입력';
+                if (resultBox) resultBox.classList.remove('visible');
+                $('save-label').textContent = '활동 불가 등록';
+            } else {
+                if (timeBox) timeBox.classList.remove('hidden');
+                if (statusBox) statusBox.classList.remove('hidden');
+                if (locationLabel) locationLabel.textContent = '장소 (Location)';
+                if (locationInput) locationInput.placeholder = '예: 서울 강남 전도관';
+                
+                if (formStatus === 'completed') {
+                    resultBox.classList.add('visible');
+                } else {
+                    resultBox.classList.remove('visible');
+                }
+                
+                if (modalMode === 'add') {
+                    $('save-label').textContent = formStatus === 'completed' ? '결과 저장' : '계획 저장';
+                } else {
+                    $('save-label').textContent = '수정 완료';
+                }
+            }
+        }
+
         async function saveActivity() {
             const targetDate = dateKey(currentDate);
-            const startTime = $('f-starttime').value;
-            const endTime = $('f-endtime').value;
+            let startTime = $('f-starttime').value;
+            let endTime = $('f-endtime').value;
             const location = $('f-location').value.trim();
             const content = $('f-content-category').value;
             const resultData = getResultDataJson();
             const resultText = $('f-result-text').value.trim();
+            let saveStatus = formStatus;
 
-            if (!startTime || !endTime) return showToast('시간을 선택해 주세요.', 'error');
-            if (!location) return showToast('장소를 입력해 주세요.', 'error');
+            if (content === '금일 활동 불가') {
+                startTime = '00:00';
+                endTime = '00:00';
+                saveStatus = 'completed';
+            } else {
+                if (!startTime || !endTime) return showToast('시간을 선택해 주세요.', 'error');
+            }
+
+            if (!location) return showToast(content === '금일 활동 불가' ? '불가 사유를 입력해 주세요.' : '장소를 입력해 주세요.', 'error');
             if (!content) return showToast('활동 내용을 선택해 주세요.', 'error');
 
-            if (formStatus === 'completed') {
+            if (saveStatus === 'completed' && content !== '금일 활동 불가') {
                 const hasRows = document.querySelectorAll('.result-row').length > 0;
                 if (!hasRows && !resultText) return showToast('완료 상태에는 결과 또는 피드백을 입력해주세요.', 'error');
             }
@@ -3943,7 +3987,7 @@
                 endTime: endTime,
                 location: location,
                 content: content,
-                status: formStatus,
+                status: saveStatus,
                 resultData: resultData,
                 resultText: resultText
             };
@@ -3952,7 +3996,7 @@
                 const data = await callApiProxy('saveActivity', params);
                 if (data.result !== 'success') throw new Error(data.message);
                 closeModal();
-                showToast(modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!', 'success');
+                showToast(content === '금일 활동 불가' ? '활동 불가 사유가 등록되었습니다!' : (modalMode === 'add' ? '활동이 추가되었습니다!' : '활동이 수정되었습니다!'), 'success');
                 await fetchAppData();
             } catch (err) {
                 showToast('저장 실패: ' + err.message, 'error');
@@ -4679,14 +4723,20 @@
                 listForStats = activities.filter(a => a.region === activeHomeRegionFilter);
             }
 
-            $('stat-planned').textContent = listForStats.filter(a => a.status === 'planned').length;
-            $('stat-completed').textContent = listForStats.filter(a => a.status === 'completed').length;
-            $('stat-canceled').textContent = listForStats.filter(a => a.status === 'canceled').length;
+            $('stat-planned').textContent = listForStats.filter(a => a.status === 'planned' && a.content !== '금일 활동 불가').length;
+            $('stat-completed').textContent = listForStats.filter(a => a.status === 'completed' && a.content !== '금일 활동 불가').length;
+            $('stat-canceled').textContent = (listForStats.filter(a => a.status === 'canceled').length + listForStats.filter(a => a.content === '금일 활동 불가').length);
 
             updateFilterUI();
 
             let filtered = listForStats;
-            if (activeFilter !== 'all') filtered = listForStats.filter(a => a.status === activeFilter);
+            if (activeFilter === 'planned') {
+                filtered = listForStats.filter(a => a.status === 'planned' && a.content !== '금일 활동 불가');
+            } else if (activeFilter === 'completed') {
+                filtered = listForStats.filter(a => a.status === 'completed' && a.content !== '금일 활동 불가');
+            } else if (activeFilter === 'canceled') {
+                filtered = listForStats.filter(a => a.status === 'canceled' || a.content === '금일 활동 불가');
+            }
 
             if (activeFilter === 'planned' && activeTimeFilter !== 'all') {
                 const now = new Date();
@@ -4744,8 +4794,13 @@
             empty.classList.add('hidden'); empty.classList.remove('flex');
             container.innerHTML = filtered.map(item => {
                 const isMine = (item.userId && item.userId.toString().trim() === currentUserIdStr);
+                const isNoActivity = item.content === '금일 활동 불가';
+                const cardOpacityClass = (item.status === 'canceled' || isNoActivity) ? 'opacity-60' : '';
+                const badgeText = isNoActivity ? '활동 불가' : statusLabel(item.status);
+                const badgeClass = isNoActivity ? 'bg-red-50 text-red-700 border border-red-100' : statusBadgeClass(item.status);
+
                 let resultChipsHtml = '';
-                if (item.status === 'completed' && item.resultData) {
+                if (!isNoActivity && item.status === 'completed' && item.resultData) {
                     try {
                         const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
                         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -4764,7 +4819,7 @@
 
                 return `
     <div
-      class="activity-card bg-tg-bg rounded-2xl p-4 border ${isMine ? 'border-blue-300 ring-1 ring-blue-100 shadow-md' : 'border-tg-border shadow-sm'} ${item.status === 'canceled' ? 'opacity-60' : ''}"
+      class="activity-card bg-tg-bg rounded-2xl p-4 border ${isMine ? 'border-blue-300 ring-1 ring-blue-100 shadow-md' : 'border-tg-border shadow-sm'} ${cardOpacityClass}"
       data-id="${item.id}"
     >
       <div class="flex items-center justify-between border-b border-tg-border pb-2 mb-2.5">
@@ -4774,9 +4829,20 @@
           <span class="text-xs font-bold text-tg-text">${escHtml(item.name || '작성자')}</span>
           <span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(item.group, item.role))}</span>
         </div>
-        <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadgeClass(item.status)}">${statusLabel(item.status)}</span>
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${badgeClass}">${badgeText}</span>
       </div>
 
+      ${isNoActivity ? `
+      <div class="flex items-start gap-2.5 py-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <div class="flex-1">
+          <span class="text-xs font-bold text-red-700 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md">활동 불가</span>
+          <p class="text-sm font-semibold text-tg-text mt-1.5">사유: ${escHtml(item.location || '사유 미입력')}</p>
+        </div>
+      </div>
+      ` : `
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-tg-muted flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -4798,6 +4864,7 @@
         ${resultChipsHtml}
         ${item.resultText ? `<p class="text-xs text-tg-text mt-1 bg-tg-surface p-2 rounded-lg border border-tg-border">${escHtml(item.resultText)}</p>` : ''}
       </div>` : ''}
+      `}
 
       <div class="mt-3 flex items-center gap-1 text-blue-400">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
@@ -4867,6 +4934,7 @@
             $('modal-title').textContent = defaultStatus === 'completed' ? '즉시 결과 기록' : '새 활동 추가';
             $('save-label').textContent = defaultStatus === 'completed' ? '결과 저장' : '계획 저장';
             $('btn-cancel-activity').classList.add('hidden');
+            handleContentCategoryChange();
             openModal();
         }
 
@@ -4890,6 +4958,7 @@
             if (item.status !== 'canceled') cancelBtn.classList.remove('hidden');
             else cancelBtn.classList.add('hidden');
 
+            handleContentCategoryChange();
             openModal();
         }
 
@@ -5270,11 +5339,16 @@
                 let actsHtml = dayActs.length === 0
                     ? `<p class="text-[11px] text-tg-muted py-1 italic">활동 기록이 없습니다.</p>`
                     : dayActs.map(item => {
-                        const badgeClass = { planned: 'bg-blue-50 text-blue-700 border-blue-200', completed: 'bg-green-50 text-green-700 border-green-200', canceled: 'bg-red-50 text-red-700 border-red-200' }[item.status] || 'bg-gray-50 text-gray-700';
-                        const statusLabel = { planned: '계획중', completed: '완료', canceled: '취소' }[item.status] || item.status;
+                        const isNoActivity = item.content === '금일 활동 불가';
+                        const badgeClass = isNoActivity
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : { planned: 'bg-blue-50 text-blue-700 border-blue-200', completed: 'bg-green-50 text-green-700 border-green-200', canceled: 'bg-red-50 text-red-700 border-red-200' }[item.status] || 'bg-gray-50 text-gray-700';
+                        const statusLabel = isNoActivity
+                            ? '활동 불가'
+                            : { planned: '계획중', completed: '완료', canceled: '취소' }[item.status] || item.status;
 
                         let resultDetail = '';
-                        if (item.status === 'completed' && item.resultData) {
+                        if (!isNoActivity && item.status === 'completed' && item.resultData) {
                             try {
                                 const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
                                 if (Array.isArray(parsed) && parsed.length > 0) {
@@ -5285,13 +5359,17 @@
                             } catch (e) { }
                         }
 
+                        const infoText = isNoActivity
+                            ? `사유: ${item.location || '사유 미입력'}`
+                            : `⏰ ${item.startTime} ~ ${item.endTime} ${item.location ? `📍 ${item.location}` : ''}`;
+
                         return `
-                            <div class="tracker-activity-card bg-tg-surface p-3 rounded-xl border border-tg-border mt-1.5 shadow-sm cursor-pointer hover:bg-blue-50/40 hover:border-blue-200 transition-all active:scale-[0.98]" data-id="${item.id}">
+                            <div class="tracker-activity-card bg-tg-surface p-3 rounded-xl border border-tg-border mt-1.5 shadow-sm cursor-pointer hover:bg-blue-50/40 hover:border-blue-200 transition-all active:scale-[0.98] ${isNoActivity ? 'opacity-70' : ''}" data-id="${item.id}">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-tg-text">${item.content}</span>
                                     <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeClass}">${statusLabel}</span>
                                 </div>
-                                <p class="text-[11px] text-tg-muted mt-0.5">⏰ ${item.startTime} ~ ${item.endTime} ${item.location ? `📍 ${item.location}` : ''}</p>
+                                <p class="text-[11px] text-tg-muted mt-0.5">${escHtml(infoText)}</p>
                                 ${resultDetail}
                                 <div class="mt-2.5 flex items-center gap-1 text-blue-400">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
@@ -5675,6 +5753,7 @@
 
             $('btn-save').addEventListener('click', saveActivity);
             $('btn-cancel-activity').addEventListener('click', cancelActivity);
+            $('f-content-category').addEventListener('change', handleContentCategoryChange);
 
             $('profile-btn').addEventListener('click', (e) => {
                 e.stopPropagation(); $('profile-dropdown').classList.toggle('open');
