@@ -470,12 +470,22 @@
 
             <div class="bg-tg-bg rounded-2xl p-3 border border-tg-border space-y-2.5 mb-3 shadow-sm">
                 <div id="admin-home-region-bar"
-                    class="hidden flex items-center justify-between pb-2 border-b border-tg-border">
-                    <span class="text-xs font-bold text-tg-muted">📍 지역별 필터</span>
-                    <select id="home-region-select"
-                        class="border border-tg-border rounded-lg bg-tg-surface px-2.5 py-1 text-xs font-bold text-tg-blue focus:outline-none">
-                        <option value="ALL">전체 지역</option>
-                    </select>
+                    class="hidden flex flex-col gap-2.5 pb-2.5 border-b border-tg-border">
+                    <div class="flex items-center justify-between w-full">
+                        <span id="home-region-title" class="text-xs font-bold text-tg-muted">📍 지역별 필터</span>
+                        <select id="home-region-select"
+                            class="border border-tg-border rounded-lg bg-tg-surface px-2.5 py-1 text-xs font-bold text-tg-blue focus:outline-none">
+                            <option value="ALL">전체 지역</option>
+                        </select>
+                    </div>
+                    <div id="home-view-toggle-container" class="flex items-center justify-end w-full">
+                        <div class="flex items-center gap-1 bg-tg-surface p-0.5 rounded-lg border border-tg-border">
+                            <button id="btn-group-view-all"
+                                class="px-3 py-1 text-[11px] font-bold rounded-md transition-all bg-tg-blue text-white shadow-sm">전체 조회</button>
+                            <button id="btn-group-view-members"
+                                class="px-3 py-1 text-[11px] font-semibold rounded-md transition-all text-tg-muted hover:text-tg-text">인원별 조회</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-3 gap-2">
@@ -1475,6 +1485,9 @@
         let allRegionsList = [];
         let activeNotices = [];
         let cachedAllUsers = [];
+        let currentGroupViewMode = 'all';
+        let expandedMembers = new Set();
+        let currentRegionMembers = [];
         let cachedDashboardList = [];
 
         let modalMode = 'add';
@@ -1774,7 +1787,7 @@
                         }
 
                         // users도 병렬 조회하여 최신 직책/직급 정보 매핑 준비
-                        let usrQuery = supabaseClient.from('users').select('name,role,group_name');
+                        let usrQuery = supabaseClient.from('users').select('id,name,role,group_name,region');
                         if (isGroup) {
                             usrQuery = usrQuery.eq('region', profile.region);
                         } else if (!isSuper) {
@@ -1782,6 +1795,14 @@
                         }
 
                         const [{ data: actData }, { data: usrData }] = await Promise.all([query, usrQuery]);
+
+                        currentRegionMembers = (usrData || []).map(u => ({
+                            id: u.id,
+                            name: u.name,
+                            role: u.role || '',
+                            group_name: u.group_name || '',
+                            region: u.region || ''
+                        }));
 
                         const userMap = {};
                         (usrData || []).forEach(u => {
@@ -2009,15 +2030,32 @@
                 else btn.classList.remove('hidden');
             });
 
+            const homeRegionTitle = $('home-region-title');
+            const homeRegionSelect = $('home-region-select');
+            const homeViewToggleContainer = $('home-view-toggle-container');
+
             if (isGroup) {
                 const userRegion = profile.region || "";
                 if (homeSelect) { homeSelect.value = userRegion; homeSelect.disabled = true; activeHomeRegionFilter = userRegion; }
                 if (riskSelect) { riskSelect.value = userRegion; riskSelect.disabled = true; }
                 if (memberSelect) { memberSelect.value = userRegion; memberSelect.disabled = true; }
+                
+                if (homeRegionTitle) homeRegionTitle.textContent = "👥 조원 활동 조회";
+                if (homeRegionSelect) homeRegionSelect.classList.add('hidden');
+                if (homeViewToggleContainer) homeViewToggleContainer.classList.remove('hidden');
+            } else if (isSuper) {
+                if (homeSelect) homeSelect.disabled = false;
+                if (riskSelect) riskSelect.disabled = false;
+                if (memberSelect) memberSelect.disabled = false;
+                
+                if (homeRegionTitle) homeRegionTitle.textContent = "📍 지역별 필터";
+                if (homeRegionSelect) homeRegionSelect.classList.remove('hidden');
+                if (homeViewToggleContainer) homeViewToggleContainer.classList.remove('hidden');
             } else {
                 if (homeSelect) homeSelect.disabled = false;
                 if (riskSelect) riskSelect.disabled = false;
                 if (memberSelect) memberSelect.disabled = false;
+                if (homeViewToggleContainer) homeViewToggleContainer.classList.add('hidden');
             }
         }
 
@@ -3111,6 +3149,60 @@
             }
         }
 
+        function toggleMemberExpand(name) {
+            const detailEl = document.getElementById('member-detail-' + name);
+            const arrowEl = document.getElementById('member-arrow-' + name);
+            if (detailEl && arrowEl) {
+                if (detailEl.classList.contains('hidden')) {
+                    detailEl.classList.remove('hidden');
+                    arrowEl.classList.add('rotate-180');
+                    expandedMembers.add(name);
+                } else {
+                    detailEl.classList.add('hidden');
+                    arrowEl.classList.remove('rotate-180');
+                    expandedMembers.delete(name);
+                }
+            }
+        }
+        window.toggleMemberExpand = toggleMemberExpand;
+
+        function updateToggleButtonsUI() {
+            const btnAll = $('btn-group-view-all');
+            const btnMembers = $('btn-group-view-members');
+            if (!btnAll || !btnMembers) return;
+
+            if (currentGroupViewMode === 'all') {
+                btnAll.className = "px-3 py-1 text-[11px] font-bold rounded-md transition-all bg-tg-blue text-white shadow-sm";
+                btnMembers.className = "px-3 py-1 text-[11px] font-semibold rounded-md transition-all text-tg-muted hover:text-tg-text";
+            } else {
+                btnAll.className = "px-3 py-1 text-[11px] font-semibold rounded-md transition-all text-tg-muted hover:text-tg-text";
+                btnMembers.className = "px-3 py-1 text-[11px] font-bold rounded-md transition-all bg-tg-blue text-white shadow-sm";
+            }
+        }
+
+        function initGroupViewToggle() {
+            const btnAll = $('btn-group-view-all');
+            const btnMembers = $('btn-group-view-members');
+
+            if (btnAll) {
+                btnAll.onclick = () => {
+                    if (currentGroupViewMode === 'all') return;
+                    currentGroupViewMode = 'all';
+                    updateToggleButtonsUI();
+                    renderList();
+                };
+            }
+
+            if (btnMembers) {
+                btnMembers.onclick = () => {
+                    if (currentGroupViewMode === 'members') return;
+                    currentGroupViewMode = 'members';
+                    updateToggleButtonsUI();
+                    renderList();
+                };
+            }
+        }
+
         function initAllRegionDropdowns() {
             const fillSelect = (selectId) => {
                 const el = $(selectId); if (!el) return;
@@ -3131,6 +3223,7 @@
                     renderList();
                 };
             }
+            initGroupViewToggle();
         }
 
         function renderSemesterList() {
@@ -4766,6 +4859,176 @@
             if (activeFilter === 'planned' && activeTimeFilter !== 'all') {
                 const timeTitleMap = { before: '시작 전 계획', ongoing: '진행 중 활동', ended: '종료 예정 시간 경과 활동' };
                 titleStr = `계획중 - ${timeTitleMap[activeTimeFilter]}`;
+            }
+
+            const container = $('cards-container');
+            const empty = $('empty-state');
+
+            if (currentGroupViewMode === 'members') {
+                $('list-title').textContent = '조원 활동 현황';
+                
+                let membersToRender = currentRegionMembers;
+                if (activeHomeRegionFilter && activeHomeRegionFilter !== 'ALL') {
+                    membersToRender = currentRegionMembers.filter(m => m.region === activeHomeRegionFilter);
+                }
+
+                if (membersToRender.length === 0) {
+                    const uniqueNames = Array.from(new Set(listForStats.map(a => a.name)));
+                    membersToRender = uniqueNames.map(name => {
+                        const act = listForStats.find(a => a.name === name);
+                        return {
+                            name: name,
+                            role: act ? act.role : '조원',
+                            group_name: act ? act.group : '',
+                            region: act ? act.region : ''
+                        };
+                    });
+                }
+
+                const roleOrder = { '조장': 1, '부조장': 2, '부원': 3, '조원': 3, '': 4 };
+                membersToRender.sort((a, b) => {
+                    const orderA = roleOrder[a.role] || 99;
+                    const orderB = roleOrder[b.role] || 99;
+                    if (orderA !== orderB) return orderA - orderB;
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+
+                $('activity-count').textContent = membersToRender.length + '명';
+
+                if (membersToRender.length === 0) {
+                    empty.classList.remove('hidden'); empty.classList.add('flex');
+                    $('empty-msg-title').textContent = '조회된 조원이 없습니다';
+                    $('empty-msg-sub').textContent = '등록된 조원 정보가 존재하지 않습니다';
+                    container.innerHTML = '';
+                    return;
+                }
+
+                empty.classList.add('hidden'); empty.classList.remove('flex');
+                container.innerHTML = membersToRender.map(member => {
+                    const memberActs = listForStats.filter(a => a.name === member.name);
+                    
+                    let statusBadgeHtml = '';
+                    const totalCount = memberActs.length;
+                    const completedCount = memberActs.filter(a => a.status === 'completed' && a.content !== '금일 활동 불가').length;
+                    const plannedCount = memberActs.filter(a => a.status === 'planned' && a.content !== '금일 활동 불가').length;
+                    const canceledCount = memberActs.filter(a => a.status === 'canceled').length;
+                    const hasNoActivity = memberActs.some(a => a.content === '금일 활동 불가');
+
+                    if (totalCount === 0) {
+                        statusBadgeHtml = `<span class="bg-zinc-100 text-zinc-500 font-bold text-[10px] px-2 py-0.5 rounded-md border border-zinc-200">무계획</span>`;
+                    } else if (hasNoActivity) {
+                        statusBadgeHtml = `<span class="bg-red-50 text-red-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-red-100">활동 불가</span>`;
+                    } else {
+                        const parts = [];
+                        if (completedCount > 0) parts.push(`완료 ${completedCount}`);
+                        if (plannedCount > 0) parts.push(`계획 ${plannedCount}`);
+                        if (canceledCount > 0) parts.push(`취소 ${canceledCount}`);
+                        
+                        if (parts.length === 0) {
+                            statusBadgeHtml = `<span class="bg-zinc-100 text-zinc-500 font-bold text-[10px] px-2 py-0.5 rounded-md border border-zinc-200">기타</span>`;
+                        } else {
+                            const isAllCompleted = completedCount === totalCount - canceledCount && completedCount > 0;
+                            const badgeBg = isAllCompleted ? 'bg-green-50 text-green-700 border-green-100' : 'bg-blue-50 text-blue-700 border-blue-100';
+                            statusBadgeHtml = `<span class="${badgeBg} font-bold text-[10px] px-2 py-0.5 rounded-md border">${parts.join(' | ')}</span>`;
+                        }
+                    }
+
+                    const isExpanded = expandedMembers.has(member.name);
+                    const chevronClass = isExpanded ? 'rotate-180' : '';
+                    const detailClass = isExpanded ? '' : 'hidden';
+
+                    let activitiesHtml = '';
+                    if (memberActs.length === 0) {
+                        activitiesHtml = `
+                            <div class="p-3 text-center text-xs text-tg-muted italic bg-tg-surface rounded-xl border border-tg-border/50">
+                                📝 오늘 등록된 계획이 없습니다. (무계획)
+                            </div>
+                        `;
+                    } else {
+                        activitiesHtml = memberActs.map(item => {
+                            const isNoActivity = item.content === '금일 활동 불가';
+                            const badgeText = isNoActivity ? '활동 불가' : statusLabel(item.status);
+                            const badgeClass = isNoActivity ? 'bg-red-50 text-red-700 border border-red-100' : statusBadgeClass(item.status);
+                            
+                            let resultChipsHtml = '';
+                            if (!isNoActivity && item.status === 'completed' && item.resultData) {
+                                try {
+                                    const parsed = typeof item.resultData === 'string' ? JSON.parse(item.resultData) : item.resultData;
+                                    if (Array.isArray(parsed) && parsed.length > 0) {
+                                        resultChipsHtml = `
+                                            <div class="flex flex-wrap gap-1 mt-1.5 mb-0.5">
+                                              ${parsed.map(r => `
+                                                <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 text-[10px] px-1.5 py-0.5 rounded">
+                                                  <span>${escHtml(r.category)}</span>: <span>${escHtml(r.type)}</span>${r.count ? `<span class="text-tg-blue">(${r.count})</span>` : ''}
+                                                </span>
+                                              `).join('')}
+                                            </div>
+                                        `;
+                                    }
+                                } catch (e) {}
+                            }
+
+                            if (isNoActivity) {
+                                return `
+                                    <div class="bg-white rounded-xl p-3 border border-tg-border/60 shadow-sm text-xs space-y-1.5">
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-bold text-red-600">활동 불가</span>
+                                            <span class="${badgeClass} font-bold text-[9px] px-1.5 py-0.5 rounded">${badgeText}</span>
+                                        </div>
+                                        <p class="text-tg-text font-medium mt-1">사유: ${escHtml(item.location || '사유 미입력')}</p>
+                                    </div>
+                                `;
+                            }
+
+                            return `
+                                <div class="bg-white rounded-xl p-3 border border-tg-border/60 shadow-sm text-xs space-y-1.5">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-tg-text">${escHtml(item.startTime || '00:00')} ~ ${escHtml(item.endTime || '23:59')}</span>
+                                        <span class="${badgeClass} font-bold text-[9px] px-1.5 py-0.5 rounded">${badgeText}</span>
+                                    </div>
+                                    <div class="text-tg-text font-semibold">${escHtml(item.content || '')}</div>
+                                    ${item.location ? `<div class="text-[10px] text-tg-muted">📍 ${escHtml(item.location)}</div>` : ''}
+                                    ${resultChipsHtml}
+                                    ${item.resultText ? `<div class="text-[10px] text-zinc-500 bg-zinc-50 p-1.5 rounded border border-zinc-100 mt-1 whitespace-pre-wrap">💬 ${escHtml(item.resultText)}</div>` : ''}
+                                </div>
+                            `;
+                        }).join('');
+                    }
+
+                    return `
+                        <div class="bg-tg-bg rounded-2xl border border-tg-border shadow-sm overflow-hidden mb-3">
+                            <div 
+                                class="flex items-center justify-between p-3.5 cursor-pointer hover:bg-tg-surface/40 active:bg-tg-surface/60 transition-colors"
+                                data-name="${escHtml(member.name)}"
+                                onclick="toggleMemberExpand(this.dataset.name)"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full bg-tg-surface border border-tg-border flex items-center justify-center text-xs font-extrabold text-tg-blue">
+                                        ${escHtml(member.name.substring(0, 2))}
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-sm font-extrabold text-tg-text">${escHtml(member.name)}</span>
+                                            <span class="bg-zinc-100 text-zinc-500 font-bold text-[9px] px-1.5 py-0.5 rounded border border-zinc-200">${escHtml(member.role || '조원')}</span>
+                                        </div>
+                                        ${member.group_name ? `<div class="text-[10px] text-tg-muted mt-0.5">${escHtml(member.group_name)}</div>` : ''}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    ${statusBadgeHtml}
+                                    <svg id="member-arrow-${escHtml(member.name)}" class="w-4 h-4 text-tg-muted transition-transform duration-200 ${chevronClass}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                            
+                            <div id="member-detail-${escHtml(member.name)}" class="p-3 bg-tg-surface/30 border-t border-tg-border/50 space-y-2.5 ${detailClass}">
+                                ${activitiesHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                return;
             }
 
             $('list-title').textContent = titleStr;
