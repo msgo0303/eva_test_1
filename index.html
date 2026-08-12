@@ -619,6 +619,8 @@
                     class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm">✍️ 새 문의 작성</button>
                 <button id="tab-inquiry-history"
                     class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200">📋 나의 문의 내역</button>
+                <button id="tab-inquiry-admin"
+                    class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200 hidden">👥 문의 관리</button>
             </div>
 
             <!-- Scrollable content area -->
@@ -658,6 +660,28 @@
                 <div id="sec-inquiry-history" class="space-y-3 hidden">
                     <div id="inquiry-history-list" class="space-y-3">
                         <!-- inquiry cards will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Section 3: Admin Inquiry Management -->
+                <div id="sec-inquiry-admin" class="space-y-4 hidden">
+                    <div class="flex gap-2 bg-tg-bg p-2 rounded-xl border border-tg-border">
+                        <button data-inquiry-filter="all"
+                            class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-blue text-white shadow-sm">전체</button>
+                        <button data-inquiry-filter="pending"
+                            class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200">답변대기</button>
+                        <button data-inquiry-filter="replied"
+                            class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200">답변완료</button>
+                    </div>
+
+                    <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                        <div class="flex items-center justify-between border-b border-tg-border pb-2">
+                            <h3 class="text-xs font-bold text-tg-text">📋 접수된 문의/건의 내역</h3>
+                            <span id="admin-inquiry-count" class="text-xs text-tg-muted">0건</span>
+                        </div>
+                        <div id="admin-inquiry-list" class="space-y-4 pt-1">
+                            <p class="text-xs text-tg-muted text-center py-4">조회된 문의사항이 없습니다.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1068,8 +1092,6 @@
                 class="dash-main-tab flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">3. 멤버 관리</button>
             <button id="btn-tab-semester" data-tab="semester"
                 class="dash-main-tab hidden flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">4. 사이클 설정</button>
-            <button id="btn-tab-inquiry" data-tab="inquiry"
-                class="dash-main-tab hidden flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">5. 문의 관리</button>
         </div>
 
         <div class="overflow-y-auto flex-1 p-4 space-y-4">
@@ -1395,28 +1417,6 @@
                         <button onclick="saveSemesterSetting()"
                             class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">+
 새 사이클 저장</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 탭 5: 문의 관리 -->
-            <div id="tab-sec-inquiry" class="hidden space-y-4">
-                <div class="flex gap-2 bg-tg-bg p-2 rounded-xl border border-tg-border">
-                    <button data-inquiry-filter="all"
-                        class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-blue text-white shadow-sm">전체</button>
-                    <button data-inquiry-filter="pending"
-                        class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted">답변대기</button>
-                    <button data-inquiry-filter="replied"
-                        class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted">답변완료</button>
-                </div>
-
-                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
-                    <div class="flex items-center justify-between border-b border-tg-border pb-2">
-                        <h3 class="text-xs font-bold text-tg-text">📋 접수된 문의/건의 내역</h3>
-                        <span id="admin-inquiry-count" class="text-xs text-tg-muted">0건</span>
-                    </div>
-                    <div id="admin-inquiry-list" class="space-y-4 pt-1">
-                        <p class="text-xs text-tg-muted text-center py-4">조회된 문의사항이 없습니다.</p>
                     </div>
                 </div>
             </div>
@@ -2103,16 +2103,12 @@
                 $('btn-dash-notice').classList.remove('hidden');
                 const semTab = $('btn-tab-semester');
                 if (semTab) semTab.classList.remove('hidden');
-                const inquiryTab = $('btn-tab-inquiry');
-                if (inquiryTab) inquiryTab.classList.remove('hidden');
             } else {
                 $('admin-time-filter-bar').classList.add('hidden');
                 $('admin-home-region-bar').classList.add('hidden');
                 $('btn-dash-notice').classList.add('hidden');
                 const semTab = $('btn-tab-semester');
                 if (semTab) semTab.classList.add('hidden');
-                const inquiryTab = $('btn-tab-inquiry');
-                if (inquiryTab) inquiryTab.classList.add('hidden');
             }
 
             const role = profile.role || "";
@@ -2810,6 +2806,19 @@
             $('inquiry-content').value = '';
             $('inquiry-category').value = '기능 문의';
 
+            // 조장/부조장/관리자인 경우 '문의 관리' 탭 활성화
+            const role = profile.role || "";
+            const isLeader = role.includes("조장") || role.includes("부조장");
+            const isSuper = role.includes("관리자") || role.includes("전체관리자");
+            const tabAdmin = $('tab-inquiry-admin');
+            if (tabAdmin) {
+                if (isLeader || isSuper) {
+                    tabAdmin.classList.remove('hidden');
+                } else {
+                    tabAdmin.classList.add('hidden');
+                }
+            }
+
             sheet.style.display = 'flex'; sheet.offsetHeight;
             overlay.classList.add('open'); sheet.classList.add('open');
         }
@@ -2825,22 +2834,45 @@
             currentInquiryTab = tab;
             const tabWrite = $('tab-inquiry-write');
             const tabHistory = $('tab-inquiry-history');
+            const tabAdmin = $('tab-inquiry-admin');
             const secWrite = $('sec-inquiry-write');
             const secHistory = $('sec-inquiry-history');
+            const secAdmin = $('sec-inquiry-admin');
 
             if (!tabWrite || !tabHistory || !secWrite || !secHistory) return;
 
+            // Reset tab classes
+            tabWrite.classList.remove('bg-tg-blue', 'text-white', 'shadow-sm');
+            tabWrite.classList.add('bg-tg-surface', 'text-tg-muted', 'hover:bg-zinc-200');
+            
+            tabHistory.classList.remove('bg-tg-blue', 'text-white', 'shadow-sm');
+            tabHistory.classList.add('bg-tg-surface', 'text-tg-muted', 'hover:bg-zinc-200');
+            
+            if (tabAdmin) {
+                tabAdmin.classList.remove('bg-tg-blue', 'text-white', 'shadow-sm');
+                tabAdmin.classList.add('bg-tg-surface', 'text-tg-muted', 'hover:bg-zinc-200');
+            }
+
+            secWrite.classList.add('hidden');
+            secHistory.classList.add('hidden');
+            if (secAdmin) secAdmin.classList.add('hidden');
+
             if (tab === 'write') {
-                tabWrite.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm";
-                tabHistory.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200";
+                tabWrite.classList.add('bg-tg-blue', 'text-white', 'shadow-sm');
+                tabWrite.classList.remove('bg-tg-surface', 'text-tg-muted', 'hover:bg-zinc-200');
                 secWrite.classList.remove('hidden');
-                secHistory.classList.add('hidden');
-            } else {
-                tabWrite.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200";
-                tabHistory.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm";
-                secWrite.classList.add('hidden');
+            } else if (tab === 'history') {
+                tabHistory.classList.add('bg-tg-blue', 'text-white', 'shadow-sm');
+                tabHistory.classList.remove('bg-tg-surface', 'text-tg-muted', 'hover:bg-zinc-200');
                 secHistory.classList.remove('hidden');
                 fetchMyInquiries();
+            } else if (tab === 'admin') {
+                if (tabAdmin) {
+                    tabAdmin.classList.add('bg-tg-blue', 'text-white', 'shadow-sm');
+                    tabAdmin.classList.remove('bg-tg-surface', 'text-tg-muted', 'hover:bg-zinc-200');
+                }
+                if (secAdmin) secAdmin.classList.remove('hidden');
+                fetchAdminInquiries();
             }
         }
 
@@ -6325,13 +6357,11 @@
                     $('tab-sec-risk').classList.add('hidden');
                     $('tab-sec-members').classList.add('hidden');
                     $('tab-sec-semester').classList.add('hidden');
-                    $('tab-sec-inquiry').classList.add('hidden');
 
                     if (targetTab === 'summary') { $('tab-sec-summary').classList.remove('hidden'); }
                     else if (targetTab === 'risk') { $('tab-sec-risk').classList.remove('hidden'); fetchRiskAndMemberData(); }
                     else if (targetTab === 'members') { $('tab-sec-members').classList.remove('hidden'); fetchRiskAndMemberData(); }
                     else if (targetTab === 'semester') { $('tab-sec-semester').classList.remove('hidden'); }
-                    else if (targetTab === 'inquiry') { $('tab-sec-inquiry').classList.remove('hidden'); fetchAdminInquiries(); }
                 });
             });
 
@@ -6382,6 +6412,7 @@
             $('inquiry-overlay').addEventListener('click', closeInquirySheet);
             $('tab-inquiry-write').addEventListener('click', () => switchInquiryTab('write'));
             $('tab-inquiry-history').addEventListener('click', () => switchInquiryTab('history'));
+            $('tab-inquiry-admin').addEventListener('click', () => switchInquiryTab('admin'));
             $('btn-submit-inquiry').addEventListener('click', submitUserInquiry);
 
             document.querySelectorAll('.inquiry-filter-btn').forEach(btn => {
