@@ -123,7 +123,8 @@
 
         #modal-overlay,
         #reg-overlay,
-        #dash-overlay {
+        #dash-overlay,
+        #inquiry-overlay {
             display: none;
             opacity: 0;
             transition: opacity .3s ease;
@@ -133,7 +134,8 @@
         #reg-overlay.open,
         #dash-overlay.open,
         #tracker-overlay.open,
-        #notice-overlay.open {
+        #notice-overlay.open,
+        #inquiry-overlay.open {
             display: block;
             opacity: 1;
         }
@@ -142,7 +144,8 @@
         #reg-sheet,
         #dash-sheet,
         #tracker-sheet,
-        #notice-sheet {
+        #notice-sheet,
+        #inquiry-sheet {
             display: none;
             transform: translateY(100%);
             transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
@@ -152,7 +155,8 @@
         #reg-sheet.open,
         #dash-sheet.open,
         #tracker-sheet.open,
-        #notice-sheet.open {
+        #notice-sheet.open,
+        #inquiry-sheet.open {
             display: flex;
             transform: translateY(0);
         }
