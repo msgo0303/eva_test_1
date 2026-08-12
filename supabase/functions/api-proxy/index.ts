@@ -535,6 +535,141 @@ serve(async (req) => {
       );
     }
 
+    // [보안 CUD 위임 API] 8. 1:1 문의/건의 접수 (submitInquiry)
+    if (action === "submitInquiry") {
+      const { category, title, content } = params;
+
+      if (!category || !title || !content) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "필수 입력 필드가 누락되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 작성자 텔레그램 프로필 정보 조회
+      const { data: dbUsers, error: userErr } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", verifiedTgUserId);
+
+      if (userErr || !dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "등록되지 않은 사용자입니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      // 문의 테이블에 삽입
+      const { error: insertErr } = await supabase
+        .from("inquiries")
+        .insert([{
+          user_id: verifiedTgUserId,
+          name: dbUser.name,
+          region: dbUser.region || "미정",
+          role: dbUser.role || "조원",
+          category,
+          title,
+          content,
+          status: "pending"
+        }]);
+
+      if (insertErr) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "문의 접수 실패: " + insertErr.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "문의사항이 성공적으로 접수되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 9. 문의/건의 답변 등록 및 수정 (replyInquiry)
+    if (action === "replyInquiry") {
+      const { inquiryId, replyText } = params;
+
+      if (!inquiryId || replyText === undefined) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "필수 파라미터가 누락되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 답변자 권한 확인
+      const { data: dbUsers, error: userErr } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", verifiedTgUserId);
+
+      if (userErr || !dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "작성자를 확인할 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+
+      if (!isSuper && !isLeader) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 해당 문의 건 확인
+      const { data: inquiries, error: inquiryErr } = await supabase
+        .from("inquiries")
+        .select("*")
+        .eq("id", inquiryId);
+
+      if (inquiryErr || !inquiries || inquiries.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "문의를 찾을 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const inquiry = inquiries[0];
+
+      // 조장의 경우 동일 지역 소속 사용자의 문의인지 검증
+      if (!isSuper && inquiry.region !== dbUser.region) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "타 지역 사용자의 문의에 답할 권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 답변 업데이트
+      const updateData = {
+        reply: replyText,
+        replied_by: dbUser.name,
+        replied_at: new Date().toISOString(),
+        status: replyText.trim() === "" ? "pending" : "replied"
+      };
+
+      const { error: updateErr } = await supabase
+        .from("inquiries")
+        .update(updateData)
+        .eq("id", inquiryId);
+
+      if (updateErr) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "답변 등록 실패: " + updateErr.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "답변이 성공적으로 등록되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ result: "fail", message: "지원하지 않는 action입니다." }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

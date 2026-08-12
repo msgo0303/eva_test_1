@@ -581,6 +581,82 @@
                 class="flex items-center gap-2 bg-emerald-600 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform hidden">
                 📢 공지사항
             </button>
+            <button id="btn-dash-inquiry"
+                class="flex items-center gap-2 bg-amber-600 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl active:scale-95 transition-transform">
+                ✍️ 문의 및 건의사항
+            </button>
+        </div>
+
+        <!-- INQUIRY FULL MODAL SHEET -->
+        <div id="inquiry-overlay" class="fixed inset-0 z-40 bg-black/40 hidden"></div>
+        <div id="inquiry-sheet"
+            class="fixed inset-x-0 bottom-0 z-50 bg-tg-surface rounded-t-3xl shadow-2xl flex flex-col h-[92vh] hidden transition-transform duration-300 translate-y-full">
+            <div class="flex justify-center pt-3 pb-1 flex-shrink-0 bg-tg-bg rounded-t-3xl">
+                <div class="w-10 h-1 bg-tg-border rounded-full"></div>
+            </div>
+
+            <div class="flex items-center justify-between px-5 pt-2 pb-3 bg-tg-bg border-b border-tg-border flex-shrink-0">
+                <div>
+                    <h2 class="text-base font-bold text-tg-text">✍️ 문의 및 건의사항</h2>
+                    <p class="text-[11px] text-tg-blue font-semibold mt-0.5">건의사항이나 오류를 보내주시면 신속히 확인하겠습니다.</p>
+                </div>
+                <button id="btn-close-inquiry"
+                    class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                        stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Inquiry Sub-tabs -->
+            <div class="flex bg-tg-bg px-4 py-2 border-b border-tg-border gap-2 flex-shrink-0">
+                <button id="tab-inquiry-write"
+                    class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm">✍️ 새 문의 작성</button>
+                <button id="tab-inquiry-history"
+                    class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200">📋 나의 문의 내역</button>
+            </div>
+
+            <!-- Scrollable content area -->
+            <div class="overflow-y-auto flex-1 p-4 space-y-4">
+                <!-- Section 1: Write Inquiry -->
+                <div id="sec-inquiry-write" class="space-y-4">
+                    <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-bold text-tg-muted mb-1.5">문의 유형</label>
+                            <select id="inquiry-category"
+                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                                <option value="기능 문의">기능 문의</option>
+                                <option value="권한 요청">권한 요청</option>
+                                <option value="건의사항">건의사항</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-tg-muted mb-1.5">제목</label>
+                            <input id="inquiry-title" type="text" placeholder="제목을 입력하세요."
+                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-tg-muted mb-1.5">문의 내용</label>
+                            <textarea id="inquiry-content" rows="6" placeholder="상세 내용을 작성해 주세요."
+                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2.5 text-sm font-semibold text-tg-text focus:outline-none focus:border-tg-blue resize-none"></textarea>
+                        </div>
+                        
+                        <button id="btn-submit-inquiry"
+                            class="w-full py-3 bg-tg-blue text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform mt-4 flex items-center justify-center gap-1.5">
+                            제출하기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section 2: Inquiry History -->
+                <div id="sec-inquiry-history" class="space-y-3 hidden">
+                    <div id="inquiry-history-list" class="space-y-3">
+                        <!-- inquiry cards will be injected here -->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- NOTICE MANAGER FULL MODAL SHEET -->
@@ -981,15 +1057,15 @@
 
         <div class="flex border-b border-tg-border bg-tg-bg px-3 pt-1 flex-shrink-0">
             <button data-tab="summary"
-                class="dash-main-tab active flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">1. 현황
-                요약</button>
+                class="dash-main-tab active flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">1. 현황 요약</button>
             <button data-tab="risk"
                 class="dash-main-tab flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">2. 미취합/미달성</button>
             <button data-tab="members"
                 class="dash-main-tab flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">3. 멤버 관리</button>
             <button id="btn-tab-semester" data-tab="semester"
-                class="dash-main-tab hidden flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">4. 사이클
-                설정</button>
+                class="dash-main-tab hidden flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">4. 사이클 설정</button>
+            <button id="btn-tab-inquiry" data-tab="inquiry"
+                class="dash-main-tab hidden flex-1 py-2 text-[11px] font-bold rounded-t-xl transition-all">5. 문의 관리</button>
         </div>
 
         <div class="overflow-y-auto flex-1 p-4 space-y-4">
@@ -1314,7 +1390,29 @@
                         </div>
                         <button onclick="saveSemesterSetting()"
                             class="w-full bg-tg-blue text-white rounded-xl py-3 font-bold mt-2 active:scale-95 transition-transform">+
-                            새 사이클 저장</button>
+새 사이클 저장</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 5: 문의 관리 -->
+            <div id="tab-sec-inquiry" class="hidden space-y-4">
+                <div class="flex gap-2 bg-tg-bg p-2 rounded-xl border border-tg-border">
+                    <button data-inquiry-filter="all"
+                        class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-blue text-white shadow-sm">전체</button>
+                    <button data-inquiry-filter="pending"
+                        class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted">답변대기</button>
+                    <button data-inquiry-filter="replied"
+                        class="inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted">답변완료</button>
+                </div>
+
+                <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-tg-border pb-2">
+                        <h3 class="text-xs font-bold text-tg-text">📋 접수된 문의/건의 내역</h3>
+                        <span id="admin-inquiry-count" class="text-xs text-tg-muted">0건</span>
+                    </div>
+                    <div id="admin-inquiry-list" class="space-y-4 pt-1">
+                        <p class="text-xs text-tg-muted text-center py-4">조회된 문의사항이 없습니다.</p>
                     </div>
                 </div>
             </div>
@@ -1490,6 +1588,10 @@
         let expandedMembers = new Set();
         let currentRegionMembers = [];
         let cachedDashboardList = [];
+        let myInquiries = [];
+        let currentInquiryTab = 'write';
+        let adminInquiries = [];
+        let activeAdminInquiryFilter = 'all';
 
         let modalMode = 'add';
         let editId = null;
@@ -1997,12 +2099,16 @@
                 $('btn-dash-notice').classList.remove('hidden');
                 const semTab = $('btn-tab-semester');
                 if (semTab) semTab.classList.remove('hidden');
+                const inquiryTab = $('btn-tab-inquiry');
+                if (inquiryTab) inquiryTab.classList.remove('hidden');
             } else {
                 $('admin-time-filter-bar').classList.add('hidden');
                 $('admin-home-region-bar').classList.add('hidden');
                 $('btn-dash-notice').classList.add('hidden');
                 const semTab = $('btn-tab-semester');
                 if (semTab) semTab.classList.add('hidden');
+                const inquiryTab = $('btn-tab-inquiry');
+                if (inquiryTab) inquiryTab.classList.add('hidden');
             }
 
             const role = profile.role || "";
@@ -2689,6 +2795,304 @@
             overlay.classList.remove('open'); sheet.classList.remove('open');
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
         }
+
+        function openInquirySheet() {
+            closeDashMenu();
+            const overlay = $('inquiry-overlay');
+            const sheet = $('inquiry-sheet');
+
+            switchInquiryTab('write');
+            $('inquiry-title').value = '';
+            $('inquiry-content').value = '';
+            $('inquiry-category').value = '기능 문의';
+
+            sheet.style.display = 'flex'; sheet.offsetHeight;
+            overlay.classList.add('open'); sheet.classList.add('open');
+        }
+
+        function closeInquirySheet() {
+            const overlay = $('inquiry-overlay');
+            const sheet = $('inquiry-sheet');
+            overlay.classList.remove('open'); sheet.classList.remove('open');
+            setTimeout(() => { sheet.style.display = 'none'; }, 360);
+        }
+
+        function switchInquiryTab(tab) {
+            currentInquiryTab = tab;
+            const tabWrite = $('tab-inquiry-write');
+            const tabHistory = $('tab-inquiry-history');
+            const secWrite = $('sec-inquiry-write');
+            const secHistory = $('sec-inquiry-history');
+
+            if (!tabWrite || !tabHistory || !secWrite || !secHistory) return;
+
+            if (tab === 'write') {
+                tabWrite.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm";
+                tabHistory.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200";
+                secWrite.classList.remove('hidden');
+                secHistory.classList.add('hidden');
+            } else {
+                tabWrite.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200";
+                tabHistory.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-tg-blue text-white shadow-sm";
+                secWrite.classList.add('hidden');
+                secHistory.classList.remove('hidden');
+                fetchMyInquiries();
+            }
+        }
+
+        async function submitUserInquiry() {
+            const category = $('inquiry-category').value;
+            const title = $('inquiry-title').value.trim();
+            const content = $('inquiry-content').value.trim();
+            const btn = $('btn-submit-inquiry');
+
+            if (!title) { showToast('제목을 입력해 주세요.', 'error'); return; }
+            if (!content) { showToast('내용을 입력해 주세요.', 'error'); return; }
+
+            btn.disabled = true;
+            btn.textContent = '제출 중...';
+
+            try {
+                const data = await callApiProxy('submitInquiry', { category, title, content });
+                if (data.result === 'success') {
+                    showToast('문의사항이 성공적으로 접수되었습니다.', 'success');
+                    $('inquiry-title').value = '';
+                    $('inquiry-content').value = '';
+                    switchInquiryTab('history');
+                } else {
+                    showToast(data.message || '문의 접수 실패', 'error');
+                }
+            } catch (err) {
+                showToast('통신 오류: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '제출하기';
+            }
+        }
+
+        async function fetchMyInquiries() {
+            const listContainer = $('inquiry-history-list');
+            if (listContainer) {
+                listContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">로딩 중...</p>';
+            }
+
+            if (!supabase) {
+                if (listContainer) {
+                    listContainer.innerHTML = '<p class="text-xs text-red-500 text-center py-6">Supabase 연결이 필요합니다.</p>';
+                }
+                return;
+            }
+
+            try {
+                const currentUserIdStr = profile.id ? profile.id.toString().trim() : "";
+                const { data, error } = await supabaseClient
+                    .from('inquiries')
+                    .select('*')
+                    .eq('user_id', currentUserIdStr)
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+
+                myInquiries = data || [];
+                renderMyInquiries();
+            } catch (err) {
+                console.error("내 문의 조회 실패:", err);
+                if (listContainer) {
+                    listContainer.innerHTML = '<p class="text-xs text-red-500 text-center py-6">조회 실패: ' + escHtml(err.message) + '</p>';
+                }
+            }
+        }
+
+        function renderMyInquiries() {
+            const listContainer = $('inquiry-history-list');
+            if (!listContainer) return;
+
+            if (myInquiries.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="p-8 text-center text-xs text-tg-muted italic bg-tg-bg rounded-2xl border border-tg-border">
+                        📋 접수된 문의 내역이 없습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = myInquiries.map(item => {
+                const statusBadgeClass = item.status === 'replied'
+                    ? 'bg-green-50 text-green-700 border-green-100'
+                    : 'bg-yellow-50 text-yellow-700 border-yellow-100';
+                const statusText = item.status === 'replied' ? '답변완료' : '답변대기';
+                const createdAtStr = item.created_at ? String(item.created_at).substring(0, 16).replace('T', ' ') : '';
+                const repliedAtStr = item.replied_at ? String(item.replied_at).substring(0, 16).replace('T', ' ') : '';
+
+                return `
+                    <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="bg-blue-50 text-tg-blue font-bold text-[10px] px-2 py-0.5 rounded border border-blue-100">${escHtml(item.category)}</span>
+                            <span class="${statusBadgeClass} font-bold text-[10px] px-2 py-0.5 rounded border">${statusText}</span>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-tg-text">${escHtml(item.title)}</h4>
+                            <p class="text-[11px] text-tg-muted mt-0.5">작성일: ${createdAtStr}</p>
+                        </div>
+                        <div class="text-[11px] text-tg-text bg-tg-surface p-2.5 rounded-xl border border-tg-border/50 whitespace-pre-wrap">${escHtml(item.content)}</div>
+                        
+                        ${item.status === 'replied' ? `
+                            <div class="border-t border-tg-border/50 pt-2.5 space-y-1.5">
+                                <div class="flex items-center justify-between text-[10px] text-green-700 font-bold">
+                                    <span>💬 답변 작성자: ${escHtml(item.replied_by || '관리자')}</span>
+                                    <span>${repliedAtStr}</span>
+                                </div>
+                                <div class="text-[11px] text-green-800 bg-green-50/50 p-2.5 rounded-xl border border-green-100 whitespace-pre-wrap">${escHtml(item.reply)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function fetchAdminInquiries() {
+            const listContainer = $('admin-inquiry-list');
+            if (listContainer) {
+                listContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">로딩 중...</p>';
+            }
+
+            if (!supabase) {
+                if (listContainer) {
+                    listContainer.innerHTML = '<p class="text-xs text-red-500 text-center py-6">Supabase 연결이 필요합니다.</p>';
+                }
+                return;
+            }
+
+            try {
+                const role = profile.role || "";
+                const isSuper = role.includes("관리자") || role.includes("전체관리자");
+                const isGroup = role.includes("조장") || role.includes("부조장");
+
+                let query = supabaseClient.from('inquiries').select('*');
+
+                if (isGroup && !isSuper) {
+                    query = query.eq('region', profile.region);
+                }
+
+                const { data, error } = await query.order('id', { ascending: false });
+
+                if (error) throw error;
+
+                adminInquiries = data || [];
+                renderAdminInquiries();
+            } catch (err) {
+                console.error("관리자 문의 조회 실패:", err);
+                if (listContainer) {
+                    listContainer.innerHTML = '<p class="text-xs text-red-500 text-center py-6">조회 실패: ' + escHtml(err.message) + '</p>';
+                }
+            }
+        }
+
+        function setInquiryFilter(filterType) {
+            activeAdminInquiryFilter = filterType;
+            document.querySelectorAll('.inquiry-filter-btn').forEach(btn => {
+                btn.className = (btn.dataset.inquiryFilter === filterType)
+                    ? "inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-blue text-white shadow-sm"
+                    : "inquiry-filter-btn flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-tg-surface text-tg-muted hover:bg-zinc-200";
+            });
+            renderAdminInquiries();
+        }
+        window.setInquiryFilter = setInquiryFilter;
+
+        function renderAdminInquiries() {
+            const listContainer = $('admin-inquiry-list');
+            const countEl = $('admin-inquiry-count');
+            if (!listContainer) return;
+
+            let filtered = adminInquiries;
+            if (activeAdminInquiryFilter === 'pending') {
+                filtered = adminInquiries.filter(i => i.status === 'pending');
+            } else if (activeAdminInquiryFilter === 'replied') {
+                filtered = adminInquiries.filter(i => i.status === 'replied');
+            }
+
+            if (countEl) {
+                countEl.textContent = filtered.length + '건';
+            }
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<p class="text-xs text-tg-muted text-center py-6">조회된 문의사항이 없습니다.</p>';
+                return;
+            }
+
+            listContainer.innerHTML = filtered.map(item => {
+                const statusBadgeClass = item.status === 'replied'
+                    ? 'bg-green-50 text-green-700 border-green-100'
+                    : 'bg-yellow-50 text-yellow-700 border-yellow-100';
+                const statusText = item.status === 'replied' ? '답변완료' : '답변대기';
+                const createdAtStr = item.created_at ? String(item.created_at).substring(0, 16).replace('T', ' ') : '';
+                const repliedAtStr = item.replied_at ? String(item.replied_at).substring(0, 16).replace('T', ' ') : '';
+
+                const replyVal = item.reply || '';
+
+                return `
+                    <div class="bg-tg-bg rounded-2xl p-4 border border-tg-border shadow-sm space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="bg-blue-50 text-tg-blue font-bold text-[10px] px-2 py-0.5 rounded border border-blue-100">${escHtml(item.region)}</span>
+                                <span class="text-xs font-bold text-tg-text">${escHtml(item.name)}</span>
+                                <span class="text-[9px] text-tg-muted">(${escHtml(item.role)})</span>
+                            </div>
+                            <span class="${statusBadgeClass} font-bold text-[10px] px-2 py-0.5 rounded border">${statusText}</span>
+                        </div>
+                        <div>
+                            <span class="bg-zinc-100 text-zinc-500 font-bold text-[9px] px-1.5 py-0.5 rounded border border-zinc-200">${escHtml(item.category)}</span>
+                            <h4 class="text-xs font-bold text-tg-text mt-1.5">${escHtml(item.title)}</h4>
+                            <p class="text-[10px] text-tg-muted mt-0.5">작성일: ${createdAtStr}</p>
+                        </div>
+                        <div class="text-[11px] text-tg-text bg-tg-surface p-2.5 rounded-xl border border-tg-border/50 whitespace-pre-wrap">${escHtml(item.content)}</div>
+                        
+                        <div class="border-t border-tg-border/50 pt-3 space-y-2">
+                            <label class="block text-[10px] font-bold text-tg-muted">💬 관리자 답변</label>
+                            <textarea id="reply-input-${item.id}" rows="3" placeholder="답변을 입력해 주세요."
+                                class="w-full rounded-xl border border-tg-border bg-tg-surface px-3 py-2 text-xs text-tg-text focus:outline-none focus:border-tg-blue resize-none">${escHtml(replyVal)}</textarea>
+                            
+                            <div class="flex justify-end gap-2 items-center">
+                                ${item.status === 'replied' ? `
+                                    <span class="text-[9px] text-tg-muted mr-auto">답변: ${escHtml(item.replied_by)} (${repliedAtStr})</span>
+                                ` : ''}
+                                <button onclick="submitInquiryReply(${item.id}, 'reply-input-${item.id}')"
+                                    class="px-4 py-2 bg-tg-blue text-white rounded-lg font-bold text-xs shadow-sm active:scale-95 transition-transform">
+                                    ${item.status === 'replied' ? '답변 수정' : '답변 등록'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function submitInquiryReply(inquiryId, inputId) {
+            const replyText = $(inputId).value.trim();
+            const btn = event ? event.target : null;
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '저장 중...';
+            }
+
+            try {
+                const data = await callApiProxy('replyInquiry', { inquiryId, replyText });
+                if (data.result === 'success') {
+                    showToast('답변이 성공적으로 저장되었습니다.', 'success');
+                    fetchAdminInquiries();
+                } else {
+                    showToast(data.message || '답변 저장 실패', 'error');
+                }
+            } catch (err) {
+                showToast('통신 오류: ' + err.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = replyText === '' ? '답변 등록' : '답변 수정';
+                }
+            }
+        }
+        window.submitInquiryReply = submitInquiryReply;
 
         async function saveNotice() {
             const title = $('n-title').value.trim();
@@ -5917,11 +6321,13 @@
                     $('tab-sec-risk').classList.add('hidden');
                     $('tab-sec-members').classList.add('hidden');
                     $('tab-sec-semester').classList.add('hidden');
+                    $('tab-sec-inquiry').classList.add('hidden');
 
                     if (targetTab === 'summary') { $('tab-sec-summary').classList.remove('hidden'); }
                     else if (targetTab === 'risk') { $('tab-sec-risk').classList.remove('hidden'); fetchRiskAndMemberData(); }
                     else if (targetTab === 'members') { $('tab-sec-members').classList.remove('hidden'); fetchRiskAndMemberData(); }
                     else if (targetTab === 'semester') { $('tab-sec-semester').classList.remove('hidden'); }
+                    else if (targetTab === 'inquiry') { $('tab-sec-inquiry').classList.remove('hidden'); fetchAdminInquiries(); }
                 });
             });
 
@@ -5966,6 +6372,17 @@
             $('btn-dash-admin').addEventListener('click', () => { closeDashMenu(); openDashModal(); });
             $('btn-dash-tracker').addEventListener('click', () => { closeDashMenu(); openTrackerModal(); });
             $('btn-dash-notice').addEventListener('click', () => { closeDashMenu(); openNoticeSheet(); });
+            $('btn-dash-inquiry').addEventListener('click', () => { closeDashMenu(); openInquirySheet(); });
+
+            $('btn-close-inquiry').addEventListener('click', closeInquirySheet);
+            $('inquiry-overlay').addEventListener('click', closeInquirySheet);
+            $('tab-inquiry-write').addEventListener('click', () => switchInquiryTab('write'));
+            $('tab-inquiry-history').addEventListener('click', () => switchInquiryTab('history'));
+            $('btn-submit-inquiry').addEventListener('click', submitUserInquiry);
+
+            document.querySelectorAll('.inquiry-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => { setInquiryFilter(btn.dataset.inquiryFilter); });
+            });
 
             $('btn-close-tracker').addEventListener('click', closeTrackerModal);
             $('tracker-overlay').addEventListener('click', closeTrackerModal);
