@@ -5034,9 +5034,6 @@
             $('list-title').textContent = titleStr;
             $('activity-count').textContent = filtered.length + '건';
 
-            const container = $('cards-container');
-            const empty = $('empty-state');
-
             if (filtered.length === 0) {
                 empty.classList.remove('hidden'); empty.classList.add('flex');
                 container.innerHTML = '';
