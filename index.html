@@ -4918,7 +4918,7 @@
                     const hasNoActivity = memberActs.some(a => a.content === '금일 활동 불가');
 
                     if (totalCount === 0) {
-                        statusBadgeHtml = `<span class="bg-zinc-100 text-zinc-500 font-bold text-[10px] px-2 py-0.5 rounded-md border border-zinc-200">무계획</span>`;
+                        statusBadgeHtml = `<span class="bg-zinc-100 text-zinc-500 font-bold text-[10px] px-2 py-0.5 rounded-md border border-zinc-200">계획 미취합</span>`;
                     } else if (hasNoActivity) {
                         statusBadgeHtml = `<span class="bg-red-50 text-red-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-red-100">활동 불가</span>`;
                     } else {
@@ -4944,7 +4944,7 @@
                     if (memberActs.length === 0) {
                         activitiesHtml = `
                             <div class="p-3 text-center text-xs text-tg-muted italic bg-tg-surface rounded-xl border border-tg-border/50">
-                                📝 오늘 등록된 계획이 없습니다. (무계획)
+                                📝 오늘 등록된 계획이 없습니다. (계획 미취합)
                             </div>
                         `;
                     } else {
