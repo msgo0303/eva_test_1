@@ -471,15 +471,16 @@
             <div class="bg-tg-bg rounded-2xl p-3 border border-tg-border space-y-2.5 mb-3 shadow-sm">
                 <div id="admin-home-region-bar"
                     class="hidden flex flex-col gap-2.5 pb-2.5 border-b border-tg-border">
-                    <div class="flex items-center justify-between w-full">
+                    <div id="home-region-header-row" class="flex items-center justify-between w-full">
                         <span id="home-region-title" class="text-xs font-bold text-tg-muted">📍 지역별 필터</span>
                         <select id="home-region-select"
                             class="border border-tg-border rounded-lg bg-tg-surface px-2.5 py-1 text-xs font-bold text-tg-blue focus:outline-none">
                             <option value="ALL">전체 지역</option>
                         </select>
                     </div>
-                    <div id="home-view-toggle-container" class="flex items-center justify-end w-full">
-                        <div class="flex items-center gap-1 bg-tg-surface p-0.5 rounded-lg border border-tg-border">
+                    <div id="home-view-toggle-container" class="flex items-center justify-between w-full">
+                        <span id="group-home-region-title" class="text-xs font-bold text-tg-muted hidden">👥 조원 활동 조회</span>
+                        <div class="flex items-center gap-1 bg-tg-surface p-0.5 rounded-lg border border-tg-border ml-auto">
                             <button id="btn-group-view-all"
                                 class="px-3 py-1 text-[11px] font-bold rounded-md transition-all bg-tg-blue text-white shadow-sm">전체 조회</button>
                             <button id="btn-group-view-members"
@@ -2030,8 +2031,8 @@
                 else btn.classList.remove('hidden');
             });
 
-            const homeRegionTitle = $('home-region-title');
-            const homeRegionSelect = $('home-region-select');
+            const homeRegionHeaderRow = $('home-region-header-row');
+            const groupHomeRegionTitle = $('group-home-region-title');
             const homeViewToggleContainer = $('home-view-toggle-container');
 
             if (isGroup) {
@@ -2040,21 +2041,23 @@
                 if (riskSelect) { riskSelect.value = userRegion; riskSelect.disabled = true; }
                 if (memberSelect) { memberSelect.value = userRegion; memberSelect.disabled = true; }
                 
-                if (homeRegionTitle) homeRegionTitle.textContent = "👥 조원 활동 조회";
-                if (homeRegionSelect) homeRegionSelect.classList.add('hidden');
+                if (homeRegionHeaderRow) homeRegionHeaderRow.classList.add('hidden');
+                if (groupHomeRegionTitle) groupHomeRegionTitle.classList.remove('hidden');
                 if (homeViewToggleContainer) homeViewToggleContainer.classList.remove('hidden');
             } else if (isSuper) {
                 if (homeSelect) homeSelect.disabled = false;
                 if (riskSelect) riskSelect.disabled = false;
                 if (memberSelect) memberSelect.disabled = false;
                 
-                if (homeRegionTitle) homeRegionTitle.textContent = "📍 지역별 필터";
-                if (homeRegionSelect) homeRegionSelect.classList.remove('hidden');
+                if (homeRegionHeaderRow) homeRegionHeaderRow.classList.remove('hidden');
+                if (groupHomeRegionTitle) groupHomeRegionTitle.classList.add('hidden');
                 if (homeViewToggleContainer) homeViewToggleContainer.classList.remove('hidden');
             } else {
                 if (homeSelect) homeSelect.disabled = false;
                 if (riskSelect) riskSelect.disabled = false;
                 if (memberSelect) memberSelect.disabled = false;
+                if (homeRegionHeaderRow) homeRegionHeaderRow.classList.remove('hidden');
+                if (groupHomeRegionTitle) groupHomeRegionTitle.classList.add('hidden');
                 if (homeViewToggleContainer) homeViewToggleContainer.classList.add('hidden');
             }
         }
