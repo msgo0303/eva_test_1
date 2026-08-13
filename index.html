@@ -860,8 +860,9 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 시간</label>
-                        <input id="base-reg-time" type="text" placeholder="예: 14:30 또는 오후 2시"
+                        <select id="base-reg-time"
                             class="w-full px-3 py-2.5 bg-tg-surface border border-tg-border rounded-xl text-xs font-medium focus:outline-none focus:border-tg-blue">
+                        </select>
                     </div>
                     <button id="btn-save-base-reg"
                         class="w-full py-3 bg-tg-blue text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform mt-2">
@@ -3056,7 +3057,19 @@
 
         function openBaseRegisterModal() {
             $('base-reg-place').value = '';
-            $('base-reg-time').value = '';
+            
+            const timeSelect = $('base-reg-time');
+            if (timeSelect) {
+                const times = generateTimeOptions();
+                timeSelect.innerHTML = times.map(t => `<option value="${t}">${t}</option>`).join('');
+                
+                const now = new Date();
+                const currentH = now.getHours();
+                const currentM = now.getMinutes() >= 30 ? '30' : '00';
+                const defaultTime = `${String(currentH).padStart(2, '0')}:${currentM}`;
+                timeSelect.value = defaultTime;
+            }
+            
             $('base-register-overlay').classList.remove('hidden');
         }
 
