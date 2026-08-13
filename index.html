@@ -860,9 +860,15 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 시간</label>
-                        <select id="base-reg-time"
-                            class="w-full px-3 py-2.5 bg-tg-surface border border-tg-border rounded-xl text-xs font-medium focus:outline-none focus:border-tg-blue">
-                        </select>
+                        <div class="flex items-center gap-2">
+                            <select id="base-reg-start-time"
+                                class="flex-1 px-3 py-2.5 bg-tg-surface border border-tg-border rounded-xl text-xs font-medium focus:outline-none focus:border-tg-blue">
+                            </select>
+                            <span class="text-xs text-tg-muted font-bold">~</span>
+                            <select id="base-reg-end-time"
+                                class="flex-1 px-3 py-2.5 bg-tg-surface border border-tg-border rounded-xl text-xs font-medium focus:outline-none focus:border-tg-blue">
+                            </select>
+                        </div>
                     </div>
                     <button id="btn-save-base-reg"
                         class="w-full py-3 bg-tg-blue text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform mt-2">
@@ -3058,16 +3064,24 @@
         function openBaseRegisterModal() {
             $('base-reg-place').value = '';
             
-            const timeSelect = $('base-reg-time');
-            if (timeSelect) {
+            const startSelect = $('base-reg-start-time');
+            const endSelect = $('base-reg-end-time');
+            if (startSelect && endSelect) {
                 const times = generateTimeOptions();
-                timeSelect.innerHTML = times.map(t => `<option value="${t}">${t}</option>`).join('');
+                const optionsHtml = times.map(t => `<option value="${t}">${t}</option>`).join('');
+                startSelect.innerHTML = optionsHtml;
+                endSelect.innerHTML = optionsHtml;
                 
                 const now = new Date();
                 const currentH = now.getHours();
                 const currentM = now.getMinutes() >= 30 ? '30' : '00';
-                const defaultTime = `${String(currentH).padStart(2, '0')}:${currentM}`;
-                timeSelect.value = defaultTime;
+                const defaultStart = `${String(currentH).padStart(2, '0')}:${currentM}`;
+                startSelect.value = defaultStart;
+
+                // 종료 시간은 기본적으로 시작 시간 1시간 뒤로 설정
+                const endH = (currentH + 1) % 24;
+                const defaultEnd = `${String(endH).padStart(2, '0')}:${currentM}`;
+                endSelect.value = defaultEnd;
             }
             
             $('base-register-overlay').classList.remove('hidden');
@@ -3079,17 +3093,20 @@
 
         async function saveBaseRegister() {
             const place = $('base-reg-place').value.trim();
-            const baseTime = $('base-reg-time').value.trim();
+            const startTime = $('base-reg-start-time').value;
+            const endTime = $('base-reg-end-time').value;
             const baseDate = dateKey(currentDate);
 
             if (!place) {
                 showToast('거점 장소를 입력해 주세요.', 'error');
                 return;
             }
-            if (!baseTime) {
-                showToast('활동 시간을 입력해 주세요.', 'error');
+            if (startTime >= endTime) {
+                showToast('종료 시간은 시작 시간보다 늦어야 합니다.', 'error');
                 return;
             }
+
+            const baseTime = `${startTime} ~ ${endTime}`;
 
             try {
                 $('loading-overlay').classList.remove('hidden');
