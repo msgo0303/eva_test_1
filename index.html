@@ -472,6 +472,25 @@
                 </div>
             </div>
 
+            <!-- TODAY BASE ACCORDION SECTION -->
+            <div class="bg-tg-bg rounded-2xl border border-tg-border mb-3 shadow-sm overflow-hidden">
+                <div id="base-header-trigger"
+                    class="flex items-center justify-between px-4 py-3 bg-sky-50 border-b border-sky-100 cursor-pointer select-none active:bg-sky-100/50 transition-colors">
+                    <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                        <span class="text-sm">📍</span>
+                        <span class="text-xs font-extrabold text-sky-800 flex-shrink-0">오늘의 거점</span>
+                        <span id="base-summary-text"
+                            class="text-[10px] text-sky-600 font-semibold truncate mr-2"> - 조회 중...</span>
+                    </div>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <span id="base-toggle-arrow" class="text-sky-800 text-[10px]">▼</span>
+                    </div>
+                </div>
+                <div id="base-vertical-list"
+                    class="hidden divide-y divide-tg-border/50 max-h-80 overflow-y-auto transition-all bg-white">
+                </div>
+            </div>
+
             <div class="bg-tg-bg rounded-2xl p-3 border border-tg-border space-y-2.5 mb-3 shadow-sm">
                 <div id="admin-home-region-bar"
                     class="hidden flex flex-col gap-2.5 pb-2.5 border-b border-tg-border">
@@ -815,6 +834,39 @@
                 <div id="nd-content"
                     class="text-xs text-tg-text leading-relaxed overflow-y-auto whitespace-pre-wrap flex-1 bg-tg-surface p-3 rounded-xl border border-tg-border font-medium">
                     공지 내용
+                </div>
+            </div>
+        </div>
+
+        <!-- BASE REGISTER POPUP -->
+        <div id="base-register-overlay"
+            class="fixed inset-0 z-50 bg-black/40 hidden flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col">
+                <div class="flex items-center justify-between border-b border-tg-border pb-3 mb-3">
+                    <span class="text-xs font-extrabold text-tg-blue">📍 거점 등록</span>
+                    <button id="btn-close-base-reg"
+                        class="w-8 h-8 flex items-center justify-center rounded-full bg-tg-surface text-tg-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-tg-muted mb-1.5">거점 장소</label>
+                        <input id="base-reg-place" type="text" placeholder="예: 사당역 4번출구 스타벅스"
+                            class="w-full px-3 py-2.5 bg-tg-surface border border-tg-border rounded-xl text-xs font-medium focus:outline-none focus:border-tg-blue">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-tg-muted mb-1.5">활동 시간</label>
+                        <input id="base-reg-time" type="text" placeholder="예: 14:30 또는 오후 2시"
+                            class="w-full px-3 py-2.5 bg-tg-surface border border-tg-border rounded-xl text-xs font-medium focus:outline-none focus:border-tg-blue">
+                    </div>
+                    <button id="btn-save-base-reg"
+                        class="w-full py-3 bg-tg-blue text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform mt-2">
+                        거점 저장
+                    </button>
                 </div>
             </div>
         </div>
@@ -2016,6 +2068,7 @@
                         renderWeeklyMissionUI();
                         renderDateNav();
                         renderList();
+                        loadTodayBases();
 
                         // 💡 데이터 로드 완료 직후 미입력/미취합 상태 검사 실행!
                         checkUncompletedOverdueActivities();
@@ -2794,6 +2847,259 @@
             const sheet = $('notice-sheet');
             overlay.classList.remove('open'); sheet.classList.remove('open');
             setTimeout(() => { sheet.style.display = 'none'; }, 360);
+        }
+
+        let isBaseListExpanded = false;
+        let activeBases = [];
+
+        function toggleBaseList() {
+            const list = $('base-vertical-list');
+            const arrow = $('base-toggle-arrow');
+            if (!list || !arrow) return;
+            isBaseListExpanded = !isBaseListExpanded;
+            if (isBaseListExpanded) { list.classList.remove('hidden'); arrow.textContent = '▲'; }
+            else { list.classList.add('hidden'); arrow.textContent = '▼'; }
+        }
+
+        async function loadTodayBases() {
+            if (!supabaseClient) return;
+            const container = $('base-vertical-list');
+            const summaryEl = $('base-summary-text');
+            if (!container) return;
+
+            try {
+                const targetDate = dateKey(currentDate);
+
+                const { data: baseData, error: baseErr } = await supabaseClient
+                    .from('today_bases')
+                    .select('*, base_members(*)')
+                    .eq('base_date', targetDate)
+                    .order('id', { ascending: true });
+
+                if (baseErr) throw baseErr;
+
+                activeBases = baseData || [];
+                
+                const role = profile.role || "";
+                const isSuper = role.includes("관리자") || role.includes("전체관리자");
+                const userRegion = (profile.region || "").trim();
+
+                let selectedRegion = "ALL";
+                const regionSelect = $('home-region-select');
+                if (regionSelect) {
+                    selectedRegion = regionSelect.value;
+                }
+
+                const visibleBases = activeBases.filter(b => {
+                    if (isSuper) {
+                        if (selectedRegion === "ALL") return true;
+                        return b.region === selectedRegion;
+                    } else {
+                        if (userRegion && userRegion !== '-' && userRegion !== '미정') {
+                            return b.region === userRegion;
+                        }
+                        return false;
+                    }
+                });
+
+                const totalCount = visibleBases.length;
+                const disbandedCount = visibleBases.filter(b => b.is_disbanded).length;
+                const activeCount = totalCount - disbandedCount;
+
+                if (summaryEl) {
+                    summaryEl.textContent = totalCount > 0
+                        ? ` - 거점 ${totalCount}개 (진행 ${activeCount} 해산 ${disbandedCount})`
+                        : ' - 등록된 거점이 없습니다';
+                }
+
+                let html = '';
+                
+                if (totalCount === 0) {
+                    html = '<p class="text-xs text-tg-muted text-center py-4">등록된 거점이 없습니다.</p>';
+                } else {
+                    html = visibleBases.map(b => {
+                        const isDisbanded = b.is_disbanded;
+                        const cardBgClass = isDisbanded ? 'bg-zinc-100 opacity-60' : 'bg-white hover:bg-tg-surface border-tg-border/40';
+                        const disbandBadge = isDisbanded ? '<span class="bg-zinc-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded flex-shrink-0 mr-1.5">해산함</span>' : '';
+                        
+                        const members = b.base_members || [];
+                        const memberNames = members.map(m => m.user_name).join(', ');
+                        const memberCount = members.length;
+                        const memberText = memberCount > 0 ? `참여자: ${memberNames} (${memberCount}명)` : '참여자 없음';
+
+                        const isJoined = members.some(m => m.user_id === profile.id);
+
+                        let buttonsHtml = '';
+                        if (!isDisbanded) {
+                            if (isJoined) {
+                                buttonsHtml += `
+                                    <button onclick="leaveBase('${b.id}')" class="px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg text-[10px] font-bold active:scale-95 transition-transform">
+                                        👋 거점 떠나기
+                                    </button>
+                                `;
+                            } else {
+                                buttonsHtml += `
+                                    <button onclick="joinBase('${b.id}')" class="px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-[10px] font-bold active:scale-95 transition-transform mr-1.5">
+                                        🏃 거점 도착
+                                    </button>
+                                `;
+                            }
+                        }
+
+                        const isCreator = b.creator_id === profile.id;
+                        const isLeader = role.includes("조장") || role.includes("부조장");
+                        const hasDisbandAuth = isSuper || isCreator || (isLeader && b.region === userRegion);
+
+                        let disbandBtnHtml = '';
+                        if (!isDisbanded && hasDisbandAuth) {
+                            disbandBtnHtml = `
+                                <button onclick="disbandBase('${b.id}')" class="px-2 py-1 bg-zinc-200 text-zinc-700 rounded text-[9px] font-semibold active:scale-95 transition-transform">
+                                    해산
+                                </button>
+                            `;
+                        }
+
+                        return `
+                            <div class="p-3 flex flex-col gap-2 rounded-xl border border-tg-border/50 shadow-sm ${cardBgClass}">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        ${disbandBadge}
+                                        <span class="text-xs font-bold text-tg-text truncate">📍 ${escHtml(b.place)}</span>
+                                    </div>
+                                    <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 flex-shrink-0">${escHtml(b.region)}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-[10px] text-tg-muted">
+                                    <span>⏰ 시간: <b class="text-tg-text">${escHtml(b.base_time)}</b></span>
+                                    <span>✍️ 등록: ${escHtml(b.creator_name)}</span>
+                                </div>
+                                <div class="text-[10px] text-tg-muted bg-tg-surface p-2 rounded-lg border border-tg-border/30">
+                                    👥 ${escHtml(memberText)}
+                                </div>
+                                <div class="flex justify-between items-center mt-1">
+                                    <div class="flex">
+                                        ${buttonsHtml}
+                                    </div>
+                                    ${disbandBtnHtml}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                const addBtnHtml = `
+                    <div class="p-2 bg-tg-surface text-center">
+                        <button onclick="openBaseRegisterModal()" class="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-xs shadow active:scale-95 transition-transform">
+                            ➕ 오늘의 거점 추가
+                        </button>
+                    </div>
+                `;
+
+                container.innerHTML = `<div class="p-3 space-y-3 bg-white">${html}</div>` + addBtnHtml;
+
+            } catch (err) {
+                console.error("거점 목록 로드 중 예외:", err);
+                container.innerHTML = '<p class="text-xs text-red-600 text-center py-4">거점을 불러오는 중 오류가 발생했습니다.</p>';
+            }
+        }
+
+        async function joinBase(baseId) {
+            try {
+                $('loading-overlay').classList.remove('hidden');
+                const data = await callApiProxy('joinTodayBase', { baseId });
+                if (data.result === 'success') {
+                    showToast('거점에 도착했습니다.', 'success');
+                    await loadTodayBases();
+                } else {
+                    showToast(data.message || '요청 실패', 'error');
+                }
+            } catch (e) {
+                showToast(e.message || '요청 실패', 'error');
+            } finally {
+                $('loading-overlay').classList.add('hidden');
+            }
+        }
+
+        async function leaveBase(baseId) {
+            try {
+                $('loading-overlay').classList.remove('hidden');
+                const data = await callApiProxy('leaveTodayBase', { baseId });
+                if (data.result === 'success') {
+                    showToast('거점을 떠났습니다.', 'success');
+                    await loadTodayBases();
+                } else {
+                    showToast(data.message || '요청 실패', 'error');
+                }
+            } catch (e) {
+                showToast(e.message || '요청 실패', 'error');
+            } finally {
+                $('loading-overlay').classList.add('hidden');
+            }
+        }
+
+        async function disbandBase(baseId) {
+            if (!confirm('정말 이 거점을 해산 처리하시겠습니까?')) return;
+            try {
+                $('loading-overlay').classList.remove('hidden');
+                const data = await callApiProxy('disbandTodayBase', { baseId });
+                if (data.result === 'success') {
+                    showToast('거점이 해산 처리되었습니다.', 'success');
+                    await loadTodayBases();
+                } else {
+                    showToast(data.message || '요청 실패', 'error');
+                }
+            } catch (e) {
+                showToast(e.message || '요청 실패', 'error');
+            } finally {
+                $('loading-overlay').classList.add('hidden');
+            }
+        }
+
+        function openBaseRegisterModal() {
+            $('base-reg-place').value = '';
+            $('base-reg-time').value = '';
+            $('base-register-overlay').classList.remove('hidden');
+        }
+
+        function closeBaseRegisterModal() {
+            $('base-register-overlay').classList.add('hidden');
+        }
+
+        async function saveBaseRegister() {
+            const place = $('base-reg-place').value.trim();
+            const baseTime = $('base-reg-time').value.trim();
+            const baseDate = dateKey(currentDate);
+
+            if (!place) {
+                showToast('거점 장소를 입력해 주세요.', 'error');
+                return;
+            }
+            if (!baseTime) {
+                showToast('활동 시간을 입력해 주세요.', 'error');
+                return;
+            }
+
+            try {
+                $('loading-overlay').classList.remove('hidden');
+                const btn = $('btn-save-base-reg');
+                btn.disabled = true;
+                btn.textContent = '저장 중...';
+
+                const data = await callApiProxy('saveTodayBase', { place, baseTime, baseDate });
+                if (data.result === 'success') {
+                    showToast('거점이 등록되었습니다.', 'success');
+                    closeBaseRegisterModal();
+                    await loadTodayBases();
+                } else {
+                    showToast(data.message || '등록 실패', 'error');
+                }
+            } catch (e) {
+                showToast(e.message || '등록 실패', 'error');
+            } finally {
+                $('loading-overlay').classList.add('hidden');
+                const btn = $('btn-save-base-reg');
+                btn.disabled = false;
+                btn.textContent = '거점 저장';
+            }
         }
 
         function openInquirySheet() {
@@ -3664,6 +3970,7 @@
                 homeSelect.onchange = (e) => {
                     activeHomeRegionFilter = e.target.value;
                     renderList();
+                    loadTodayBases();
                 };
             }
             initGroupViewToggle();
@@ -6430,6 +6737,10 @@
             $('notice-header-trigger').addEventListener('click', toggleNoticeList);
             $('btn-close-nd').addEventListener('click', closeNoticeDetail);
             $('notice-detail-overlay').addEventListener('click', closeNoticeDetail);
+
+            $('base-header-trigger').addEventListener('click', toggleBaseList);
+            $('btn-close-base-reg').addEventListener('click', closeBaseRegisterModal);
+            $('btn-save-base-reg').addEventListener('click', saveBaseRegister);
 
             initNoticeSheetTabs();
 

@@ -670,6 +670,184 @@ serve(async (req) => {
       );
     }
 
+    // [보안 CUD 위임 API] 10. 거점 등록 (saveTodayBase)
+    if (action === "saveTodayBase") {
+      const { place, baseTime, baseDate } = params;
+
+      if (!place || !baseTime || !baseDate) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "필수 파라미터가 누락되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: dbUsers, error: userErr } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", verifiedTgUserId);
+
+      if (userErr || !dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "등록되지 않은 사용자입니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const { error: insertErr } = await supabase
+        .from("today_bases")
+        .insert([{
+          region: dbUser.region || "미정",
+          creator_id: verifiedTgUserId,
+          creator_name: dbUser.name,
+          place,
+          base_time: baseTime,
+          base_date: baseDate,
+          is_disbanded: false
+        }]);
+
+      if (insertErr) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "거점 등록 실패: " + insertErr.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "거점이 성공적으로 등록되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 11. 거점 해산 (disbandTodayBase)
+    if (action === "disbandTodayBase") {
+      const { baseId } = params;
+
+      if (!baseId) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "필수 파라미터가 누락되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
+      if (!dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const { data: bases, error: baseErr } = await supabase.from("today_bases").select("*").eq("id", baseId);
+      if (baseErr || !bases || bases.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "거점을 찾을 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const base = bases[0];
+
+      const isSuper = dbUser.role.includes("관리자") || dbUser.role.includes("전체관리자");
+      const isLeader = dbUser.role.includes("조장") || dbUser.role.includes("부조장");
+      const isCreator = base.creator_id === verifiedTgUserId;
+
+      if (!isSuper && !isCreator && (!isLeader || base.region !== dbUser.region)) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error: updateErr } = await supabase
+        .from("today_bases")
+        .update({ is_disbanded: true })
+        .eq("id", baseId);
+
+      if (updateErr) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "거점 해산 실패: " + updateErr.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "거점이 해산되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 12. 거점 도착 (joinTodayBase)
+    if (action === "joinTodayBase") {
+      const { baseId } = params;
+
+      if (!baseId) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "필수 파라미터가 누락되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
+      if (!dbUsers || dbUsers.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "해당 작업을 수행할 권한이 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const dbUser = dbUsers[0];
+
+      const { error: insertErr } = await supabase
+        .from("base_members")
+        .upsert([{
+          base_id: baseId,
+          user_id: verifiedTgUserId,
+          user_name: dbUser.name
+        }], { onConflict: "base_id,user_id" });
+
+      if (insertErr) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "거점 도착 기록 실패: " + insertErr.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "거점에 도착했습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 13. 거점 떠나기 (leaveTodayBase)
+    if (action === "leaveTodayBase") {
+      const { baseId } = params;
+
+      if (!baseId) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "필수 파라미터가 누락되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error: deleteErr } = await supabase
+        .from("base_members")
+        .delete()
+        .eq("base_id", baseId)
+        .eq("user_id", verifiedTgUserId);
+
+      if (deleteErr) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "거점 떠나기 기록 실패: " + deleteErr.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "거점을 떠났습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ result: "fail", message: "지원하지 않는 action입니다." }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
