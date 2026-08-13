@@ -2958,12 +2958,20 @@
                         const hasDisbandAuth = isSuper || isCreator || (isLeader && b.region === userRegion);
 
                         let disbandBtnHtml = '';
-                        if (!isDisbanded && hasDisbandAuth) {
-                            disbandBtnHtml = `
-                                <button onclick="disbandBase('${b.id}')" class="px-2 py-1 bg-zinc-200 text-zinc-700 rounded text-[9px] font-semibold active:scale-95 transition-transform">
-                                    해산
-                                </button>
-                            `;
+                        if (hasDisbandAuth) {
+                            if (isDisbanded) {
+                                disbandBtnHtml = `
+                                    <button onclick="cancelDisbandBase('${b.id}')" class="px-2 py-1 bg-sky-100 text-sky-700 rounded text-[9px] font-semibold active:scale-95 transition-transform">
+                                        해산 취소
+                                    </button>
+                                `;
+                            } else {
+                                disbandBtnHtml = `
+                                    <button onclick="disbandBase('${b.id}')" class="px-2 py-1 bg-zinc-200 text-zinc-700 rounded text-[9px] font-semibold active:scale-95 transition-transform">
+                                        해산
+                                    </button>
+                                `;
+                            }
                         }
 
                         return `
@@ -3044,12 +3052,30 @@
         }
 
         async function disbandBase(baseId) {
-            if (!confirm('정말 이 거점을 해산 처리하시겠습니까?')) return;
+            if (!confirm('정말 해산하시겠습니까?\n해당 거점 자체가 마감으로 처리됩니다.')) return;
             try {
                 $('loading-overlay').classList.remove('hidden');
-                const data = await callApiProxy('disbandTodayBase', { baseId });
+                const data = await callApiProxy('disbandTodayBase', { baseId, isDisbanded: true });
                 if (data.result === 'success') {
                     showToast('거점이 해산 처리되었습니다.', 'success');
+                    await loadTodayBases();
+                } else {
+                    showToast(data.message || '요청 실패', 'error');
+                }
+            } catch (e) {
+                showToast(e.message || '요청 실패', 'error');
+            } finally {
+                $('loading-overlay').classList.add('hidden');
+            }
+        }
+
+        async function cancelDisbandBase(baseId) {
+            if (!confirm('해당 거점을 다시 활성화하시겠습니까?')) return;
+            try {
+                $('loading-overlay').classList.remove('hidden');
+                const data = await callApiProxy('disbandTodayBase', { baseId, isDisbanded: false });
+                if (data.result === 'success') {
+                    showToast('거점이 다시 활성화되었습니다.', 'success');
                     await loadTodayBases();
                 } else {
                     showToast(data.message || '요청 실패', 'error');

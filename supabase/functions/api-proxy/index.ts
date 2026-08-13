@@ -719,11 +719,11 @@ serve(async (req) => {
       );
     }
 
-    // [보안 CUD 위임 API] 11. 거점 해산 (disbandTodayBase)
+    // [보안 CUD 위임 API] 11. 거점 해산 및 활성화 (disbandTodayBase)
     if (action === "disbandTodayBase") {
-      const { baseId } = params;
+      const { baseId, isDisbanded } = params;
 
-      if (!baseId) {
+      if (!baseId || isDisbanded === undefined) {
         return new Response(
           JSON.stringify({ result: "fail", message: "필수 파라미터가 누락되었습니다." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -759,20 +759,22 @@ serve(async (req) => {
         );
       }
 
+      const targetDisbanded = isDisbanded === true || isDisbanded === "true";
+
       const { error: updateErr } = await supabase
         .from("today_bases")
-        .update({ is_disbanded: true })
+        .update({ is_disbanded: targetDisbanded })
         .eq("id", baseId);
 
       if (updateErr) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "거점 해산 실패: " + updateErr.message }),
+          JSON.stringify({ result: "fail", message: "거점 상태 변경 실패: " + updateErr.message }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
-        JSON.stringify({ result: "success", message: "거점이 해산되었습니다." }),
+        JSON.stringify({ result: "success", message: targetDisbanded ? "거점이 해산되었습니다." : "거점이 다시 활성화되었습니다." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
