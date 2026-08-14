@@ -97,9 +97,12 @@ function getActivityResultSummary(act: any): string {
       const parsed = typeof resultData === "string" ? JSON.parse(resultData) : resultData;
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.map((r: any) => {
-          const typeStr = r.type ? `(${r.type})` : "";
-          const countStr = r.count !== undefined ? ` ${r.count}개` : "";
-          return `${r.category}${typeStr}${countStr}`;
+          const typeStr = r.type || r.category || "";
+          const countStr = r.count !== undefined ? `${r.count}개` : "";
+          if (typeStr && countStr) {
+            return `${typeStr} | ${countStr}`;
+          }
+          return typeStr || countStr || "";
         }).join(", ");
       }
     } catch (e) {
@@ -176,7 +179,7 @@ async function sendRealtimeActivityNotification(
       message += `\n${heart} <b>${escapeHtml(reg)}</b>\n`;
       for (const act of actsByRegion[reg]) {
         const actSummary = getActivityResultSummary(act);
-        message += `- ${escapeHtml(act.name)} (${escapeHtml(actSummary)})\n`;
+        message += `- ${escapeHtml(act.name)} | ${escapeHtml(actSummary)}\n`;
       }
     }
 
