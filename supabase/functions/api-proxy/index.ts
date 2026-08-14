@@ -90,6 +90,25 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
+function getActivityResultSummary(act: any): string {
+  const resultData = act.result_data || act.resultData;
+  if (resultData) {
+    try {
+      const parsed = typeof resultData === "string" ? JSON.parse(resultData) : resultData;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((r: any) => {
+          const typeStr = r.type ? `(${r.type})` : "";
+          const countStr = r.count !== undefined ? ` ${r.count}개` : "";
+          return `${r.category}${typeStr}${countStr}`;
+        }).join(", ");
+      }
+    } catch (e) {
+      console.error("⚠️ Failed to parse result_data in helper:", e);
+    }
+  }
+  return act.result_text || act.content || "내용 없음";
+}
+
 async function sendRealtimeActivityNotification(
   supabase: any,
   date: string,
@@ -101,7 +120,7 @@ async function sendRealtimeActivityNotification(
   try {
     const { data: todayActs, error } = await supabase
       .from("activities")
-      .select("name, region, content, result_text")
+      .select("name, region, content, result_text, result_data")
       .eq("activity_date", date)
       .eq("status", "completed");
 
@@ -112,9 +131,13 @@ async function sendRealtimeActivityNotification(
 
     const userRegion = dbUser.region || "미정";
     const userName = dbUser.name || "알 수 없음";
-    const resultText = payload.result_text || "";
-    const content = payload.content || "";
-    const summary = resultText || content || "내용 없음";
+
+    // 결과 중심의 요약 생성
+    const activitySummary = getActivityResultSummary(payload);
+    let summaryDetail = activitySummary;
+    if (payload.result_text && payload.result_text !== activitySummary) {
+      summaryDetail += ` (메모: ${payload.result_text})`;
+    }
 
     const REGION_HEARTS: Record<string, string> = {
       "사당": "❤️", "안양": "🩷", "신림": "🧡", "신사": "💛", "금천": "💚",
@@ -136,7 +159,7 @@ async function sendRealtimeActivityNotification(
 
     let message = `🏃 <b>실시간 활동 결과 등록 알림!</b>\n`;
     message += `[${escapeHtml(userRegion)}] <b>${escapeHtml(userName)}</b>님이 방금 결과를 등록했습니다.\n\n`;
-    message += `💬 내용: ${escapeHtml(summary)}\n\n`;
+    message += `💬 내용: ${escapeHtml(summaryDetail)}\n\n`;
     message += `──────────────────\n\n`;
     message += `📋 <b>오늘 완료자 명단 (총 ${(todayActs || []).length}명)</b>\n`;
 
@@ -152,7 +175,7 @@ async function sendRealtimeActivityNotification(
       const heart = REGION_HEARTS[reg] || "💙";
       message += `\n${heart} <b>${escapeHtml(reg)}</b>\n`;
       for (const act of actsByRegion[reg]) {
-        const actSummary = act.result_text || act.content || "내용 없음";
+        const actSummary = getActivityResultSummary(act);
         message += `- ${escapeHtml(act.name)} (${escapeHtml(actSummary)})\n`;
       }
     }
