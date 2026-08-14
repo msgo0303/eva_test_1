@@ -6075,8 +6075,12 @@
         function handleDashButtonClick() {
             const role = profile.role || "";
             const isAdminOrLeader = (role.includes("조장") || role.includes("부조장") || role.includes("관리자"));
-            if (isAdminOrLeader) toggleDashMenu();
-            else openTrackerModal();
+            if (isAdminOrLeader) {
+                $('btn-dash-admin').classList.remove('hidden');
+            } else {
+                $('btn-dash-admin').classList.add('hidden');
+            }
+            toggleDashMenu();
         }
 
         function toggleDashMenu() {
