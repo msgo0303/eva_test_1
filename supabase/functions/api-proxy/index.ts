@@ -97,12 +97,18 @@ function getActivityResultSummary(act: any): string {
       const parsed = typeof resultData === "string" ? JSON.parse(resultData) : resultData;
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.map((r: any) => {
-          const typeStr = r.type || r.category || "";
-          const countStr = r.count !== undefined ? `${r.count}개` : "";
-          if (typeStr && countStr) {
-            return `${typeStr} | ${countStr}`;
+          const category = r.category || "";
+          const type = r.type || "";
+          const count = r.count !== undefined ? parseInt(r.count, 10) : 0;
+
+          if (type === "합자찾(오프)" || type === "합자찾(온)") {
+            return `${type} | ${count}개`;
+          } else {
+            if (category && type) {
+              return `${category} | ${type}`;
+            }
+            return type || category || "";
           }
-          return typeStr || countStr || "";
         }).join(", ");
       }
     } catch (e) {
