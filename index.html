@@ -1806,22 +1806,16 @@
 
         function addResultRow(data = { category: '', type: '', count: 1 }) {
             const container = $('result-rows-container');
-            const existingCategories = Array.from(container.querySelectorAll('.res-category')).map(el => el.value);
-            const availableCategories = Object.keys(RESULT_SCHEMA).filter(cat => !existingCategories.includes(cat) || cat === data.category);
+            const categories = Object.keys(RESULT_SCHEMA);
 
-            if (availableCategories.length === 0 && !data.category) {
-                showToast('모든 결과 종류가 이미 추가되었습니다.', 'error');
-                return;
-            }
-
-            const defaultCategory = data.category || availableCategories[0];
+            const defaultCategory = data.category || categories[0];
             const rowDiv = document.createElement('div');
             rowDiv.className = 'result-row flex items-center gap-1.5 bg-white p-2 rounded-xl border border-tg-border shadow-sm';
 
             rowDiv.innerHTML = `
     <select class="res-category rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue w-24">
-      ${Object.keys(RESULT_SCHEMA).map(cat => `
-        <option value="${cat}" ${cat === defaultCategory ? 'selected' : ''} ${existingCategories.includes(cat) && cat !== defaultCategory ? 'disabled' : ''}>${cat}</option>
+      ${categories.map(cat => `
+        <option value="${cat}" ${cat === defaultCategory ? 'selected' : ''}>${cat}</option>
       `).join('')}
     </select>
 
@@ -1871,19 +1865,27 @@
 
         function getResultDataJson() {
             const rows = document.querySelectorAll('.result-row');
-            const results = [];
+            const resultsMap = new Map();
             rows.forEach(row => {
                 const category = row.querySelector('.res-category').value;
                 const type = row.querySelector('.res-type').value;
                 const countEl = row.querySelector('.res-count');
                 const count = !countEl.classList.contains('hidden') ? parseInt(countEl.value, 10) : null;
                 if (category && type) {
-                    const item = { category, type };
-                    if (count !== null) item.count = count;
-                    results.push(item);
+                    const key = `${category}:${type}`;
+                    if (resultsMap.has(key)) {
+                        const existing = resultsMap.get(key);
+                        if (count !== null && existing.count !== undefined) {
+                            existing.count += count;
+                        }
+                    } else {
+                        const item = { category, type };
+                        if (count !== null) item.count = count;
+                        resultsMap.set(key, item);
+                    }
                 }
             });
-            return JSON.stringify(results);
+            return JSON.stringify(Array.from(resultsMap.values()));
         }
 
         function loadResultDataJson(jsonStr) {
