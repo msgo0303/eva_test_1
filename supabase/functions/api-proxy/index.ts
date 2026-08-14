@@ -118,6 +118,25 @@ function getActivityResultSummary(act: any): string {
   return act.result_text || act.content || "내용 없음";
 }
 
+function isCanceledActivity(act: any): boolean {
+  const resultData = act.result_data || act.resultData;
+  if (resultData) {
+    try {
+      const parsed = typeof resultData === "string" ? JSON.parse(resultData) : resultData;
+      if (Array.isArray(parsed)) {
+        return parsed.some((r: any) => {
+          const category = r.category || "";
+          const type = r.type || "";
+          return (category === "복방" || category === "매칭") && type === "취소";
+        });
+      }
+    } catch (e) {
+      console.error("⚠️ Failed to parse result_data in cancellation check:", e);
+    }
+  }
+  return false;
+}
+
 async function sendRealtimeActivityNotification(
   supabase: any,
   date: string,
@@ -137,6 +156,9 @@ async function sendRealtimeActivityNotification(
       console.error("⚠️ Failed to fetch today's activities for notification:", error);
       return;
     }
+
+    // 복방/매칭 취소 활동은 목록에서 제외
+    const activeTodayActs = (todayActs || []).filter(act => !isCanceledActivity(act));
 
     const userRegion = dbUser.region || "미정";
     const userName = dbUser.name || "알 수 없음";
@@ -160,7 +182,7 @@ async function sendRealtimeActivityNotification(
     ];
 
     const actsByRegion: Record<string, any[]> = {};
-    for (const act of todayActs || []) {
+    for (const act of activeTodayActs) {
       const reg = act.region || "미정";
       if (!actsByRegion[reg]) actsByRegion[reg] = [];
       actsByRegion[reg].push(act);
@@ -170,7 +192,7 @@ async function sendRealtimeActivityNotification(
     message += `[${escapeHtml(userRegion)}] <b>${escapeHtml(userName)}</b>님이 방금 결과를 등록했습니다.\n\n`;
     message += `💬 내용: ${escapeHtml(summaryDetail)}\n\n`;
     message += `──────────────────\n\n`;
-    message += `📋 <b>오늘 완료자 명단 (총 ${(todayActs || []).length}명)</b>\n`;
+    message += `📋 <b>오늘 완료자 명단 (총 ${activeTodayActs.length}명)</b>\n`;
 
     const completedRegions = Object.keys(actsByRegion).sort((a, b) => {
       let idxA = regionOrder.indexOf(a);
@@ -316,7 +338,7 @@ serve(async (req) => {
         }
       }
 
-      if (status === "completed") {
+      if (status === "completed" && !isCanceledActivity(payload)) {
         const targetChatId = Deno.env.get("TELEGRAM_CHAT_ID") || "-1003736767935";
         sendRealtimeActivityNotification(supabase, date, dbUser, payload, botToken, targetChatId);
       }
