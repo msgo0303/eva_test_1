@@ -83,6 +83,102 @@ async function verifyTelegramInitData(initDataStr: string, botToken: string): Pr
   }
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+async function sendRealtimeActivityNotification(
+  supabase: any,
+  date: string,
+  dbUser: any,
+  payload: any,
+  botToken: string,
+  chatId: string
+) {
+  try {
+    const { data: todayActs, error } = await supabase
+      .from("activities")
+      .select("name, region, content, result_text")
+      .eq("activity_date", date)
+      .eq("status", "completed");
+
+    if (error) {
+      console.error("⚠️ Failed to fetch today's activities for notification:", error);
+      return;
+    }
+
+    const userRegion = dbUser.region || "미정";
+    const userName = dbUser.name || "알 수 없음";
+    const resultText = payload.result_text || "";
+    const content = payload.content || "";
+    const summary = resultText || content || "내용 없음";
+
+    const REGION_HEARTS: Record<string, string> = {
+      "사당": "❤️", "안양": "🩷", "신림": "🧡", "신사": "💛", "금천": "💚",
+      "군포": "🩵", "인덕원": "💙", "잠실": "💜", "양재": "🖤", "약수": "🩶",
+      "서울시흥": "🤍", "서울역": "🤎", "새신자": "💖", "대학": "❣️"
+    };
+
+    const regionOrder = [
+      "사당", "안양", "신림", "신사", "금천", "군포", "인덕원",
+      "잠실", "양재", "약수", "서울시흥", "서울역", "새신자", "대학"
+    ];
+
+    const actsByRegion: Record<string, any[]> = {};
+    for (const act of todayActs || []) {
+      const reg = act.region || "미정";
+      if (!actsByRegion[reg]) actsByRegion[reg] = [];
+      actsByRegion[reg].push(act);
+    }
+
+    let message = `🏃 <b>실시간 활동 결과 등록 알림!</b>\n`;
+    message += `[${escapeHtml(userRegion)}] <b>${escapeHtml(userName)}</b>님이 방금 결과를 등록했습니다.\n\n`;
+    message += `💬 내용: ${escapeHtml(summary)}\n\n`;
+    message += `──────────────────\n\n`;
+    message += `📋 <b>오늘 완료자 명단 (총 ${(todayActs || []).length}명)</b>\n`;
+
+    const completedRegions = Object.keys(actsByRegion).sort((a, b) => {
+      let idxA = regionOrder.indexOf(a);
+      let idxB = regionOrder.indexOf(b);
+      if (idxA === -1) idxA = 999;
+      if (idxB === -1) idxB = 999;
+      return idxA - idxB;
+    });
+
+    for (const reg of completedRegions) {
+      const heart = REGION_HEARTS[reg] || "💙";
+      message += `\n${heart} <b>${escapeHtml(reg)}</b>\n`;
+      for (const act of actsByRegion[reg]) {
+        const actSummary = act.result_text || act.content || "내용 없음";
+        message += `- ${escapeHtml(act.name)} (${escapeHtml(actSummary)})\n`;
+      }
+    }
+
+    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const response = await fetch(telegramUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: "HTML",
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`⚠️ Telegram API returned error: ${response.status} ${errorText}`);
+    }
+  } catch (err) {
+    console.error("⚠️ sendRealtimeActivityNotification error:", err);
+  }
+}
+
 serve(async (req) => {
   // CORS preflight 요청 처리
   if (req.method === "OPTIONS") {
@@ -186,6 +282,11 @@ serve(async (req) => {
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+      }
+
+      if (status === "completed") {
+        const targetChatId = Deno.env.get("TELEGRAM_CHAT_ID") || "-1003736767935";
+        sendRealtimeActivityNotification(supabase, date, dbUser, payload, botToken, targetChatId);
       }
 
       return new Response(
