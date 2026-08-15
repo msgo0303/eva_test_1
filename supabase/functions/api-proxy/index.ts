@@ -102,7 +102,8 @@ function getActivityResultSummary(act: any): string {
           const count = r.count !== undefined ? parseInt(r.count, 10) : 0;
 
           if (type === "합자찾(오프)" || type === "합자찾(온)") {
-            return `${type} | ${count}개`;
+            const prefix = category ? `${category} | ` : "";
+            return `${prefix}${type} | ${count}개`;
           } else {
             if (category && type) {
               return `${category} | ${type}`;
@@ -188,11 +189,14 @@ async function sendRealtimeActivityNotification(
       actsByRegion[reg].push(act);
     }
 
+    const uniqueUserNames = new Set(activeTodayActs.map(act => act.name));
+    const totalUniqueCount = uniqueUserNames.size;
+
     let message = `🏃 <b>실시간 활동 결과 등록 알림!</b>\n`;
     message += `[${escapeHtml(userRegion)}] <b>${escapeHtml(userName)}</b>님이 방금 결과를 등록했습니다.\n\n`;
     message += `💬 내용: ${escapeHtml(summaryDetail)}\n\n`;
     message += `──────────────────\n\n`;
-    message += `📋 <b>오늘 완료자 명단 (총 ${activeTodayActs.length}명)</b>\n`;
+    message += `📋 <b>오늘 완료자 명단 (총 ${totalUniqueCount}명)</b>\n`;
 
     const completedRegions = Object.keys(actsByRegion).sort((a, b) => {
       let idxA = regionOrder.indexOf(a);
@@ -205,9 +209,28 @@ async function sendRealtimeActivityNotification(
     for (const reg of completedRegions) {
       const heart = REGION_HEARTS[reg] || "💙";
       message += `\n${heart} <b>${escapeHtml(reg)}</b>\n`;
+
+      // 동일인 & 동일 결과 요약별로 그룹화하여 계수
+      const grouped: { name: string; summary: string; count: number }[] = [];
       for (const act of actsByRegion[reg]) {
         const actSummary = getActivityResultSummary(act);
-        message += `- ${escapeHtml(act.name)} | ${escapeHtml(actSummary)}\n`;
+        const existing = grouped.find(
+          (g) => g.name === act.name && g.summary === actSummary
+        );
+        if (existing) {
+          existing.count += 1;
+        } else {
+          grouped.push({
+            name: act.name,
+            summary: actSummary,
+            count: 1,
+          });
+        }
+      }
+
+      for (const item of grouped) {
+        const countSuffix = item.count > 1 ? ` | ${item.count}개` : "";
+        message += `- ${escapeHtml(item.name)} | ${escapeHtml(item.summary)}${countSuffix}\n`;
       }
     }
 
