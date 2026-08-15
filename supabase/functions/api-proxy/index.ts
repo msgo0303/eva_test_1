@@ -119,6 +119,43 @@ function getActivityResultSummary(act: any): string {
   return act.result_text || act.content || "내용 없음";
 }
 
+interface ResultItem {
+  key: string;
+  isCounted: boolean;
+  count: number;
+}
+
+function getActivityResultItems(act: any): ResultItem[] {
+  const resultData = act.result_data || act.resultData;
+  if (resultData) {
+    try {
+      const parsed = typeof resultData === "string" ? JSON.parse(resultData) : resultData;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((r: any) => {
+          const category = r.category || "";
+          const type = r.type || "";
+          const count = r.count !== undefined ? parseInt(r.count, 10) : 0;
+
+          const isCounted = type === "합자찾(오프)" || type === "합자찾(온)";
+          const prefix = category ? `${category} | ` : "";
+          const key = `${prefix}${type}`;
+
+          if (isCounted) {
+            return { key, isCounted, count };
+          } else {
+            const fullKey = category && type ? `${category} | ${type}` : (type || category || "");
+            return { key: fullKey, isCounted: false, count: 1 };
+          }
+        });
+      }
+    } catch (e) {
+      console.error("⚠️ Failed to parse result_data in helper:", e);
+    }
+  }
+  const fallbackText = act.result_text || act.content || "내용 없음";
+  return [{ key: fallbackText, isCounted: false, count: 1 }];
+}
+
 function isCanceledActivity(act: any): boolean {
   const resultData = act.result_data || act.resultData;
   if (resultData) {
@@ -210,27 +247,47 @@ async function sendRealtimeActivityNotification(
       const heart = REGION_HEARTS[reg] || "💙";
       message += `\n${heart} <b>${escapeHtml(reg)}</b>\n`;
 
-      // 동일인 & 동일 결과 요약별로 그룹화하여 계수
-      const grouped: { name: string; summary: string; count: number }[] = [];
+      // 동일인별로 활동 결과를 병합하고 개수 합산
+      const userNames: string[] = [];
+      const userActs: Record<string, any[]> = {};
       for (const act of actsByRegion[reg]) {
-        const actSummary = getActivityResultSummary(act);
-        const existing = grouped.find(
-          (g) => g.name === act.name && g.summary === actSummary
-        );
-        if (existing) {
-          existing.count += 1;
-        } else {
-          grouped.push({
-            name: act.name,
-            summary: actSummary,
-            count: 1,
-          });
+        const name = act.name || "알 수 없음";
+        if (!userActs[name]) {
+          userActs[name] = [];
+          userNames.push(name);
         }
+        userActs[name].push(act);
       }
 
-      for (const item of grouped) {
-        const countSuffix = item.count > 1 ? ` | ${item.count}개` : "";
-        message += `- ${escapeHtml(item.name)} | ${escapeHtml(item.summary)}${countSuffix}\n`;
+      for (const name of userNames) {
+        const aggregated: Record<string, { isCounted: boolean; count: number }> = {};
+        const keyOrder: string[] = [];
+
+        for (const act of userActs[name]) {
+          const items = getActivityResultItems(act);
+          for (const item of items) {
+            if (!aggregated[item.key]) {
+              aggregated[item.key] = { isCounted: item.isCounted, count: 0 };
+              keyOrder.push(item.key);
+            }
+            aggregated[item.key].count += item.count;
+          }
+        }
+
+        const formattedResults = keyOrder.map((key) => {
+          const agg = aggregated[key];
+          if (agg.isCounted) {
+            return `${key} | ${agg.count}개`;
+          } else {
+            if (agg.count > 1) {
+              return `${key} | ${agg.count}개`;
+            }
+            return key;
+          }
+        });
+
+        const summaryStr = formattedResults.join(", ");
+        message += `- ${escapeHtml(name)} | ${escapeHtml(summaryStr)}\n`;
       }
     }
 
@@ -362,8 +419,14 @@ serve(async (req) => {
       }
 
       if (status === "completed" && !isCanceledActivity(payload)) {
-        const targetChatId = Deno.env.get("TELEGRAM_CHAT_ID") || "-1003736767935";
-        sendRealtimeActivityNotification(supabase, date, dbUser, payload, botToken, targetChatId);
+        const now = new Date();
+        const kstTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+        const todayKST = kstTime.toISOString().split("T")[0];
+
+        if (date === todayKST) {
+          const targetChatId = Deno.env.get("TELEGRAM_CHAT_ID") || "-1003736767935";
+          sendRealtimeActivityNotification(supabase, date, dbUser, payload, botToken, targetChatId);
+        }
       }
 
       return new Response(
