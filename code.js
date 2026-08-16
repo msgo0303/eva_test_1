@@ -70,6 +70,7 @@ function doGet(e) {
 
       const activities = [];
       let weeklyMissionCount = 0;
+      let weeklyMatchMissionCount = 0;
 
       if (actSheet && isRegistered) {
         const actData = actSheet.getDataRange().getValues();
@@ -109,6 +110,9 @@ function doGet(e) {
                       if ((r.category === "찾기" || r.category === "찾기(오프라인)" || r.category === "찾기(온라인)") &&
                         (r.type === "온만찾" || r.type === "오프만찾")) { // ✅ 오프번찾 제거 확인
                         weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
+                      }
+                      if (r.category === "매칭" && r.type !== "취소") {
+                        weeklyMatchMissionCount += 1;
                       }
                     });
                   }
@@ -228,6 +232,7 @@ function doGet(e) {
         unregisteredList: unregisteredList,
         isAdmin: (isSuperAdmin || isGroupAdmin),
         weeklyMissionCount: weeklyMissionCount,
+        weeklyMatchMissionCount: weeklyMatchMissionCount,
         currentSemester: getCurrentSemesterObj(),
         allRegions: allRegions,
         weekName: getWeekNameForDate(targetDate),

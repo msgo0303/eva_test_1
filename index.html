@@ -419,6 +419,21 @@
                 </div>
             </div>
 
+            <!-- 주간 매칭 미션 달성 현황 카드 -->
+            <div id="weekly-match-mission-card"
+                class="px-4 py-2.5 bg-violet-50/70 border-b border-violet-100 flex items-center justify-between">
+                <div class="flex-1 pr-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span id="match-mission-title" class="text-xs font-bold text-violet-800">🤝 주간 매칭 미션</span>
+                        <span id="match-mission-status-text" class="text-xs font-extrabold text-violet-800">0 / 4건 (0%)</span>
+                    </div>
+                    <div class="w-full h-2 bg-violet-200/60 rounded-full overflow-hidden">
+                        <div id="match-mission-progress-bar"
+                            class="h-full bg-violet-600 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- DATE NAV -->
             <div class="flex items-center justify-between px-4 py-3 bg-tg-bg border-b border-tg-border relative">
                 <button id="btn-prev-day"
@@ -1660,6 +1675,7 @@
         let activeHomeRegionFilter = 'ALL';
         let userHasActiveBook = false;
         let weeklyMissionCount = 0;
+        let weeklyMatchMissionCount = 0;
         let rawRiskData = null;
         let currentWeekName = "";
         let semestersList = [];
@@ -1791,11 +1807,18 @@
             const statusText = $('mission-status-text');
             const progressBar = $('mission-progress-bar');
 
+            const matchCard = $('weekly-match-mission-card');
+            const matchStatusText = $('match-mission-status-text');
+            const matchProgressBar = $('match-mission-progress-bar');
+
             const dayOfWeek = currentDate.getDay();
             const diff = 6 - dayOfWeek;
             const ddayText = diff === 0 ? "D-Day" : `D-${diff}`;
+            
             $('mission-title').textContent = `🎯 주간 찾기 미션 (${ddayText})`;
+            $('match-mission-title').textContent = `🤝 주간 매칭 미션 (${ddayText})`;
 
+            // 1. 찾기 미션 렌더링
             if (userHasActiveBook) {
                 card.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
                 statusText.textContent = "🎉 복방 보유 중 (주간 미션 면제)";
@@ -1809,6 +1832,22 @@
                 statusText.className = "text-xs font-extrabold text-tg-blue";
                 progressBar.style.width = `${percent}%`;
                 progressBar.className = "h-full bg-tg-blue rounded-full transition-all duration-500";
+            }
+
+            // 2. 매칭 미션 렌더링 (주간 4건)
+            const matchPercent = Math.min(100, Math.round((weeklyMatchMissionCount / 4) * 100));
+            if (weeklyMatchMissionCount >= 4) {
+                matchCard.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
+                matchStatusText.textContent = `🎉 달성 완료! (${weeklyMatchMissionCount} / 4건)`;
+                matchStatusText.className = "text-xs font-extrabold text-emerald-700";
+                matchProgressBar.style.width = "100%";
+                matchProgressBar.className = "h-full bg-emerald-600 rounded-full transition-all duration-500";
+            } else {
+                matchCard.className = "px-4 py-2.5 bg-violet-50/70 border-b border-violet-100 flex items-center justify-between";
+                matchStatusText.textContent = `${weeklyMatchMissionCount} / 4건 (${matchPercent}%)`;
+                matchStatusText.className = "text-xs font-extrabold text-violet-800";
+                matchProgressBar.style.width = `${matchPercent}%`;
+                matchProgressBar.className = "h-full bg-violet-600 rounded-full transition-all duration-500";
             }
         }
 
@@ -2069,6 +2108,7 @@
                             .lte('activity_date', dateKey(saturday));
 
                         weeklyMissionCount = 0;
+                        weeklyMatchMissionCount = 0;
                         (weekActs || []).forEach(w => {
                             if (w.result_data) {
                                 const parsed = typeof w.result_data === 'string' ? JSON.parse(w.result_data) : w.result_data;
@@ -2077,6 +2117,9 @@
                                         if ((r.category === "찾기" || r.category === "찾기(오프)" || r.category === "찾기(온)") &&
                                             (r.type === "합자찾(온)" || r.type === "합자찾(오프)")) { // ✅ 합자찾(온), 합자찾(오프) 2개만 허용
                                             weeklyMissionCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
+                                        }
+                                        if (r.category === "매칭" && r.type !== "취소") {
+                                            weeklyMatchMissionCount += 1;
                                         }
                                     });
                                 }
@@ -2181,6 +2224,7 @@
                     profile.teacherStage = data.user.teacherStage || 'C';
                     activities = data.activities || [];
                     weeklyMissionCount = data.weeklyMissionCount || 0;
+                    weeklyMatchMissionCount = data.weeklyMatchMissionCount || 0;
                     userHasActiveBook = (data.user && data.user.bookCount > 0);
                     semestersList = data.semestersList || [];
                     allRegionsList = data.allRegions || [];
