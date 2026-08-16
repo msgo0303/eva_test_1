@@ -1641,7 +1641,7 @@
         const supabaseClient = (window.supabase && SUPABASE_URL && SUPABASE_URL !== "YOUR_SUPABASE_URL")
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
             : null;
-        const supabase = supabaseClient;
+        var supabase = supabaseClient;
 
         const tg = window.Telegram ? window.Telegram.WebApp : null;
 
