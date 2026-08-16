@@ -396,6 +396,8 @@
                                 class="font-medium">-</span></div>
                         <div class="flex justify-between"><span class="text-tg-muted">이름</span> <span id="pd-name"
                                 class="font-medium">-</span></div>
+                        <div class="flex justify-between"><span class="text-tg-muted">교사단계</span> <span id="pd-teacher-stage"
+                                class="font-semibold text-orange-600">-</span></div>
                         <div class="flex justify-between"><span class="text-tg-muted">ID</span> <span id="pd-id"
                                 class="font-medium text-tg-blue text-xs">-</span></div>
                     </div>
@@ -1990,6 +1992,7 @@
                         profile.group = userData.group_name || '-';
                         profile.region = userData.region || '-';
                         profile.role = userData.role || '-';
+                        profile.teacherStage = userData.teacher_stage || 'C';
                         userHasActiveBook = (userData.book_count > 0);
 
                         // 2. 당일 활동 조회
@@ -2175,6 +2178,7 @@
                     profile.group = data.user.group || '-';
                     profile.region = data.user.region || '-';
                     profile.role = data.user.role || '-';
+                    profile.teacherStage = data.user.teacherStage || 'C';
                     activities = data.activities || [];
                     weeklyMissionCount = data.weeklyMissionCount || 0;
                     userHasActiveBook = (data.user && data.user.bookCount > 0);
@@ -5761,6 +5765,7 @@
             $('pd-region').textContent = profile.region;
             $('pd-role').textContent = profile.role;
             $('pd-name').textContent = profile.name;
+            $('pd-teacher-stage').textContent = profile.teacherStage || 'C';
             $('pd-id').textContent = profile.id;
             $('fp-group').textContent = profile.group;
             $('fp-region').textContent = profile.region;
