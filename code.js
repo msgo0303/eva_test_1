@@ -32,6 +32,7 @@ function doGet(e) {
 
           const cellBookCount = parseInt(uData[i][13] || 0, 10);
           const cellIsExempt = uData[i][14] ? (uData[i][14].toString().trim().toUpperCase() === 'Y') : false;
+          const cellTeacherStage = uData[i][15] ? uData[i][15].toString().trim() : "C";
 
           if (cellRegion) {
             allRegionsList.push(cellRegion);
@@ -46,7 +47,8 @@ function doGet(e) {
               region: cellRegion,
               role: cellRole,
               bookCount: cellBookCount,
-              isExempt: cellIsExempt
+              isExempt: cellIsExempt,
+              teacherStage: cellTeacherStage
             };
           }
 
@@ -664,6 +666,7 @@ function doGet(e) {
           const region = uData[i][3] ? uData[i][3].toString().trim() : "";
           const bookCount = parseInt(uData[i][13] || 0, 10);
           const isExempt = uData[i][14] ? (uData[i][14].toString().trim().toUpperCase() === 'Y') : false;
+          const teacherStage = uData[i][15] ? uData[i][15].toString().trim() : "C";
 
           if (name) {
             // 조장 권한인 경우 본인 지역 소속의 유저들만 통계 수집
@@ -678,6 +681,7 @@ function doGet(e) {
               region: region,
               bookCount: bookCount,
               isExempt: isExempt,
+              teacherStage: teacherStage,
               hasTodayActivity: false,
               isTodayCompleted: false,
               hasTomorrowActivity: false,
@@ -859,6 +863,48 @@ function doGet(e) {
         }
       }
 
+      // Auto-insert into Contacts sheet if matching tagi is completed
+      if (e.parameter.status === "completed" && e.parameter.resultData) {
+        try {
+          const parsed = JSON.parse(e.parameter.resultData);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(r => {
+              if (r.category === "매칭" && r.type === "따기" && r.contactName) {
+                const contactName = r.contactName.trim();
+                if (contactName) {
+                  let contactSheet = ss.getSheetByName("Contacts");
+                  if (!contactSheet) {
+                    contactSheet = ss.insertSheet("Contacts");
+                    contactSheet.appendRow(["id", "user_id", "name", "stage", "status", "drop_reason", "created_at", "updated_at"]);
+                  }
+                  let exists = false;
+                  const cData = contactSheet.getDataRange().getValues();
+                  for (let j = 1; j < cData.length; j++) {
+                    if (cData[j][1].toString().trim() === userId.toString().trim() && cData[j][2].toString().trim() === contactName) {
+                      exists = true;
+                      break;
+                    }
+                  }
+                  if (!exists) {
+                    const cId = "CON_" + new Date().getTime() + "_" + Math.floor(Math.random() * 1000);
+                    contactSheet.appendRow([
+                      cId,
+                      userId,
+                      contactName,
+                      "따기",
+                      "active",
+                      "",
+                      new Date(),
+                      new Date()
+                    ]);
+                  }
+                }
+              }
+            });
+          }
+        } catch(jsonErr) {}
+      }
+
       return makeJsonResponse({ result: "success" });
     }
 
@@ -867,6 +913,7 @@ function doGet(e) {
       const targetName = e.parameter.targetName;
       const bookCount = e.parameter.bookCount;
       const isExempt = e.parameter.isExempt;
+      const teacherStage = e.parameter.teacherStage;
 
       if (userSheet && targetName) {
         const uData = userSheet.getDataRange().getValues();
@@ -877,6 +924,9 @@ function doGet(e) {
             }
             if (isExempt !== undefined) {
               userSheet.getRange(i + 1, 15).setValue(isExempt === "true" ? "Y" : "N");
+            }
+            if (teacherStage !== undefined) {
+              userSheet.getRange(i + 1, 16).setValue(teacherStage);
             }
             return makeJsonResponse({ result: "success" });
           }
@@ -915,6 +965,91 @@ function doGet(e) {
       ]);
 
       return makeJsonResponse({ result: "success", message: "클릭 기록이 시트에 저장되었습니다." });
+    }
+
+    if (action === "getContacts") {
+      const contacts = [];
+      const contactSheet = ss.getSheetByName("Contacts");
+      if (contactSheet) {
+        const cData = contactSheet.getDataRange().getValues();
+        for (let i = 1; i < cData.length; i++) {
+          const cId = cData[i][0];
+          const cUserId = cData[i][1];
+          const cName = cData[i][2];
+          const cStage = cData[i][3];
+          const cStatus = cData[i][4];
+          const cDropReason = cData[i][5];
+          const cCreatedAt = cData[i][6];
+          const cUpdatedAt = cData[i][7];
+
+          if (cUserId.toString().trim() === userId.toString().trim() && cStatus === "active") {
+            contacts.push({
+              id: cId,
+              user_id: cUserId,
+              name: cName,
+              stage: cStage,
+              status: cStatus,
+              drop_reason: cDropReason,
+              created_at: cCreatedAt,
+              updated_at: cUpdatedAt
+            });
+          }
+        }
+      }
+      return makeJsonResponse({ result: "success", contacts: contacts });
+    }
+
+    if (action === "updateContactStage") {
+      const contactId = e.parameter.contactId;
+      const newStage = e.parameter.newStage;
+
+      const contactSheet = ss.getSheetByName("Contacts");
+      if (contactSheet) {
+        const cData = contactSheet.getDataRange().getValues();
+        for (let i = 1; i < cData.length; i++) {
+          if (cData[i][0].toString().trim() === contactId.toString().trim()) {
+            const oldStage = cData[i][3];
+            const targetUserId = cData[i][1];
+
+            contactSheet.getRange(i + 1, 4).setValue(newStage);
+            contactSheet.getRange(i + 1, 8).setValue(new Date());
+
+            if (newStage === "복방" && oldStage !== "복방") {
+              adjustSheetUserBookCount(targetUserId, 1);
+            } else if (oldStage === "복방" && newStage !== "복방") {
+              adjustSheetUserBookCount(targetUserId, -1);
+            }
+            return makeJsonResponse({ result: "success" });
+          }
+        }
+      }
+      return makeJsonResponse({ result: "fail", message: "자산을 찾을 수 없습니다." });
+    }
+
+    if (action === "dropContact") {
+      const contactId = e.parameter.contactId;
+      const dropReason = e.parameter.dropReason;
+
+      const contactSheet = ss.getSheetByName("Contacts");
+      if (contactSheet) {
+        const cData = contactSheet.getDataRange().getValues();
+        for (let i = 1; i < cData.length; i++) {
+          if (cData[i][0].toString().trim() === contactId.toString().trim()) {
+            const oldStage = cData[i][3];
+            const targetUserId = cData[i][1];
+
+            contactSheet.getRange(i + 1, 5).setValue("dropped");
+            contactSheet.getRange(i + 1, 6).setValue(dropReason);
+            contactSheet.getRange(i + 1, 8).setValue(new Date());
+
+            if (oldStage === "복방") {
+              adjustSheetUserBookCount(targetUserId, -1);
+            }
+            return makeJsonResponse({ result: "success" });
+          }
+        }
+      }
+      return makeJsonResponse({ result: "fail", message: "자산을 찾을 수 없습니다." });
     }
 
   } catch (err) {
@@ -1395,5 +1530,21 @@ function doPost(e) {
     return makeJsonResponse({ result: "success" });
   } catch (err) {
     return makeJsonResponse({ error: err.message });
+  }
+}
+
+function adjustSheetUserBookCount(userId, amount) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const userSheet = ss.getSheetByName("UserDB");
+  if (userSheet) {
+    const uData = userSheet.getDataRange().getValues();
+    for (let i = 1; i < uData.length; i++) {
+      if (uData[i][0].toString().trim() === userId.toString().trim()) {
+        const currentCount = parseInt(uData[i][13] || 0, 10);
+        const newCount = Math.max(0, currentCount + amount);
+        userSheet.getRange(i + 1, 14).setValue(newCount);
+        break;
+      }
+    }
   }
 }

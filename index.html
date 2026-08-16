@@ -472,6 +472,25 @@
                 </div>
             </div>
 
+            <!-- MY ASSETS ACCORDION SECTION -->
+            <div class="bg-tg-bg rounded-2xl border border-tg-border mb-3 shadow-sm overflow-hidden">
+                <div id="asset-header-trigger"
+                    class="flex items-center justify-between px-4 py-3 bg-violet-50 border-b border-violet-100 cursor-pointer select-none active:bg-violet-100/50 transition-colors">
+                    <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                        <span class="text-sm">💎</span>
+                        <span class="text-xs font-extrabold text-violet-800 flex-shrink-0">나의 자산 관리</span>
+                        <span id="asset-summary-text"
+                            class="text-[10px] text-violet-600 font-semibold truncate mr-2"> - 0명 관리 중</span>
+                    </div>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <span id="asset-toggle-arrow" class="text-violet-800 text-[10px]">▼</span>
+                    </div>
+                </div>
+                <div id="asset-vertical-list"
+                    class="hidden divide-y divide-tg-border/50 max-h-60 overflow-y-auto transition-all bg-white p-3 space-y-2">
+                </div>
+            </div>
+
             <!-- TODAY BASE ACCORDION SECTION -->
             <div class="bg-tg-bg rounded-2xl border border-tg-border mb-3 shadow-sm overflow-hidden">
                 <div id="base-header-trigger"
@@ -1658,6 +1677,8 @@
 
         let modalMode = 'add';
         let editId = null;
+        let myContacts = [];
+        let isAssetListExpanded = false;
         let formStatus = 'planned';
         let toastTimer = null;
         let currentDashRange = 'today';
@@ -1813,16 +1834,18 @@
             rowDiv.className = 'result-row flex items-center gap-1.5 bg-white p-2 rounded-xl border border-tg-border shadow-sm';
 
             rowDiv.innerHTML = `
-    <select class="res-category rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue w-24">
+    <select class="res-category rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue w-20">
       ${categories.map(cat => `
         <option value="${cat}" ${cat === defaultCategory ? 'selected' : ''}>${cat}</option>
       `).join('')}
     </select>
 
-    <select class="res-type flex-1 rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue min-w-[90px]">
+    <select class="res-type flex-1 rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue min-w-[70px]">
     </select>
 
-    <select class="res-count rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-blue focus:outline-none focus:border-tg-blue w-16">
+    <input type="text" placeholder="섭외자 이름" class="res-contact-name rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue w-24 hidden" />
+
+    <select class="res-count rounded-lg border border-tg-border bg-tg-surface px-2 py-1.5 text-xs font-semibold text-tg-blue focus:outline-none focus:border-tg-blue w-14">
       ${Array.from({ length: 11 }, (_, i) => i).map(num => `
         <option value="${num}" ${num == data.count ? 'selected' : ''}>${num}개</option>
       `).join('')}
@@ -1837,6 +1860,7 @@
 
             const categorySelect = rowDiv.querySelector('.res-category');
             const typeSelect = rowDiv.querySelector('.res-type');
+            const contactInput = rowDiv.querySelector('.res-contact-name');
             const countSelect = rowDiv.querySelector('.res-count');
             const delBtn = rowDiv.querySelector('.btn-del-row');
 
@@ -1852,6 +1876,17 @@
                 } else {
                     countSelect.classList.add('hidden');
                 }
+                updateContactNameVisibility();
+            };
+
+            const updateContactNameVisibility = () => {
+                const isTagi = (categorySelect.value === '매칭' && typeSelect.value === '따기');
+                if (isTagi) {
+                    contactInput.classList.remove('hidden');
+                } else {
+                    contactInput.classList.add('hidden');
+                    contactInput.value = '';
+                }
             };
 
             categorySelect.addEventListener('change', () => {
@@ -1859,7 +1894,16 @@
                 updateTypeOptions();
             });
 
+            typeSelect.addEventListener('change', () => {
+                updateContactNameVisibility();
+            });
+
             delBtn.addEventListener('click', () => rowDiv.remove());
+
+            if (data.contactName) {
+                contactInput.value = data.contactName;
+            }
+
             updateTypeOptions();
         }
 
@@ -1871,6 +1915,9 @@
                 const type = row.querySelector('.res-type').value;
                 const countEl = row.querySelector('.res-count');
                 const count = !countEl.classList.contains('hidden') ? parseInt(countEl.value, 10) : null;
+                const contactEl = row.querySelector('.res-contact-name');
+                const contactName = (category === '매칭' && type === '따기' && contactEl) ? contactEl.value.trim() : null;
+
                 if (category && type) {
                     const key = `${category}:${type}`;
                     if (resultsMap.has(key)) {
@@ -1878,9 +1925,13 @@
                         if (count !== null && existing.count !== undefined) {
                             existing.count += count;
                         }
+                        if (contactName) {
+                            existing.contactName = contactName;
+                        }
                     } else {
                         const item = { category, type };
                         if (count !== null) item.count = count;
+                        if (contactName) item.contactName = contactName;
                         resultsMap.set(key, item);
                     }
                 }
@@ -1955,7 +2006,7 @@
                         }
 
                         // users도 병렬 조회하여 최신 직책/직급 정보 매핑 준비
-                        let usrQuery = supabaseClient.from('users').select('id,name,role,group_name,region');
+                        let usrQuery = supabaseClient.from('users').select('id,name,role,group_name,region,teacher_stage');
                         if (isGroup) {
                             usrQuery = usrQuery.eq('region', profile.region);
                         } else if (!isSuper) {
@@ -1969,14 +2020,16 @@
                             name: u.name,
                             role: u.role || '',
                             group_name: u.group_name || '',
-                            region: u.region || ''
+                            region: u.region || '',
+                            teacherStage: u.teacher_stage || 'C'
                         }));
 
                         const userMap = {};
                         (usrData || []).forEach(u => {
                             userMap[u.name] = {
                                 role: u.role || '',
-                                groupName: u.group_name || ''
+                                groupName: u.group_name || '',
+                                teacherStage: u.teacher_stage || 'C'
                             };
                         });
 
@@ -2078,6 +2131,7 @@
                         renderDateNav();
                         renderList();
                         loadTodayBases();
+                        fetchContacts();
 
                         // 💡 데이터 로드 완료 직후 미입력/미취합 상태 검사 실행!
                         checkUncompletedOverdueActivities();
@@ -2146,6 +2200,7 @@
                     renderWeeklyMissionUI();
                     renderDateNav();
                     renderList();
+                    fetchContacts();
                 } else {
                     openRegSheet(data.unregisteredList || []);
                 }
@@ -2252,7 +2307,7 @@
                     if (!isSuper) actQuery = actQuery.eq('region', profile.region);
 
                     // users도 병렬 조회 (찾기 목표 계산용 + 직책/직무 매핑용)
-                    let usrQuery = supabaseClient.from('users').select('name,region,book_count,is_exempt,role,group_name');
+                    let usrQuery = supabaseClient.from('users').select('name,region,book_count,is_exempt,role,group_name,teacher_stage');
                     if (!isSuper) usrQuery = usrQuery.eq('region', profile.region);
 
                     const [{ data: actData, error: actErr }, { data: usrData }] = await Promise.all([actQuery, usrQuery]);
@@ -2432,6 +2487,7 @@
                             region: u.region,
                             bookCount: u.book_count || 0,
                             isExempt: u.is_exempt || false,
+                            teacherStage: u.teacher_stage || 'C',
                             hasTodayActivity: false,
                             isTodayCompleted: false,
                             hasTomorrowActivity: false,
@@ -2696,6 +2752,149 @@
         }
 
         let isNoticeListExpanded = false;
+
+        function toggleAssetList() {
+            const list = $('asset-vertical-list');
+            const arrow = $('asset-toggle-arrow');
+            if (!list || !arrow) return;
+            isAssetListExpanded = !isAssetListExpanded;
+            if (isAssetListExpanded) { list.classList.remove('hidden'); arrow.textContent = '▲'; }
+            else { list.classList.add('hidden'); arrow.textContent = '▼'; }
+        }
+
+        async function fetchContacts() {
+            if (supabase) {
+                try {
+                    const data = await callApiProxy('getContacts');
+                    if (data.result === 'success') {
+                        myContacts = data.contacts || [];
+                        renderContacts();
+                    }
+                } catch (e) {
+                    console.error("contacts fetch error:", e);
+                }
+            } else {
+                try {
+                    const res = await fetch(`${GAS_URL}?action=getContacts&initData=${encodeURIComponent(tg ? tg.initData : '')}`);
+                    const data = await res.json();
+                    if (data.result === 'success') {
+                        myContacts = data.contacts || [];
+                        renderContacts();
+                    }
+                } catch (e) {
+                    console.error("contacts fetch error (GAS):", e);
+                }
+            }
+        }
+
+        function renderContacts() {
+            const container = $('asset-vertical-list');
+            const summaryText = $('asset-summary-text');
+            if (!container) return;
+
+            const activeContacts = myContacts.filter(c => c.status === 'active');
+            if (summaryText) {
+                summaryText.textContent = ` - ${activeContacts.length}명 관리 중`;
+            }
+
+            if (activeContacts.length === 0) {
+                container.innerHTML = '<p class="text-xs text-tg-muted text-center py-4">관리 중인 자산(따기 인원)이 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = activeContacts.map(c => {
+                const dateStr = c.created_at ? new Date(c.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '';
+                return `
+                    <div class="flex items-center justify-between bg-tg-surface p-2.5 rounded-xl border border-tg-border text-xs gap-3">
+                        <div class="flex-1 min-w-0">
+                            <span class="font-extrabold text-tg-text text-sm">${escHtml(c.name)}</span>
+                            <span class="text-[10px] text-tg-muted block mt-0.5">${dateStr} 등록</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <select onchange="handleContactStageChange('${c.id}', '${escHtml(c.name)}', this.value)" class="rounded-lg border border-tg-border bg-white px-2 py-1 text-xs font-semibold text-tg-text focus:outline-none focus:border-tg-blue">
+                                <option value="따기" ${c.stage === '따기' ? 'selected' : ''}>따기</option>
+                                <option value="성따" ${c.stage === '성따' ? 'selected' : ''}>성따</option>
+                                <option value="복방" ${c.stage === '복방' ? 'selected' : ''}>복방</option>
+                            </select>
+                            <button onclick="handleContactDrop('${c.id}', '${escHtml(c.name)}', '${c.stage}')" class="px-2 py-1 rounded-lg font-bold text-[10px] bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                                탈락
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function handleContactStageChange(contactId, contactName, newStage) {
+            const contact = myContacts.find(c => c.id === contactId);
+            if (!contact) return;
+            const oldStage = contact.stage;
+            if (oldStage === newStage) return;
+
+            showToast(`${contactName}님 단계 변경 중...`, 'info');
+
+            if (supabase) {
+                try {
+                    const data = await callApiProxy('updateContactStage', { contactId, newStage });
+                    if (data.result !== 'success') throw new Error(data.message);
+                    showToast(`${contactName}님 단계가 [${newStage}]로 변경되었습니다.`, 'success');
+                    await fetchContacts();
+                    await fetchRiskAndMemberData();
+                    await fetchAppData();
+                } catch (e) {
+                    showToast('단계 변경 실패: ' + e.message, 'error');
+                    renderContacts();
+                }
+            } else {
+                try {
+                    const response = await fetch(`${GAS_URL}?action=updateContactStage&initData=${encodeURIComponent(tg ? tg.initData : '')}&contactId=${contactId}&newStage=${encodeURIComponent(newStage)}`);
+                    const data = await response.json();
+                    if (data.result !== 'success') throw new Error(data.message);
+                    showToast(`${contactName}님 단계가 [${newStage}]로 변경되었습니다.`, 'success');
+                    await fetchContacts();
+                    await fetchAppData();
+                } catch (e) {
+                    showToast('단계 변경 실패: ' + e.message, 'error');
+                    renderContacts();
+                }
+            }
+        }
+
+        async function handleContactDrop(contactId, contactName, stage) {
+            const dropReason = prompt(`[탈락 처리] ${contactName}님의 탈락 사유를 입력해 주세요:`);
+            if (dropReason === null) return;
+            const trimmedReason = dropReason.trim();
+            if (!trimmedReason) {
+                showToast("탈락 사유를 입력해야 합니다.", "error");
+                return;
+            }
+
+            showToast(`${contactName}님 탈락 처리 중...`, 'info');
+
+            if (supabase) {
+                try {
+                    const data = await callApiProxy('dropContact', { contactId, dropReason: trimmedReason });
+                    if (data.result !== 'success') throw new Error(data.message);
+                    showToast(`${contactName}님이 탈락 처리되었습니다.`, 'success');
+                    await fetchContacts();
+                    await fetchRiskAndMemberData();
+                    await fetchAppData();
+                } catch (e) {
+                    showToast('탈락 처리 실패: ' + e.message, 'error');
+                }
+            } else {
+                try {
+                    const response = await fetch(`${GAS_URL}?action=dropContact&initData=${encodeURIComponent(tg ? tg.initData : '')}&contactId=${contactId}&dropReason=${encodeURIComponent(trimmedReason)}`);
+                    const data = await response.json();
+                    if (data.result !== 'success') throw new Error(data.message);
+                    showToast(`${contactName}님이 탈락 처리되었습니다.`, 'success');
+                    await fetchContacts();
+                    await fetchAppData();
+                } catch (e) {
+                    showToast('탈락 처리 실패: ' + e.message, 'error');
+                }
+            }
+        }
 
         function renderManageNoticeLists() {
             const role = profile.role || "";
@@ -3638,7 +3837,7 @@
                                 <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
                                 <span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(u.group_name, u.role))}</span>
                             </div>
-                            <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span> · 복방 <span class="font-bold text-purple-700">${u.bookCount}개</span></p>
+                            <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span> · 복방 <span class="font-bold text-purple-700">${u.bookCount}개</span> · 교사단계 <span class="font-bold text-orange-600">${u.teacherStage || 'C'}</span></p>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <div class="flex items-center gap-1 bg-white border border-tg-border rounded-lg p-1" onclick="event.stopPropagation()">
@@ -3687,12 +3886,14 @@
             $('md-book').textContent = userObj.bookCount + '개';
             $('md-exempt').textContent = userObj.isExempt ? '예외 지정됨' : '미지정';
             $('md-exempt').className = userObj.isExempt ? 'font-bold text-green-600 text-xs' : 'font-bold text-tg-muted text-xs';
+            $('md-teacher-stage').textContent = userObj.teacherStage || 'C';
 
-            // 관리자 전용 권한 수정 섹션
+            // 관리자 전용 정보 수정 섹션
             const roleEditSection = $('md-role-edit-section');
             if (isSuper) {
                 roleEditSection.classList.remove('hidden');
                 $('md-role-select').value = userObj.role || '부원';
+                $('md-teacher-select').value = userObj.teacherStage || 'C';
             } else {
                 roleEditSection.classList.add('hidden');
             }
@@ -3927,32 +4128,41 @@
 
         async function updateUserRole(targetName) {
             const newRole = $('md-role-select').value;
+            const newStage = $('md-teacher-select').value;
             if (!newRole) return showToast('권한을 선택해 주세요.', 'error');
+            if (!newStage) return showToast('교사단계를 선택해 주세요.', 'error');
 
             const btn = $('btn-save-role');
             btn.disabled = true; btn.textContent = '저장 중...';
 
             try {
-                const data = await callApiProxy('updateUserRole', { targetName, role: newRole });
+                const data = await callApiProxy('updateUserRole', { targetName, role: newRole, teacherStage: newStage });
                 if (data.result !== 'success') throw new Error(data.message);
 
                 // 로컬 캐시 업데이트
                 if (rawRiskData && rawRiskData.allUsers) {
                     const target = rawRiskData.allUsers.find(u => u.name === targetName);
-                    if (target) target.role = newRole;
+                    if (target) {
+                        target.role = newRole;
+                        target.teacherStage = newStage;
+                    }
                 }
                 if (cachedAllUsers) {
                     const target = cachedAllUsers.find(u => u.name === targetName);
-                    if (target) target.role = newRole;
+                    if (target) {
+                        target.role = newRole;
+                        target.teacherStage = newStage;
+                    }
                 }
 
                 $('md-role').textContent = newRole;
-                showToast(`${targetName}님의 권한이 '${newRole}'으로 변경되었습니다.`, 'success');
+                $('md-teacher-stage').textContent = newStage;
+                showToast(`${targetName}님의 정보가 성공적으로 수정되었습니다.`, 'success');
                 renderMemberTab();
             } catch (e) {
-                showToast('권한 수정 실패: ' + e.message, 'error');
+                showToast('정보 수정 실패: ' + e.message, 'error');
             } finally {
-                btn.disabled = false; btn.textContent = '권한 저장';
+                btn.disabled = false; btn.textContent = '정보 저장';
             }
         }
 
@@ -5000,7 +5210,8 @@
                         region: '',
                         group_name: '',
                         book_count: 0,
-                        is_exempt: false
+                        is_exempt: false,
+                        teacher_stage: 'C'
                     };
                     const { error } = await supabaseClient.from('users').insert([payload]);
                     if (error) throw error;
@@ -6797,6 +7008,7 @@
             $('btn-save-notice').addEventListener('click', saveNotice);
 
             $('notice-header-trigger').addEventListener('click', toggleNoticeList);
+            $('asset-header-trigger').addEventListener('click', toggleAssetList);
             $('btn-close-nd').addEventListener('click', closeNoticeDetail);
             $('notice-detail-overlay').addEventListener('click', closeNoticeDetail);
 
@@ -6983,24 +7195,43 @@
                         <span class="text-blue-100">예외</span>
                         <span id="md-exempt" class="font-bold text-white text-xs">미지정</span>
                     </div>
+                    <div class="flex items-center gap-1.5 bg-white/15 rounded-lg px-2.5 py-1.5">
+                        <span class="text-blue-100">교사</span>
+                        <span id="md-teacher-stage" class="font-extrabold text-white">C</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- 관리자 전용: 권한 수정 섹션 -->
+            <!-- 관리자 전용: 정보 수정 섹션 -->
             <div id="md-role-edit-section" class="hidden bg-amber-50 border-b border-amber-200 px-5 py-3 flex-shrink-0">
-                <p class="text-[10px] font-extrabold text-amber-800 mb-2">🔐 관리자 전용 — 권한 수정</p>
-                <div class="flex items-center gap-2">
-                    <select id="md-role-select"
-                        class="flex-1 rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-bold text-tg-text focus:outline-none focus:border-amber-500">
-                        <option value="부원">부원</option>
-                        <option value="부조장">부조장</option>
-                        <option value="조장">조장</option>
-                        <option value="관리자">관리자</option>
-                    </select>
-                    <button id="btn-save-role" onclick="updateUserRole(document.getElementById('md-name').textContent)"
-                        class="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm active:scale-95 transition-transform flex-shrink-0">
-                        권한 저장
-                    </button>
+                <p class="text-[10px] font-extrabold text-amber-800 mb-2">🔐 관리자 전용 — 정보 수정</p>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-bold text-amber-900 w-14">직책:</span>
+                        <select id="md-role-select"
+                            class="flex-1 rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-tg-text focus:outline-none focus:border-amber-500">
+                            <option value="부원">부원</option>
+                            <option value="부조장">부조장</option>
+                            <option value="조장">조장</option>
+                            <option value="관리자">관리자</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-bold text-amber-900 w-14">교사단계:</span>
+                        <select id="md-teacher-select"
+                            class="flex-1 rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-tg-text focus:outline-none focus:border-amber-500">
+                            <option value="J7">J7</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end mt-1">
+                        <button id="btn-save-role" onclick="updateUserRole(document.getElementById('md-name').textContent)"
+                            class="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm active:scale-95 transition-transform flex-shrink-0">
+                            정보 저장
+                        </button>
+                    </div>
                 </div>
             </div>
 

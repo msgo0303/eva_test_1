@@ -344,6 +344,40 @@ function doGet(e) {
       });
 
       if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+        // Auto-create contact in Supabase Contacts table
+        if (e.parameter.status === "completed" && parsedResultData && Array.isArray(parsedResultData)) {
+          parsedResultData.forEach(r => {
+            if (r.category === "매칭" && r.type === "따기" && r.contactName) {
+              const contactName = r.contactName.trim();
+              if (contactName) {
+                // Check if contact already exists
+                const existingRes = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/contacts?user_id=eq.${verifiedTgUserId}&name=eq.${encodeURIComponent(contactName)}`, {
+                  method: "get",
+                  headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+                });
+                const existing = JSON.parse(existingRes.getContentText());
+                if (!existing || existing.length === 0) {
+                  // Insert new contact
+                  UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/contacts`, {
+                    method: "post",
+                    headers: {
+                      "apikey": config.supabaseKey,
+                      "Authorization": `Bearer ${config.supabaseKey}`,
+                      "Content-Type": "application/json",
+                      "Prefer": "return=minimal"
+                    },
+                    payload: JSON.stringify({
+                      user_id: verifiedTgUserId,
+                      name: contactName,
+                      stage: "따기",
+                      status: "active"
+                    })
+                  });
+                }
+              }
+            }
+          });
+        }
         return makeJsonResponse({ result: "success", message: "활동이 성공적으로 저장되었습니다." });
       } else {
         return makeJsonResponse({ result: "fail", message: "저장 실패: " + response.getContentText() });
@@ -434,6 +468,7 @@ function doGet(e) {
 
       const targetName = e.parameter.targetName;
       const newRole = e.parameter.role;
+      const teacherStage = e.parameter.teacherStage;
 
       const targetUrl = `${config.supabaseUrl}/rest/v1/users?name=eq.${encodeURIComponent(targetName)}`;
       const targetRes = UrlFetchApp.fetch(targetUrl, {
@@ -457,10 +492,14 @@ function doGet(e) {
         "Prefer": "return=minimal"
       };
 
+      const updatePayload = {};
+      if (newRole !== undefined) updatePayload.role = newRole;
+      if (teacherStage !== undefined) updatePayload.teacher_stage = teacherStage;
+
       const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${targetUser.id}`, {
         method: "patch",
         headers: headers,
-        payload: JSON.stringify({ role: newRole }),
+        payload: JSON.stringify(updatePayload),
         muteHttpExceptions: true
       });
 
@@ -732,6 +771,87 @@ function doGet(e) {
       } else {
         return makeJsonResponse({ result: "fail", message: "삭제 실패: " + response.getContentText() });
       }
+    }
+
+    if (action === "getContacts") {
+      const response = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/contacts?user_id=eq.${verifiedTgUserId}&status=eq.active`, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const contacts = JSON.parse(response.getContentText());
+      return makeJsonResponse({ result: "success", contacts: contacts });
+    }
+
+    if (action === "updateContactStage") {
+      const contactId = e.parameter.contactId;
+      const newStage = e.parameter.newStage;
+
+      // 1. Fetch contact
+      const contactRes = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/contacts?id=eq.${contactId}`, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const contacts = JSON.parse(contactRes.getContentText());
+      if (!contacts || contacts.length === 0) return makeJsonResponse({ result: "fail", message: "자산을 찾을 수 없습니다." });
+      const contact = contacts[0];
+      const oldStage = contact.stage;
+
+      if (oldStage === newStage) return makeJsonResponse({ result: "success" });
+
+      // 2. Update contact stage
+      UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/contacts?id=eq.${contactId}`, {
+        method: "patch",
+        headers: {
+          "apikey": config.supabaseKey,
+          "Authorization": `Bearer ${config.supabaseKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        payload: JSON.stringify({ stage: newStage, updated_at: new Date() })
+      });
+
+      // 3. Adjust user book_count
+      if (newStage === "복방" && oldStage !== "복방") {
+        adjustSupabaseUserBookCount(config, contact.user_id, 1);
+      } else if (oldStage === "복방" && newStage !== "복방") {
+        adjustSupabaseUserBookCount(config, contact.user_id, -1);
+      }
+
+      return makeJsonResponse({ result: "success" });
+    }
+
+    if (action === "dropContact") {
+      const contactId = e.parameter.contactId;
+      const dropReason = e.parameter.dropReason;
+
+      // 1. Fetch contact
+      const contactRes = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/contacts?id=eq.${contactId}`, {
+        method: "get",
+        headers: { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` }
+      });
+      const contacts = JSON.parse(contactRes.getContentText());
+      if (!contacts || contacts.length === 0) return makeJsonResponse({ result: "fail", message: "자산을 찾을 수 없습니다." });
+      const contact = contacts[0];
+      const oldStage = contact.stage;
+
+      // 2. Drop contact
+      UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/contacts?id=eq.${contactId}`, {
+        method: "patch",
+        headers: {
+          "apikey": config.supabaseKey,
+          "Authorization": `Bearer ${config.supabaseKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        payload: JSON.stringify({ status: "dropped", drop_reason: dropReason, updated_at: new Date() })
+      });
+
+      // 3. Adjust user book_count if old stage was '복방'
+      if (oldStage === "복방") {
+        adjustSupabaseUserBookCount(config, contact.user_id, -1);
+      }
+
+      return makeJsonResponse({ result: "success" });
     }
 
     return makeJsonResponse({ result: "fail", message: "지원하지 않는 action입니다." });
@@ -1607,5 +1727,20 @@ function sendInfoCollectButton() {
     Logger.log("📡 발송 결과: " + res.getContentText());
   } catch (e) {
     Logger.log("❌ 발송 실패: " + e.toString());
+  }
+}
+
+function adjustSupabaseUserBookCount(config, userId, amount) {
+  const headers = { "apikey": config.supabaseKey, "Authorization": `Bearer ${config.supabaseKey}` };
+  const userRes = UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${userId}`, { method: "get", headers: headers });
+  const users = JSON.parse(userRes.getContentText());
+  if (users && users.length > 0) {
+    const currentCount = parseInt(users[0].book_count || 0, 10);
+    const newCount = Math.max(0, currentCount + amount);
+    UrlFetchApp.fetch(`${config.supabaseUrl}/rest/v1/users?id=eq.${userId}`, {
+      method: "patch",
+      headers: { ...headers, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      payload: JSON.stringify({ book_count: newCount })
+    });
   }
 }

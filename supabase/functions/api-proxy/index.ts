@@ -429,6 +429,32 @@ serve(async (req) => {
         }
       }
 
+      // Auto-insert contacts if any matching - tagi exists
+      if (status === "completed" && payload.result_data && Array.isArray(payload.result_data)) {
+        for (const item of payload.result_data) {
+          if (item.category === "매칭" && item.type === "따기" && item.contactName) {
+            const contactName = item.contactName.trim();
+            if (contactName) {
+              const { data: existingContact } = await supabase
+                .from("contacts")
+                .select("id")
+                .eq("user_id", verifiedTgUserId)
+                .eq("name", contactName)
+                .maybeSingle();
+
+              if (!existingContact) {
+                await supabase.from("contacts").insert([{
+                  user_id: verifiedTgUserId,
+                  name: contactName,
+                  stage: "따기",
+                  status: "active"
+                }]);
+              }
+            }
+          }
+        }
+      }
+
       return new Response(
         JSON.stringify({ result: "success", message: "활동이 성공적으로 저장되었습니다." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -499,7 +525,7 @@ serve(async (req) => {
 
     // [보안 CUD 위임 API] 3. 사용자 권한 수정 (updateUserRole)
     if (action === "updateUserRole") {
-      const { targetName, role } = params;
+      const { targetName, role, teacherStage } = params;
 
       const { data: dbUsers } = await supabase.from("users").select("*").eq("id", verifiedTgUserId);
       if (!dbUsers || dbUsers.length === 0) {
@@ -535,16 +561,20 @@ serve(async (req) => {
         );
       }
 
-      const { error } = await supabase.from("users").update({ role }).eq("id", targetUser.id);
+      const updatePayload: any = {};
+      if (role !== undefined) updatePayload.role = role;
+      if (teacherStage !== undefined) updatePayload.teacher_stage = teacherStage;
+
+      const { error } = await supabase.from("users").update(updatePayload).eq("id", targetUser.id);
       if (error) {
         return new Response(
-          JSON.stringify({ result: "fail", message: "권한 변경 실패: " + error.message }),
+          JSON.stringify({ result: "fail", message: "정보 변경 실패: " + error.message }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
-        JSON.stringify({ result: "success", message: "권한이 성공적으로 변경되었습니다." }),
+        JSON.stringify({ result: "success", message: "정보가 성공적으로 변경되었습니다." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -1087,6 +1117,155 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ result: "success", message: "거점을 떠났습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 14. 자산 목록 조회 (getContacts)
+    if (action === "getContacts") {
+      const { data: contacts, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("user_id", verifiedTgUserId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "자산 조회 실패: " + error.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", contacts }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 15. 자산 단계 수정 (updateContactStage)
+    if (action === "updateContactStage") {
+      const { contactId, newStage } = params;
+
+      if (!contactId || !newStage) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "필수 파라미터가 누락되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 1. 기존 자산 조회
+      const { data: contacts, error: fetchErr } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("id", contactId);
+
+      if (fetchErr || !contacts || contacts.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "자산을 찾을 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const contact = contacts[0];
+      const oldStage = contact.stage;
+
+      if (oldStage === newStage) {
+        return new Response(
+          JSON.stringify({ result: "success" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 2. 자산 단계 업데이트
+      const { error: updateErr } = await supabase
+        .from("contacts")
+        .update({ stage: newStage, updated_at: new Date().toISOString() })
+        .eq("id", contactId);
+
+      if (updateErr) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "자산 수정 실패: " + updateErr.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 3. 복방 변경에 따른 유저 복방 개수 조절
+      if (newStage === "복방" && oldStage !== "복방") {
+        const { data: user } = await supabase.from("users").select("book_count").eq("id", contact.user_id).maybeSingle();
+        if (user) {
+          const currentCount = user.book_count || 0;
+          await supabase.from("users").update({ book_count: currentCount + 1 }).eq("id", contact.user_id);
+        }
+      } else if (oldStage === "복방" && newStage !== "복방") {
+        const { data: user } = await supabase.from("users").select("book_count").eq("id", contact.user_id).maybeSingle();
+        if (user) {
+          const currentCount = user.book_count || 0;
+          const newCount = Math.max(0, currentCount - 1);
+          await supabase.from("users").update({ book_count: newCount }).eq("id", contact.user_id);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "단계가 변경되었습니다." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // [보안 CUD 위임 API] 16. 자산 탈락 처리 (dropContact)
+    if (action === "dropContact") {
+      const { contactId, dropReason } = params;
+
+      if (!contactId || !dropReason) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "필수 파라미터가 누락되었습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 1. 기존 자산 조회
+      const { data: contacts, error: fetchErr } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("id", contactId);
+
+      if (fetchErr || !contacts || contacts.length === 0) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "자산을 찾을 수 없습니다." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const contact = contacts[0];
+      const oldStage = contact.stage;
+
+      // 2. 탈락 상태 업데이트
+      const { error: updateErr } = await supabase
+        .from("contacts")
+        .update({
+          status: "dropped",
+          drop_reason: dropReason,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", contactId);
+
+      if (updateErr) {
+        return new Response(
+          JSON.stringify({ result: "fail", message: "탈락 처리 실패: " + updateErr.message }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 3. 기존 복방 단계였다면 유저 복방 개수 -1 조절
+      if (oldStage === "복방") {
+        const { data: user } = await supabase.from("users").select("book_count").eq("id", contact.user_id).maybeSingle();
+        if (user) {
+          const currentCount = user.book_count || 0;
+          const newCount = Math.max(0, currentCount - 1);
+          await supabase.from("users").update({ book_count: newCount }).eq("id", contact.user_id);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ result: "success", message: "탈락 처리 완료" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
