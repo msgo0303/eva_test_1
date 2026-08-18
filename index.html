@@ -2733,6 +2733,7 @@
                             isTodayCompleted: false,
                             hasTomorrowActivity: false,
                             weeklyFindCount: 0,
+                            weeklyMatchCount: 0,
                             hasOverdueActivity: false
                         };
                         userMap[u.name] = uObj;
@@ -2773,11 +2774,46 @@
                                         if ((r.category === '찾기' || r.category === '찾기(오프)' || r.category === '찾기(온)') && (r.type === '합자찾(온)' || r.type === '합자찾(오프)')) {
                                             userMap[a.name].weeklyFindCount += (r.count !== undefined ? parseInt(r.count, 10) : 1);
                                         }
+                                        if (r.category === '매칭' && r.type !== '취소') {
+                                            userMap[a.name].weeklyMatchCount += 1;
+                                        }
                                     });
                                 }
                             }
                         }
                     });
+
+                    const getWeekNumber = (wName) => {
+                        if (!wName) return null;
+                        const match = wName.match(/(\d+)주차/);
+                        return match ? parseInt(match[1], 10) : null;
+                    };
+                    const weekNum = getWeekNumber(currentWeekName);
+
+                    const isUserUnachieved = (u) => {
+                        if (u.isExempt) return false;
+                        
+                        const bookCnt = u.bookCount !== undefined ? u.bookCount : (u.book_count || 0);
+                        if (bookCnt > 0) return false;
+
+                        if (weekNum === 5) return false;
+
+                        const sCount = u.sangtaCount || 0;
+                        const stage = (u.teacherStage || u.teacher_stage || 'C').trim().toUpperCase();
+                        const isJ7orA = (stage === 'J7' || stage === 'A');
+
+                        if (weekNum === 3 || weekNum === 4) {
+                            if (isJ7orA) {
+                                if (sCount >= 2) return false;
+                                return (u.weeklyMatchCount < 4);
+                            } else {
+                                if (sCount >= 1) return false;
+                                return ((u.weeklyFindCount + u.weeklyMatchCount) < 4);
+                            }
+                        }
+
+                        return ((u.weeklyFindCount + u.weeklyMatchCount) < 4);
+                    };
 
                     rawRiskData = {
                         targetDateStr: baseDate,
@@ -2788,8 +2824,9 @@
                         tomorrowOffReason: tomorrowOffReason,
                         todayUncollected: targetDateOff ? [] : allUsersList.filter(u => (!u.hasTodayActivity || u.hasOverdueActivity) && !u.isExempt),
                         tomorrowUncollected: tomorrowDateOff ? [] : allUsersList.filter(u => !u.hasTomorrowActivity && !u.isExempt),
-                        unachievedUsers: allUsersList.filter(u => u.bookCount === 0 && u.weeklyFindCount < 6 && !u.isExempt),
-                        allUsers: allUsersList
+                        unachievedUsers: allUsersList.filter(isUserUnachieved),
+                        allUsers: allUsersList,
+                        currentWeekName: currentWeekName
                     };
 
                     renderRiskTab();
@@ -4041,6 +4078,29 @@
             }
 
             // 3. 이번 주 찾기 미달성자
+            const getMemberMissionStatusText = (u, weekName) => {
+                const getWeekNumber = (wName) => {
+                    if (!wName) return null;
+                    const match = wName.match(/(\d+)주차/);
+                    return match ? parseInt(match[1], 10) : null;
+                };
+                const weekNum = getWeekNumber(weekName);
+                const findCnt = u.weeklyFindCount || 0;
+                const matchCnt = u.weeklyMatchCount || 0;
+                const totalCnt = findCnt + matchCnt;
+
+                if (weekNum === 3 || weekNum === 4) {
+                    const stage = (u.teacherStage || '').trim().toUpperCase();
+                    const isJ7orA = (stage === 'J7' || stage === 'A');
+                    if (isJ7orA) {
+                        return `매칭 미션 ${matchCnt}/4건`;
+                    } else {
+                        return `합산 미션 ${totalCnt}/4건`;
+                    }
+                }
+                return `합산 미션 ${totalCnt}/4건`;
+            };
+
             const unachieved = filterFn(data.unachievedUsers || []);
             $('risk-unachieved-count').textContent = unachieved.length + '명';
             const unachContainer = $('risk-unachieved-list');
@@ -4049,7 +4109,7 @@
                 : unachieved.map(u => `
                     <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-center justify-between">
                         <div><span class="font-bold text-amber-800 mr-1.5">[${escHtml(u.region || '미정')}]</span><span class="font-bold text-tg-text">${escHtml(u.name)}</span><span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(u.group_name, u.role))}</span></div>
-                        <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">이번 주 ${u.weeklyFindCount}/6건</span>
+                        <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">${getMemberMissionStatusText(u, data.currentWeekName || currentWeekName)}</span>
                     </div>
                 `).join('');
         }
