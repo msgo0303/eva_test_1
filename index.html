@@ -2501,11 +2501,21 @@
                     ]);
                     if (actErr) throw actErr;
 
-                    // 상따 보유수 계산 맵
-                    const sangtaMap = {};
+                    // 각 단계별 보유수 계산 맵
+                    const pureSangtaMap = {};
+                    const seongtaMap = {};
+                    const missionSangtaMap = {};
+
                     (contactsData || []).forEach(c => {
+                        const uid = c.user_id;
+                        if (c.stage === '따기') {
+                            pureSangtaMap[uid] = (pureSangtaMap[uid] || 0) + 1;
+                        } else if (c.stage === '성따') {
+                            seongtaMap[uid] = (seongtaMap[uid] || 0) + 1;
+                        }
+
                         if (c.stage === '따기' || c.stage === '성따' || c.stage === '복방') {
-                            sangtaMap[c.user_id] = (sangtaMap[c.user_id] || 0) + 1;
+                            missionSangtaMap[uid] = (missionSangtaMap[uid] || 0) + 1;
                         }
                     });
 
@@ -2547,7 +2557,9 @@
                         role: u.role || '',
                         group_name: u.group_name || '',
                         teacherStage: u.teacher_stage || 'C',
-                        sangtaCount: sangtaMap[u.id] || 0
+                        sangtaCount: missionSangtaMap[u.id] || 0,
+                        pureSangtaCount: pureSangtaMap[u.id] || 0,
+                        seongtaCount: seongtaMap[u.id] || 0
                     }));
 
                     renderDashboard(list, range, cachedAllUsers);
@@ -2667,10 +2679,20 @@
                         supabaseClient.from('contacts').select('user_id,stage').eq('status', 'active')
                     ]);
 
-                    const sangtaMap = {};
+                    const pureSangtaMap = {};
+                    const seongtaMap = {};
+                    const missionSangtaMap = {};
+
                     (contactsData || []).forEach(c => {
+                        const uid = c.user_id;
+                        if (c.stage === '따기') {
+                            pureSangtaMap[uid] = (pureSangtaMap[uid] || 0) + 1;
+                        } else if (c.stage === '성따') {
+                            seongtaMap[uid] = (seongtaMap[uid] || 0) + 1;
+                        }
+
                         if (c.stage === '따기' || c.stage === '성따' || c.stage === '복방') {
-                            sangtaMap[c.user_id] = (sangtaMap[c.user_id] || 0) + 1;
+                            missionSangtaMap[uid] = (missionSangtaMap[uid] || 0) + 1;
                         }
                     });
 
@@ -2678,7 +2700,9 @@
                         ...u,
                         bookCount: u.book_count || 0,
                         teacherStage: u.teacher_stage || 'C',
-                        sangtaCount: sangtaMap[u.id] || 0
+                        sangtaCount: missionSangtaMap[u.id] || 0,
+                        pureSangtaCount: pureSangtaMap[u.id] || 0,
+                        seongtaCount: seongtaMap[u.id] || 0
                     }));
 
                     const role = profile.role || "";
@@ -2700,9 +2724,11 @@
                             group_name: u.group_name,
                             role: u.role || '',
                             region: u.region,
-                            bookCount: u.book_count || 0,
+                            bookCount: u.bookCount || u.book_count || 0,
                             isExempt: u.is_exempt || false,
-                            teacherStage: u.teacher_stage || 'C',
+                            teacherStage: u.teacherStage || u.teacher_stage || 'C',
+                            pureSangtaCount: u.pureSangtaCount || 0,
+                            seongtaCount: u.seongtaCount || 0,
                             hasTodayActivity: false,
                             isTodayCompleted: false,
                             hasTomorrowActivity: false,
@@ -4054,7 +4080,7 @@
                                 <span class="font-bold text-tg-text text-sm">${escHtml(u.name)}</span>
                                 <span class="text-[10px] text-tg-muted">${escHtml(formatUserRoleLabel(u.group_name, u.role))}</span>
                             </div>
-                            <p class="text-[10px] text-tg-muted mt-0.5">미취합 예외: <span class="font-bold ${u.isExempt ? 'text-green-600' : 'text-tg-muted'}">${u.isExempt ? '예외 지정됨' : '미지정'}</span> · 복방 <span class="font-bold text-purple-700">${u.bookCount}개</span> · 교사단계 <span class="font-bold text-orange-600">${u.teacherStage || 'C'}</span></p>
+                            <p class="text-[10px] text-tg-muted mt-0.5">복방 <span class="font-bold text-purple-700">${u.bookCount || 0}개</span> · 성따 <span class="font-bold text-emerald-600">${u.seongtaCount || 0}개</span> · 상따 <span class="font-bold text-tg-blue">${u.pureSangtaCount || 0}개</span> · 교사단계 <span class="font-bold text-orange-600">${u.teacherStage || 'C'}</span></p>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             ${!(profile.role || '').includes('조장') && !(profile.role || '').includes('부조장') ? `
