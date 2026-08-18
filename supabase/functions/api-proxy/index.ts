@@ -259,6 +259,7 @@ async function sendRealtimeActivityNotification(
         userActs[name].push(act);
       }
 
+      let itemIndex = 1;
       for (const name of userNames) {
         const aggregated: Record<string, { isCounted: boolean; count: number }> = {};
         const keyOrder: string[] = [];
@@ -286,8 +287,10 @@ async function sendRealtimeActivityNotification(
           }
         });
 
-        const summaryStr = formattedResults.join(", ");
-        message += `- ${escapeHtml(name)} | ${escapeHtml(summaryStr)}\n`;
+        for (const res of formattedResults) {
+          message += `${itemIndex}. ${escapeHtml(name)} | ${escapeHtml(res)}\n`;
+          itemIndex++;
+        }
       }
     }
 
