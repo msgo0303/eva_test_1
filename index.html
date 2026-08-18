@@ -1727,7 +1727,7 @@
         const RESULT_SCHEMA = {
             '찾기(오프)': { types: ['합자찾(오프)', '오프번찾'], hasCount: true },
             '찾기(온)': { types: ['합자찾(온)'], hasCount: true },
-            '매칭': { types: ['취소', '2차', '비합', '따기'], hasCount: false },
+            '매칭': { types: ['취소', '2차', '비합', '따기', '따기(인도)'], hasCount: false },
             '잎사귀': { types: ['간증잎', '생노잎', '서류잎', '풍문잎', '기타'], hasCount: false },
             '복방': { types: ['진행', '취소'], hasCount: false }
         };
@@ -2042,7 +2042,7 @@
             };
 
             const updateContactNameVisibility = () => {
-                const isTagi = (categorySelect.value === '매칭' && typeSelect.value === '따기');
+                const isTagi = (categorySelect.value === '매칭' && (typeSelect.value === '따기' || typeSelect.value === '따기(인도)'));
                 if (isTagi) {
                     contactInput.classList.remove('hidden');
                 } else {
@@ -2078,7 +2078,7 @@
                 const countEl = row.querySelector('.res-count');
                 const count = !countEl.classList.contains('hidden') ? parseInt(countEl.value, 10) : null;
                 const contactEl = row.querySelector('.res-contact-name');
-                const contactName = (category === '매칭' && type === '따기' && contactEl) ? contactEl.value.trim() : null;
+                const contactName = (category === '매칭' && (type === '따기' || type === '따기(인도)') && contactEl) ? contactEl.value.trim() : null;
 
                 if (category && type) {
                     const key = `${category}:${type}`;

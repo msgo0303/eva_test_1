@@ -874,7 +874,7 @@ function doGet(e) {
           const parsed = JSON.parse(e.parameter.resultData);
           if (Array.isArray(parsed)) {
             parsed.forEach(r => {
-              if (r.category === "매칭" && r.type === "따기" && r.contactName) {
+              if (r.category === "매칭" && (r.type === "따기" || r.type === "따기(인도)") && r.contactName) {
                 const contactName = r.contactName.trim();
                 if (contactName) {
                   let contactSheet = ss.getSheetByName("Contacts");

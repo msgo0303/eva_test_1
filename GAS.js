@@ -347,7 +347,7 @@ function doGet(e) {
         // Auto-create contact in Supabase Contacts table
         if (e.parameter.status === "completed" && parsedResultData && Array.isArray(parsedResultData)) {
           parsedResultData.forEach(r => {
-            if (r.category === "매칭" && r.type === "따기" && r.contactName) {
+            if (r.category === "매칭" && (r.type === "따기" || r.type === "따기(인도)") && r.contactName) {
               const contactName = r.contactName.trim();
               if (contactName) {
                 // Check if contact already exists

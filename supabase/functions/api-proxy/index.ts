@@ -435,7 +435,7 @@ serve(async (req) => {
       // Auto-insert contacts if any matching - tagi exists
       if (status === "completed" && payload.result_data && Array.isArray(payload.result_data)) {
         for (const item of payload.result_data) {
-          if (item.category === "매칭" && item.type === "따기" && item.contactName) {
+          if (item.category === "매칭" && (item.type === "따기" || item.type === "따기(인도)") && item.contactName) {
             const contactName = item.contactName.trim();
             if (contactName) {
               const { data: existingContact } = await supabase
