@@ -1333,6 +1333,14 @@
                         <canvas id="chart-group"></canvas>
                     </div>
 
+                    <h3 id="chart-sangta-title"
+                        class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">
+                        👥 교사팀 상따 달성 현황</h3>
+                    <p id="chart-sangta-summary" class="text-[11px] text-tg-muted"></p>
+                    <div id="chart-sangta-container" class="w-full h-80 relative">
+                        <canvas id="chart-sangta"></canvas>
+                    </div>
+
                     <h3 id="chart-book-title"
                         class="text-xs font-bold text-tg-text uppercase tracking-wide pt-2 border-t border-tg-border">
                         🍎복음방 미션 달성 현황(1인 1복음방)</h3>
@@ -1705,6 +1713,7 @@
         let catChartInstance = null;
         let groupChartInstance = null;
         let bookChartInstance = null;
+        let sangtaChartInstance = null;
 
         const RESULT_SCHEMA = {
             '찾기(오프)': { types: ['합자찾(오프)', '오프번찾'], hasCount: true },
@@ -5623,12 +5632,15 @@
             // 컨테이너 높이 동적 조절 (지역이 1개일 경우 높이를 80px로 변경하여 그래프 두께 최적화)
             const groupContainer = $('chart-group-container');
             const bookContainer = $('chart-book-container');
+            const sangtaContainer = $('chart-sangta-container');
             if (fixedRegionsOrder.length === 1) {
                 if (groupContainer) { groupContainer.style.height = '80px'; groupContainer.classList.remove('h-80'); }
                 if (bookContainer) { bookContainer.style.height = '80px'; bookContainer.classList.remove('h-80'); }
+                if (sangtaContainer) { sangtaContainer.style.height = '80px'; sangtaContainer.classList.remove('h-80'); }
             } else {
                 if (groupContainer) { groupContainer.style.height = '320px'; groupContainer.classList.add('h-80'); }
                 if (bookContainer) { bookContainer.style.height = '320px'; bookContainer.classList.add('h-80'); }
+                if (sangtaContainer) { sangtaContainer.style.height = '320px'; sangtaContainer.classList.add('h-80'); }
             }
 
             // 지역별 실적(찾기 + 매칭(취소제외)) 집계
@@ -5934,6 +5946,95 @@
                             anchor: ctx => bookPctData[ctx.dataIndex] >= 30 ? 'end' : 'end',
                             align: ctx => bookPctData[ctx.dataIndex] >= 30 ? 'start' : 'end',
                             color: ctx => bookPctData[ctx.dataIndex] >= 30 ? '#fff' : '#374151',
+                            font: { size: 10, weight: 'bold' },
+                            clamp: true
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+            // ─────────────────────────────────────────────
+            // 4. 교사팀 상따 달성 현황 차트 그리기
+            // ─────────────────────────────────────────────
+            const ctxSangta = $('chart-sangta').getContext('2d');
+            if (sangtaChartInstance) sangtaChartInstance.destroy();
+
+            const sangtaTargets = {};
+            const sangtaAchieved = {};
+            (usersData || []).forEach(u => {
+                if (!u.isExempt) {
+                    const stage = (u.teacherStage || u.teacher_stage || 'C').trim().toUpperCase();
+                    const isJ7orA = (stage === 'J7' || stage === 'A');
+
+                    if (isJ7orA) {
+                        sangtaTargets[u.region] = (sangtaTargets[u.region] || 0) + 2;
+                        sangtaAchieved[u.region] = (sangtaAchieved[u.region] || 0) + (u.sangtaCount || 0);
+                    }
+                }
+            });
+
+            // J7, A 교사가 없는 지역도 0개로 표시되도록 기본 지역 리스트 보장
+            fixedRegionsOrder.forEach(r => {
+                if (sangtaTargets[r] === undefined) sangtaTargets[r] = 0;
+                if (sangtaAchieved[r] === undefined) sangtaAchieved[r] = 0;
+            });
+
+            const totalSangtaTarget = Object.values(sangtaTargets).reduce((a, b) => a + b, 0);
+            const totalSangtaAchieved = Object.values(sangtaAchieved).reduce((a, b) => a + b, 0);
+            const totalSangtaPct = totalSangtaTarget > 0 ? Math.round((totalSangtaAchieved / totalSangtaTarget) * 100) : 0;
+            const sangtaSummaryEl = $('chart-sangta-summary');
+            if (sangtaSummaryEl) {
+                sangtaSummaryEl.textContent = `미션 ${totalSangtaTarget}개 중 ${totalSangtaAchieved}개 달성 (${totalSangtaPct}% 달성)`;
+            }
+
+            const sangtaPctData = fixedRegionsOrder.map(r => {
+                const t = sangtaTargets[r] || 0;
+                const a = sangtaAchieved[r] || 0;
+                return t > 0 ? Math.min(Math.round((a / t) * 100), 100) : 0;
+            });
+
+            sangtaChartInstance = new Chart(ctxSangta, {
+                type: 'bar',
+                data: {
+                    labels: fixedRegionsOrder,
+                    datasets: [{
+                        label: '달성률(%)',
+                        data: sangtaPctData,
+                        backgroundColor: sangtaPctData.map(v => v >= 100 ? '#16a34a' : v >= 60 ? '#60a5fa' : '#f87171'),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+                        y: { ticks: { font: { size: 10, weight: 'bold' } } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const r = fixedRegionsOrder[ctx.dataIndex];
+                                    const t = sangtaTargets[r] || 0;
+                                    const a = sangtaAchieved[r] || 0;
+                                    const realPct = t > 0 ? Math.round((a / t) * 100) : 0;
+                                    return `${a}/${t}개 (${realPct}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: ctx => sangtaPctData[ctx.dataIndex] > 0,
+                            formatter: (value, ctx) => {
+                                const r = fixedRegionsOrder[ctx.dataIndex];
+                                const t = sangtaTargets[r] || 0;
+                                const a = sangtaAchieved[r] || 0;
+                                return `${a}/${t}개 (${value}%)`;
+                            },
+                            anchor: ctx => sangtaPctData[ctx.dataIndex] >= 30 ? 'end' : 'end',
+                            align: ctx => sangtaPctData[ctx.dataIndex] >= 30 ? 'start' : 'end',
+                            color: ctx => sangtaPctData[ctx.dataIndex] >= 30 ? '#fff' : '#374151',
                             font: { size: 10, weight: 'bold' },
                             clamp: true
                         }
