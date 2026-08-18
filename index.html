@@ -1812,43 +1812,145 @@
             const matchStatusText = $('match-mission-status-text');
             const matchProgressBar = $('match-mission-progress-bar');
 
+            if (!card || !matchCard) return;
+
             const dayOfWeek = currentDate.getDay();
             const diff = 6 - dayOfWeek;
             const ddayText = diff === 0 ? "D-Day" : `D-${diff}`;
-            
+
+            // 기본 타이틀 초기화
             $('mission-title').textContent = `🎯 주간 찾기 미션 (${ddayText})`;
             $('match-mission-title').textContent = `🤝 주간 매칭 미션 (${ddayText})`;
 
-            // 1. 찾기 미션 렌더링
+            // 0. 복방 보유 면제 처리 (가장 높은 우선순위)
             if (userHasActiveBook) {
+                card.classList.remove('hidden');
+                matchCard.classList.add('hidden');
                 card.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
                 statusText.textContent = "🎉 복방 보유 중 (주간 미션 면제)";
                 statusText.className = "text-xs font-extrabold text-emerald-700";
                 progressBar.style.width = "100%";
                 progressBar.className = "h-full bg-emerald-600 rounded-full transition-all duration-500";
+                return;
+            }
+
+            // 주차 구하기
+            const getWeekNumber = (weekName) => {
+                if (!weekName) return null;
+                const match = weekName.match(/(\d+)주차/);
+                return match ? parseInt(match[1], 10) : null;
+            };
+            const weekNum = getWeekNumber(currentWeekName);
+
+            // 상따 보유 수 구하기 (따기, 성따, 복방)
+            const activeContacts = myContacts.filter(c => c.status === 'active');
+            const sangtaCount = activeContacts.filter(c => c.stage === '따기' || c.stage === '성따' || c.stage === '복방').length;
+
+            // A. 5주차인 경우 -> 미션 없음 (숨김)
+            if (weekNum === 5) {
+                card.classList.add('hidden');
+                matchCard.classList.add('hidden');
+                return;
+            }
+
+            // B. 3~4주차인 경우
+            if (weekNum === 3 || weekNum === 4) {
+                const tStage = (profile.teacherStage || '').trim().toUpperCase();
+                const isJ7orA = (tStage === 'J7' || tStage === 'A');
+
+                if (isJ7orA) {
+                    // J7, A 단계 교사
+                    if (sangtaCount >= 2) {
+                        // 조건 1: 상따 2명 이상 보유 -> 완료
+                        card.classList.remove('hidden');
+                        matchCard.classList.add('hidden');
+                        card.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
+                        $('mission-title').textContent = `🎯 주간 미션 (상따 2명 보유) (${ddayText})`;
+                        statusText.textContent = `🎉 상따 ${sangtaCount}명 보유 (미션 면제)`;
+                        statusText.className = "text-xs font-extrabold text-emerald-700";
+                        progressBar.style.width = "100%";
+                        progressBar.className = "h-full bg-emerald-600 rounded-full transition-all duration-500";
+                    } else {
+                        // 조건 2: 상따 2명 미만 보유 -> 매칭 4건 미션
+                        card.classList.add('hidden');
+                        matchCard.classList.remove('hidden');
+                        $('match-mission-title').textContent = `🤝 주간 매칭 미션 (상따 미보유 대체) (${ddayText})`;
+                        
+                        const percent = Math.min(100, Math.round((weeklyMatchMissionCount / 4) * 100));
+                        if (weeklyMatchMissionCount >= 4) {
+                            matchCard.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
+                            matchStatusText.textContent = `🎉 달성 완료! (${weeklyMatchMissionCount} / 4건)`;
+                            matchStatusText.className = "text-xs font-extrabold text-emerald-700";
+                            matchProgressBar.style.width = "100%";
+                            matchProgressBar.className = "h-full bg-emerald-600 rounded-full transition-all duration-500";
+                        } else {
+                            matchCard.className = "px-4 py-2.5 bg-violet-50/70 border-b border-violet-100 flex items-center justify-between";
+                            matchStatusText.textContent = `${weeklyMatchMissionCount} / 4건 (${percent}%)`;
+                            matchStatusText.className = "text-xs font-extrabold text-violet-800";
+                            matchProgressBar.style.width = `${percent}%`;
+                            matchProgressBar.className = "h-full bg-violet-600 rounded-full transition-all duration-500";
+                        }
+                    }
+                } else {
+                    // B, C, NA 단계 교사 (기타 모두 포함)
+                    if (sangtaCount >= 1) {
+                        // 조건 1: 상따 1명 이상 보유 -> 완료
+                        card.classList.remove('hidden');
+                        matchCard.classList.add('hidden');
+                        card.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
+                        $('mission-title').textContent = `🎯 주간 미션 (상따 1명 보유) (${ddayText})`;
+                        statusText.textContent = `🎉 상따 ${sangtaCount}명 보유 (미션 면제)`;
+                        statusText.className = "text-xs font-extrabold text-emerald-700";
+                        progressBar.style.width = "100%";
+                        progressBar.className = "h-full bg-emerald-600 rounded-full transition-all duration-500";
+                    } else {
+                        // 조건 2: 상따 1명 미만 보유 -> 찾기+매칭 4건 미션
+                        card.classList.remove('hidden');
+                        matchCard.classList.add('hidden');
+                        $('mission-title').textContent = `🎯 주간 통합 미션 (상따 미보유 대체) (${ddayText})`;
+
+                        const totalCount = weeklyMissionCount + weeklyMatchMissionCount;
+                        const percent = Math.min(100, Math.round((totalCount / 4) * 100));
+
+                        if (totalCount >= 4) {
+                            card.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
+                            statusText.textContent = `🎉 달성 완료! (${totalCount} / 4건)`;
+                            statusText.className = "text-xs font-extrabold text-emerald-700";
+                            progressBar.style.width = "100%";
+                            progressBar.className = "h-full bg-emerald-600 rounded-full transition-all duration-500";
+                        } else {
+                            card.className = "px-4 py-2.5 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between";
+                            statusText.textContent = `${totalCount} / 4건 (${percent}%)`;
+                            statusText.className = "text-xs font-extrabold text-tg-blue";
+                            progressBar.style.width = `${percent}%`;
+                            progressBar.className = "h-full bg-tg-blue rounded-full transition-all duration-500";
+                        }
+                    }
+                }
+                return;
+            }
+
+            // C. 1~2주차인 경우 (또는 주차 정보가 파싱이 안 되었거나 기타 예외 상황 시 기본값)
+            // 미션: 합자찾(온 오프 무관) + 매칭 총 4건
+            card.classList.remove('hidden');
+            matchCard.classList.add('hidden');
+            $('mission-title').textContent = `🎯 주간 통합 미션 (합자찾+매칭) (${ddayText})`;
+
+            const totalCount = weeklyMissionCount + weeklyMatchMissionCount;
+            const percent = Math.min(100, Math.round((totalCount / 4) * 100));
+
+            if (totalCount >= 4) {
+                card.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
+                statusText.textContent = `🎉 달성 완료! (${totalCount} / 4건)`;
+                statusText.className = "text-xs font-extrabold text-emerald-700";
+                progressBar.style.width = "100%";
+                progressBar.className = "h-full bg-emerald-600 rounded-full transition-all duration-500";
             } else {
-                const percent = Math.min(100, Math.round((weeklyMissionCount / 6) * 100));
                 card.className = "px-4 py-2.5 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between";
-                statusText.textContent = `${weeklyMissionCount} / 6건 (${percent}%)`;
+                statusText.textContent = `${totalCount} / 4건 (${percent}%)`;
                 statusText.className = "text-xs font-extrabold text-tg-blue";
                 progressBar.style.width = `${percent}%`;
                 progressBar.className = "h-full bg-tg-blue rounded-full transition-all duration-500";
-            }
-
-            // 2. 매칭 미션 렌더링 (주간 4건)
-            const matchPercent = Math.min(100, Math.round((weeklyMatchMissionCount / 4) * 100));
-            if (weeklyMatchMissionCount >= 4) {
-                matchCard.className = "px-4 py-2.5 bg-emerald-50/80 border-b border-emerald-200 flex items-center justify-between";
-                matchStatusText.textContent = `🎉 달성 완료! (${weeklyMatchMissionCount} / 4건)`;
-                matchStatusText.className = "text-xs font-extrabold text-emerald-700";
-                matchProgressBar.style.width = "100%";
-                matchProgressBar.className = "h-full bg-emerald-600 rounded-full transition-all duration-500";
-            } else {
-                matchCard.className = "px-4 py-2.5 bg-violet-50/70 border-b border-violet-100 flex items-center justify-between";
-                matchStatusText.textContent = `${weeklyMatchMissionCount} / 4건 (${matchPercent}%)`;
-                matchStatusText.className = "text-xs font-extrabold text-violet-800";
-                matchProgressBar.style.width = `${matchPercent}%`;
-                matchProgressBar.className = "h-full bg-violet-600 rounded-full transition-all duration-500";
             }
         }
 
@@ -2168,6 +2270,12 @@
                             $('sem-end').value = '';
                         }
 
+                        const targetDateStr = dateKey(currentDate);
+                        const matchedSem = (semestersList || []).find(s =>
+                            s.startDate && s.endDate && targetDateStr >= s.startDate && targetDateStr <= s.endDate
+                        );
+                        currentWeekName = matchedSem ? matchedSem.name : (activeSem ? activeSem.name : "");
+
                         clearTimeout(safetyTimer);
                         $('loading-overlay').classList.add('hidden');
                         applyUserPermissionsUI(isSuper || isGroup);
@@ -2242,6 +2350,12 @@
                         $('sem-start').value = data.currentSemester.startDate || '';
                         $('sem-end').value = data.currentSemester.endDate || '';
                     }
+
+                    const targetDateStr = dateKey(currentDate);
+                    const matchedSem = (semestersList || []).find(s =>
+                        s.startDate && s.endDate && targetDateStr >= s.startDate && targetDateStr <= s.endDate
+                    );
+                    currentWeekName = matchedSem ? matchedSem.name : (data.currentSemester ? data.currentSemester.name : "");
 
                     applyUserPermissionsUI(data.isAdmin);
                     renderNoticeList(data.notices || []);
@@ -2818,6 +2932,7 @@
                     if (data.result === 'success') {
                         myContacts = data.contacts || [];
                         renderContacts();
+                        renderWeeklyMissionUI();
                     }
                 } catch (e) {
                     console.error("contacts fetch error:", e);
@@ -2829,6 +2944,7 @@
                     if (data.result === 'success') {
                         myContacts = data.contacts || [];
                         renderContacts();
+                        renderWeeklyMissionUI();
                     }
                 } catch (e) {
                     console.error("contacts fetch error (GAS):", e);
