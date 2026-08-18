@@ -1427,8 +1427,8 @@
                 <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 cursor-pointer select-none" onclick="toggleUnachievedList()">
-                            <h3 class="text-xs font-bold text-amber-800">🎯 이번 주 찾기 미달성자 명단</h3>
-                            <p class="text-[10px] text-amber-600 mt-0.5">복방 0개 + 이번 주 찾기(온+오프만) 6개 미만 인원</p>
+                            <h3 class="text-xs font-bold text-amber-800">🎯 이번 주 미션 미달성자 명단</h3>
+                            <p class="text-[10px] text-amber-600 mt-0.5">주차별/교사단계별 이번 주 미션 미달성 인원 (예외 및 복방 보유자 제외)</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="openRiskSendModal('unachieved')"
@@ -5185,7 +5185,7 @@
             } else if (category === 'tomorrow') {
                 titleHeader = "📢 내일 일정 미입력자 알림\n\n내일 일정을 아직 등록하지 않은 인원입니다. 작성 바랍니다!";
             } else if (category === 'unachieved') {
-                titleHeader = "🎯 주간 찾기 미달성자 알림\n\n이번 주 목표(찾기 6개)를 아직 달성하지 못한 인원입니다. 힘내서 달성해 봅시다!";
+                titleHeader = "🎯 주간 미션 미달성자 알림\n\n이번 주 미션(합산 4건 또는 매칭 4건)을 아직 달성하지 못한 인원입니다. 힘내서 달성해 봅시다!";
             }
 
             if (!uncollectedList || uncollectedList.length === 0) return "";
@@ -5233,7 +5233,7 @@
                 titleStr = "🌙 내일 계획 미취합 독촉 알림";
             } else if (category === 'unachieved') {
                 list = rawRiskData ? rawRiskData.unachievedUsers : [];
-                titleStr = "🎯 주간 찾기 미달성 독촉 알림";
+                titleStr = "🎯 주간 미션 미달성 독촉 알림";
             }
 
             // 대상자가 없는 경우 처리
